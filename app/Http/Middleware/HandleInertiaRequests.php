@@ -35,13 +35,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // A platform admin is an authenticated user with no active tenant — their `User` row
+        // lives in the central database, which has no Spatie permission tables, so `isAdmin()`
+        // (which queries those tables) must never be called for them.
+        $isSuperAdmin = $request->user() !== null && ! tenancy()->initialized;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
-                'isAdmin' => $request->user()?->isAdmin() ?? false,
+                'isAdmin' => ! $isSuperAdmin && ($request->user()?->isAdmin() ?? false),
+                'isSuperAdmin' => $isSuperAdmin,
             ],
+            'tenant' => tenancy()->initialized ? ['name' => tenant('name')] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

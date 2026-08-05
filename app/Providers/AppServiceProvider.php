@@ -24,6 +24,23 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureTestDatabase();
+    }
+
+    /**
+     * Tests run against one flat database (not real multi-tenancy), so the tenant-only
+     * migrations (tanks, transactions, roles, etc.) need to merge into that same database
+     * alongside the central ones — otherwise business-logic tests would be missing almost every
+     * table. `loadMigrationsFrom` registers an additional path the migrator always includes,
+     * regardless of a command's own `--path` option, which a `TestCase::migrateFreshUsing()`
+     * override can't reliably achieve (RefreshDatabase's own trait method takes precedence over
+     * an inherited parent-class override in PHP's method resolution).
+     */
+    protected function configureTestDatabase(): void
+    {
+        if ($this->app->environment('testing')) {
+            $this->loadMigrationsFrom(database_path('migrations/tenant'));
+        }
     }
 
     /**

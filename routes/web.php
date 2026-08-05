@@ -11,56 +11,84 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CashBoxController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\DebtorController;
+use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryEntryController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PumpCounterReadingController;
 use App\Http\Controllers\SadcopController;
+use App\Http\Controllers\StationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TankTopUpController;
 use App\Http\Controllers\TankVolumeCalculatorController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\RequireOnboarding;
+use App\Http\Middleware\RequireSuperAdmin;
+use App\Http\Middleware\RequireTenant;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/cash-box')->name('home');
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
-    Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
+Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name('platform.')->group(function () {
+    Route::get('/', [StationController::class, 'index'])->name('home');
+    Route::get('stations/create', [StationController::class, 'create'])->name('stations.create');
+    Route::post('stations', [StationController::class, 'store'])->name('stations.store');
+});
 
-    Route::resource('transactions', TransactionController::class)->except('show');
-    Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
+Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->group(function () {
+    Route::get('password/force-change', [ForcePasswordChangeController::class, 'edit'])->name('password.force-change');
+    Route::patch('password/force-change', [ForcePasswordChangeController::class, 'update'])->name('password.force-change.update');
 
-    Route::get('inventory', [InventoryEntryController::class, 'index'])->name('inventory.index');
-    Route::post('inventory', [InventoryEntryController::class, 'store'])->name('inventory.store');
-    Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf');
-    Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf');
-    Route::post('tank-top-ups', [TankTopUpController::class, 'store'])->name('tank-top-ups.store');
+    Route::prefix('onboarding')->name('onboarding.')->group(function () {
+        Route::get('/', [OnboardingController::class, 'show'])->name('wizard');
+        Route::post('sadcop-opening-balance', [OnboardingController::class, 'storeSadcopOpeningBalance'])->name('sadcop-opening-balance');
+        Route::post('tank-levels', [OnboardingController::class, 'storeTankLevels'])->name('tank-levels');
+        Route::post('pump-readings', [OnboardingController::class, 'storePumpReadings'])->name('pump-readings');
+        Route::post('fuel-prices', [OnboardingController::class, 'storeFuelPrices'])->name('fuel-prices');
+        Route::post('debts', [OnboardingController::class, 'storeDebt'])->name('debts');
+        Route::post('finish', [OnboardingController::class, 'finish'])->name('finish');
+    });
 
-    Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
+    Route::middleware([RequireOnboarding::class])->group(function () {
+        Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
+        Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
 
-    Route::resource('debts', DebtController::class)->except('show');
-    Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
-    Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
+        Route::resource('transactions', TransactionController::class)->except('show');
+        Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
 
-    Route::resource('debtors', DebtorController::class)->except('show');
-    Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');
-    Route::patch('debtors/{debtor}/settle-all', [DebtorController::class, 'settleAll'])->name('debtors.settle-all');
+        Route::get('inventory', [InventoryEntryController::class, 'index'])->name('inventory.index');
+        Route::post('inventory', [InventoryEntryController::class, 'store'])->name('inventory.store');
+        Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf');
+        Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf');
+        Route::post('tank-top-ups', [TankTopUpController::class, 'store'])->name('tank-top-ups.store');
 
-    Route::get('sadcop', [SadcopController::class, 'index'])->name('sadcop.index');
-    Route::get('sadcop/export-pdf', [SadcopController::class, 'exportPdf'])->name('sadcop.export-pdf');
-    Route::get('sadcop/deliveries/create', [SadcopController::class, 'createDelivery'])->name('sadcop.deliveries.create');
-    Route::post('sadcop/deliveries', [SadcopController::class, 'storeDelivery'])->name('sadcop.deliveries.store');
-    Route::get('sadcop/deposits/create', [SadcopController::class, 'createDeposit'])->name('sadcop.deposits.create')->middleware('role:admin');
-    Route::post('sadcop/deposits', [SadcopController::class, 'storeDeposit'])->name('sadcop.deposits.store')->middleware('role:admin');
-    Route::post('sadcop/opening-balance', [SadcopController::class, 'storeOpeningBalance'])->name('sadcop.opening-balance.store')->middleware('role:admin');
+        Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
 
-    Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
-    Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
+        Route::resource('debts', DebtController::class)->except('show');
+        Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
+        Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
 
-    Route::get('pump-counters', [PumpCounterReadingController::class, 'index'])->name('pump-counters.index');
-    Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');
-    Route::post('pump-counters', [PumpCounterReadingController::class, 'store'])->name('pump-counters.store');
-    Route::get('pump-counters/{pumpCounterReading}/edit', [PumpCounterReadingController::class, 'edit'])->name('pump-counters.edit')->middleware('role:admin');
-    Route::patch('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'update'])->name('pump-counters.update')->middleware('role:admin');
+        Route::resource('debtors', DebtorController::class)->except('show');
+        Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');
+        Route::patch('debtors/{debtor}/settle-all', [DebtorController::class, 'settleAll'])->name('debtors.settle-all');
+
+        Route::get('sadcop', [SadcopController::class, 'index'])->name('sadcop.index');
+        Route::get('sadcop/export-pdf', [SadcopController::class, 'exportPdf'])->name('sadcop.export-pdf');
+        Route::get('sadcop/deliveries/create', [SadcopController::class, 'createDelivery'])->name('sadcop.deliveries.create');
+        Route::post('sadcop/deliveries', [SadcopController::class, 'storeDelivery'])->name('sadcop.deliveries.store');
+        Route::get('sadcop/deposits/create', [SadcopController::class, 'createDeposit'])->name('sadcop.deposits.create')->middleware('role:admin');
+        Route::post('sadcop/deposits', [SadcopController::class, 'storeDeposit'])->name('sadcop.deposits.store')->middleware('role:admin');
+        Route::post('sadcop/opening-balance', [SadcopController::class, 'storeOpeningBalance'])->name('sadcop.opening-balance.store')->middleware('role:admin');
+
+        Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
+        Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
+
+        Route::get('pump-counters', [PumpCounterReadingController::class, 'index'])->name('pump-counters.index');
+        Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');
+        Route::post('pump-counters', [PumpCounterReadingController::class, 'store'])->name('pump-counters.store');
+        Route::get('pump-counters/{pumpCounterReading}/edit', [PumpCounterReadingController::class, 'edit'])->name('pump-counters.edit')->middleware('role:admin');
+        Route::patch('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'update'])->name('pump-counters.update')->middleware('role:admin');
+    });
 
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class)->except('show');

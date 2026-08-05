@@ -44,6 +44,23 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        // The central ("landlord") database: platform admins, the tenant directory, and
+        // sessions/cache all live here regardless of which tenant is currently active — see
+        // config/tenancy.php's central_connection and SESSION_CONNECTION in .env. Tenant
+        // connections are derived from this one at runtime (same driver settings, only the
+        // `database` path swapped per tenant), so it also serves as their template.
+        'central' => [
+            'driver' => 'sqlite',
+            'url' => env('DB_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+            'transaction_mode' => 'DEFERRED',
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

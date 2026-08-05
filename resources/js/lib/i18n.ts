@@ -82,6 +82,9 @@ const dictionary = {
         'auth.confirm_password.description':
             'This is a secure area of the application. Please confirm your password before continuing.',
         'auth.confirm_password.submit': 'Confirm password',
+        'auth.force_password_change.title': 'Set your password',
+        'auth.force_password_change.description':
+            'Set a new password to continue — this replaces the temporary one you were given.',
 
         'settings.title': 'Settings',
         'settings.description': 'Manage your profile and account settings',
@@ -432,6 +435,9 @@ const dictionary = {
         'auth.confirm_password.description':
             'هذه منطقة محمية من التطبيق. يرجى تأكيد كلمة المرور قبل الاستمرار.',
         'auth.confirm_password.submit': 'تأكيد كلمة المرور',
+        'auth.force_password_change.title': 'عيّن كلمة المرور الخاصة بك',
+        'auth.force_password_change.description':
+            'عيّن كلمة مرور جديدة للمتابعة — ستحل محل كلمة المرور المؤقتة التي حصلت عليها.',
 
         'settings.title': 'الإعدادات',
         'settings.description': 'إدارة الملف الشخصي وإعدادات الحساب',
