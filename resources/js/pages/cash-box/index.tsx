@@ -1,6 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { CurrencyCard } from '@/components/currency-card';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -13,18 +12,38 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatNumber, formatSyp } from '@/lib/format';
+import { formatCurrencyAmount, formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import { exportPdf, index } from '@/routes/cash-box';
-import type { CashBox, CashBoxSummary } from '@/types';
+import type { CashBox, CashBoxSummary, Currency } from '@/types';
 
 type PageProps = {
     filters: { from: string; to: string };
     cashBox: CashBox;
 };
 
-function CashBoxGrid({
+/** Every currency besides SYP that has activity anywhere in this summary. */
+function otherCurrencies(totals: CashBoxSummary): Currency[] {
+    const found = new Set<Currency>();
+
+    for (const breakdown of [
+        totals.income,
+        totals.other_expense,
+        totals.net,
+        totals.debts,
+    ]) {
+        for (const currency of Object.keys(breakdown) as Currency[]) {
+            if (currency !== 'SYP') {
+                found.add(currency);
+            }
+        }
+    }
+
+    return Array.from(found);
+}
+
+function SypGrid({
     totals,
     t,
 }: {
@@ -33,10 +52,14 @@ function CashBoxGrid({
 }) {
     return (
         <div className="grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <CurrencyCard
-                label={t('dashboard.income')}
-                breakdown={totals.income}
-            />
+            <Card>
+                <CardHeader>
+                    <CardDescription>{t('dashboard.income')}</CardDescription>
+                    <CardTitle className="text-2xl">
+                        {formatSyp(totals.income.SYP)}
+                    </CardTitle>
+                </CardHeader>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardDescription>
@@ -47,11 +70,24 @@ function CashBoxGrid({
                     </CardTitle>
                 </CardHeader>
             </Card>
-            <CurrencyCard
-                label={t('cash_box.other_expenses')}
-                breakdown={totals.other_expense}
-            />
-            <CurrencyCard label={t('dashboard.net')} breakdown={totals.net} />
+            <Card>
+                <CardHeader>
+                    <CardDescription>
+                        {t('cash_box.other_expenses')}
+                    </CardDescription>
+                    <CardTitle className="text-2xl">
+                        {formatSyp(totals.other_expense.SYP)}
+                    </CardTitle>
+                </CardHeader>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardDescription>{t('dashboard.net')}</CardDescription>
+                    <CardTitle className="text-2xl">
+                        {formatSyp(totals.net.SYP)}
+                    </CardTitle>
+                </CardHeader>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardDescription>
@@ -62,10 +98,14 @@ function CashBoxGrid({
                     </CardTitle>
                 </CardHeader>
             </Card>
-            <CurrencyCard
-                label={t('dashboard.debts')}
-                breakdown={totals.debts}
-                extraContent={
+            <Card>
+                <CardHeader>
+                    <CardDescription>{t('dashboard.debts')}</CardDescription>
+                    <CardTitle className="text-2xl">
+                        {formatSyp(totals.debts.SYP)}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
                             {t('dashboard.liters_sold_in_debt')}
@@ -74,8 +114,95 @@ function CashBoxGrid({
                             {formatNumber(totals.debts_liters_sold)} L
                         </span>
                     </div>
-                }
-            />
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+function OtherCurrencyBoxes({
+    totals,
+    t,
+}: {
+    totals: CashBoxSummary;
+    t: (key: TranslationKey) => string;
+}) {
+    const currencies = otherCurrencies(totals);
+
+    if (currencies.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {currencies.map((currency) => (
+                <Card key={currency}>
+                    <CardHeader>
+                        <CardTitle>{currency}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">
+                                {t('dashboard.income')}
+                            </span>
+                            <span className="font-medium">
+                                {formatCurrencyAmount(
+                                    totals.income[currency] ?? 0,
+                                    currency,
+                                )}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">
+                                {t('cash_box.other_expenses')}
+                            </span>
+                            <span className="font-medium">
+                                {formatCurrencyAmount(
+                                    totals.other_expense[currency] ?? 0,
+                                    currency,
+                                )}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">
+                                {t('dashboard.net')}
+                            </span>
+                            <span className="font-medium">
+                                {formatCurrencyAmount(
+                                    totals.net[currency] ?? 0,
+                                    currency,
+                                )}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">
+                                {t('dashboard.debts')}
+                            </span>
+                            <span className="font-medium">
+                                {formatCurrencyAmount(
+                                    totals.debts[currency] ?? 0,
+                                    currency,
+                                )}
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+function CashBoxSection({
+    totals,
+    t,
+}: {
+    totals: CashBoxSummary;
+    t: (key: TranslationKey) => string;
+}) {
+    return (
+        <div className="space-y-4">
+            <SypGrid totals={totals} t={t} />
+            <OtherCurrencyBoxes totals={totals} t={t} />
         </div>
     );
 }
@@ -145,17 +272,17 @@ export default function CashBoxIndex() {
 
                 <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground">
-                        {t('cash_box.selected_period')} ({filters.from} —{' '}
-                        {filters.to})
+                        {t('dashboard.today')}
                     </h2>
-                    <CashBoxGrid totals={totals.period} t={t} />
+                    <CashBoxSection totals={totals.today} t={t} />
                 </div>
 
                 <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground">
-                        {t('dashboard.today')}
+                        {t('cash_box.selected_period')} ({filters.from} —{' '}
+                        {filters.to})
                     </h2>
-                    <CashBoxGrid totals={totals.today} t={t} />
+                    <CashBoxSection totals={totals.period} t={t} />
                 </div>
             </div>
         </>
