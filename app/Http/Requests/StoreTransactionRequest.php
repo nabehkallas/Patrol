@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Currency;
 use App\Enums\TransactionType;
+use App\Models\FuelPump;
 use App\Models\Tank;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,6 +17,7 @@ class StoreTransactionRequest extends FormRequest
         return [
             'type' => ['required', new Enum(TransactionType::class)],
             'tank_id' => ['required_if:type,fuel_sale,fuel_delivery', 'nullable', 'exists:tanks,id'],
+            'pump_id' => ['required_if:type,fuel_sale', 'nullable', 'exists:fuel_pumps,id'],
             'liters' => ['required_if:type,fuel_sale,fuel_delivery', 'nullable', 'numeric', 'min:0.001'],
             'price_per_liter' => ['required_if:type,fuel_sale', 'nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string', 'max:255'],
@@ -32,6 +34,12 @@ class StoreTransactionRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if ($this->input('type') === TransactionType::FuelSale->value) {
+                $this->validatePumpFuelTypeMatch($validator);
+
+                return;
+            }
+
             if ($this->input('type') !== TransactionType::FuelDelivery->value) {
                 return;
             }
@@ -51,5 +59,19 @@ class StoreTransactionRequest extends FormRequest
                 ]));
             }
         });
+    }
+
+    private function validatePumpFuelTypeMatch(Validator $validator): void
+    {
+        $pump = FuelPump::find($this->input('pump_id'));
+        $tank = Tank::find($this->input('tank_id'));
+
+        if (! $pump || ! $tank || $pump->fuel_type_id === null) {
+            return;
+        }
+
+        if ($pump->fuel_type_id !== $tank->fuel_type_id) {
+            $validator->errors()->add('tank_id', __('This tank\'s fuel type does not match the selected pump.'));
+        }
     }
 }

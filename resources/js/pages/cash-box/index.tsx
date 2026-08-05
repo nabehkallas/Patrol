@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { CurrencyCard } from '@/components/currency-card';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -32,14 +33,10 @@ function CashBoxGrid({
 }) {
     return (
         <div className="grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.income')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.income_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
+            <CurrencyCard
+                label={t('dashboard.income')}
+                breakdown={totals.income}
+            />
             <Card>
                 <CardHeader>
                     <CardDescription>
@@ -50,24 +47,11 @@ function CashBoxGrid({
                     </CardTitle>
                 </CardHeader>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('cash_box.other_expenses')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.other_expense_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.net')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.net_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
+            <CurrencyCard
+                label={t('cash_box.other_expenses')}
+                breakdown={totals.other_expense}
+            />
+            <CurrencyCard label={t('dashboard.net')} breakdown={totals.net} />
             <Card>
                 <CardHeader>
                     <CardDescription>
@@ -78,14 +62,10 @@ function CashBoxGrid({
                     </CardTitle>
                 </CardHeader>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.debts')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.debts_syp)}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
+            <CurrencyCard
+                label={t('dashboard.debts')}
+                breakdown={totals.debts}
+                extraContent={
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
                             {t('dashboard.liters_sold_in_debt')}
@@ -94,8 +74,8 @@ function CashBoxGrid({
                             {formatNumber(totals.debts_liters_sold)} L
                         </span>
                     </div>
-                </CardContent>
-            </Card>
+                }
+            />
         </div>
     );
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Enums\Currency;
 use App\Enums\DebtStatus;
+use App\Enums\TransactionType;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Debtor;
 use App\Models\ExchangeRate;
+use App\Models\FuelPump;
+use App\Models\PumpCounterReading;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
@@ -100,6 +103,7 @@ class TransactionController extends Controller
     {
         return Inertia::render('transactions/create', [
             'tanks' => $this->tankOptions(),
+            'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'exchangeRates' => collect(Currency::cases())->mapWithKeys(
                 fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
@@ -139,6 +143,8 @@ class TransactionController extends Controller
                     'recorded_by_id' => $transaction->user_id,
                 ]);
             }
+
+            $this->syncPumpCounterReading($transaction);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction recorded.')]);
@@ -155,13 +161,14 @@ class TransactionController extends Controller
         return Inertia::render('transactions/edit', [
             'transaction' => [
                 ...$transaction->only([
-                    'id', 'type', 'fuel_type_id', 'tank_id', 'liters', 'price_per_liter',
+                    'id', 'type', 'fuel_type_id', 'tank_id', 'pump_id', 'liters', 'price_per_liter',
                     'description', 'amount', 'currency', 'exchange_rate_to_usd',
                     'occurred_at', 'notes',
                 ]),
                 'debt' => $transaction->debt?->only(['debtor_id']),
             ],
             'tanks' => $this->tankOptions(),
+            'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'exchangeRates' => collect(Currency::cases())->mapWithKeys(
                 fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
@@ -208,6 +215,8 @@ class TransactionController extends Controller
             } elseif ($existingDebt) {
                 $existingDebt->delete();
             }
+
+            $this->syncPumpCounterReading($transaction);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
@@ -219,11 +228,56 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
 
+        $transaction->pumpCounterReading()->delete();
         $transaction->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction deleted.')]);
 
         return to_route('transactions.index');
+    }
+
+    /**
+     * Keeps a fuel_sale transaction's pump counter in sync: a sale through a pump really did
+     * advance that pump's physical meter, so we record it as a PumpCounterReading (not a
+     * separate tally) — this way Pump Counters' daily totals/history pick it up automatically,
+     * and the next real meter reading's diff won't double-count these liters.
+     */
+    private function syncPumpCounterReading(Transaction $transaction): void
+    {
+        $existing = $transaction->pumpCounterReading;
+
+        if ($transaction->type !== TransactionType::FuelSale || $transaction->pump_id === null) {
+            $existing?->delete();
+
+            return;
+        }
+
+        $baselineQuery = PumpCounterReading::where('pump_id', $transaction->pump_id)->latest('id');
+
+        if ($existing) {
+            $baselineQuery->where('id', '!=', $existing->id);
+        }
+
+        $baseline = (float) ($baselineQuery->first()?->reading_value ?? 0);
+        $liters = (float) $transaction->liters;
+
+        $existing?->delete();
+
+        PumpCounterReading::create([
+            'pump_id' => $transaction->pump_id,
+            'tank_id' => $transaction->tank_id,
+            'date' => $transaction->occurred_at->toDateString(),
+            'reading_value' => round($baseline + $liters, 3),
+            'liters_sold' => round($liters, 3),
+            'transaction_id' => $transaction->id,
+            'recorded_by_id' => $transaction->user_id,
+            'notes' => __('Recorded from Transactions'),
+        ]);
+    }
+
+    private function pumpOptions()
+    {
+        return FuelPump::orderBy('name')->get(['id', 'name', 'fuel_type_id']);
     }
 
     private function tankOptions()

@@ -37,6 +37,7 @@ const dictionary = {
         'common.fuel_type': 'Fuel type',
         'common.none': 'None',
         'common.tank': 'Tank',
+        'common.pump': 'Pump',
         'common.liters': 'Liters',
         'common.max': 'max',
         'common.exceeds_tank_capacity':
@@ -387,6 +388,7 @@ const dictionary = {
         'common.fuel_type': 'نوع الوقود',
         'common.none': 'بلا',
         'common.tank': 'الخزان',
+        'common.pump': 'المضخة',
         'common.liters': 'لتر',
         'common.max': 'الحد الأقصى',
         'common.exceeds_tank_capacity': 'هذا يتجاوز السعة المتبقية للخزان',

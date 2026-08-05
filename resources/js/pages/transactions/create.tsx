@@ -21,14 +21,21 @@ import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/transactions';
 import type { Currency, Debtor, TankOption, TransactionType } from '@/types';
 
+type PumpOption = {
+    id: number;
+    name: string;
+    fuel_type_id: number | null;
+};
+
 type PageProps = {
     tanks: TankOption[];
+    pumps: PumpOption[];
     debtors: Debtor[];
     exchangeRates: Record<Currency, number>;
 };
 
 export default function TransactionCreate() {
-    const { tanks, debtors, exchangeRates } = usePage<PageProps>().props;
+    const { tanks, pumps, debtors, exchangeRates } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const typeLabels: Record<TransactionType, string> = {
@@ -41,6 +48,7 @@ export default function TransactionCreate() {
     const form = useForm({
         type: 'fuel_sale' as TransactionType,
         tank_id: String(tanks[0]?.id ?? ''),
+        pump_id: String(pumps[0]?.id ?? ''),
         liters: '',
         price_per_liter: tanks[0]?.currentPrice?.price_per_liter ?? '',
         description: '',
@@ -66,6 +74,21 @@ export default function TransactionCreate() {
         [tanks, form.data.tank_id],
     );
 
+    const selectedPump = useMemo(
+        () => pumps.find((pump) => pump.id === Number(form.data.pump_id)),
+        [pumps, form.data.pump_id],
+    );
+
+    const availableTanks = useMemo(
+        () =>
+            form.data.type === 'fuel_sale' && selectedPump?.fuel_type_id
+                ? tanks.filter(
+                      (tank) => tank.fuel_type_id === selectedPump.fuel_type_id,
+                  )
+                : tanks,
+        [tanks, selectedPump, form.data.type],
+    );
+
     function handleTankChange(id: string) {
         const tank = tanks.find((item) => item.id === Number(id));
 
@@ -75,6 +98,24 @@ export default function TransactionCreate() {
             price_per_liter:
                 tank?.currentPrice?.price_per_liter ?? data.price_per_liter,
             currency: (tank?.currentPrice?.currency ??
+                data.currency) as Currency,
+        }));
+    }
+
+    function handlePumpChange(id: string) {
+        const pump = pumps.find((item) => item.id === Number(id));
+        const nextTanks = pump?.fuel_type_id
+            ? tanks.filter((tank) => tank.fuel_type_id === pump.fuel_type_id)
+            : tanks;
+        const nextTank = nextTanks[0];
+
+        form.setData((data) => ({
+            ...data,
+            pump_id: id,
+            tank_id: String(nextTank?.id ?? ''),
+            price_per_liter:
+                nextTank?.currentPrice?.price_per_liter ?? data.price_per_liter,
+            currency: (nextTank?.currentPrice?.currency ??
                 data.currency) as Currency,
         }));
     }
@@ -156,6 +197,37 @@ export default function TransactionCreate() {
 
                     {tankBased && (
                         <>
+                            {form.data.type === 'fuel_sale' && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="pump_id">
+                                        {t('common.pump')}
+                                    </Label>
+                                    <Select
+                                        value={String(form.data.pump_id)}
+                                        onValueChange={handlePumpChange}
+                                        name="pump_id"
+                                    >
+                                        <SelectTrigger
+                                            id="pump_id"
+                                            className="w-full"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {pumps.map((pump) => (
+                                                <SelectItem
+                                                    key={pump.id}
+                                                    value={String(pump.id)}
+                                                >
+                                                    {pump.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={form.errors.pump_id} />
+                                </div>
+                            )}
+
                             <div className="grid gap-2">
                                 <Label htmlFor="tank_id">
                                     {t('common.tank')}
@@ -172,7 +244,7 @@ export default function TransactionCreate() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {tanks.map((tank) => (
+                                        {availableTanks.map((tank) => (
                                             <SelectItem
                                                 key={tank.id}
                                                 value={String(tank.id)}

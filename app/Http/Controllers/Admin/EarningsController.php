@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UnlockEarningsRequest;
 use App\Models\Debt;
 use App\Models\EarningsPassword;
 use App\Models\ExchangeRate;
+use App\Models\FuelPrice;
 use App\Models\FuelType;
 use App\Models\TankTopUp;
 use App\Models\Transaction;
@@ -87,20 +88,20 @@ class EarningsController extends Controller
         $fromDt = $from->copy()->startOfDay();
         $toDt = $to->copy()->endOfDay();
 
-        $fuelTypes = FuelType::orderBy('name')->get();
+        $fuelTypes = FuelType::with('prices')->orderBy('name')->get();
 
-        $fuelSaleLiters = Transaction::query()
+        $fuelSales = Transaction::query()
             ->where('type', TransactionType::FuelSale)
             ->where('occurred_at', '>=', $fromDt)
             ->where('occurred_at', '<=', $toDt)
-            ->get(['fuel_type_id', 'liters']);
+            ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
 
-        $standaloneDebtLiters = Debt::query()
+        $standaloneDebtSales = Debt::query()
             ->whereNotNull('liters')
             ->whereNull('transaction_id')
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
-            ->get(['fuel_type_id', 'liters']);
+            ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'date']);
 
         $topUps = TankTopUp::query()
             ->whereDate('date', '>=', $from->toDateString())
@@ -110,16 +111,27 @@ class EarningsController extends Controller
 
         $total = 0.0;
 
-        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSaleLiters, $standaloneDebtLiters, $topUps, $sypRate, &$total) {
-            $litersSold = (float) $fuelSaleLiters->where('fuel_type_id', $fuelType->id)->sum('liters')
-                + (float) $standaloneDebtLiters->where('fuel_type_id', $fuelType->id)->sum('liters');
+        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $sypRate, &$total) {
+            $sales = $fuelSales->where('fuel_type_id', $fuelType->id);
+            $debtSales = $standaloneDebtSales->where('fuel_type_id', $fuelType->id);
+
+            $litersSold = (float) $sales->sum('liters') + (float) $debtSales->sum('liters');
+
+            $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
+
+            // Real profit, sale by sale: what was actually charged minus the fuel type's cost
+            // basis on that specific sale's date (its official price then x (1 - margin%)) —
+            // not liters x today's margin, so a sale at a custom price, or one made before the
+            // official price has since changed, is still accounted for correctly.
+            $marginEarningsSyp = $sales->sum(fn (Transaction $sale) => $this->actualProfitSyp(
+                $fuelType, $sale->occurred_at, (float) $sale->liters, $sale->amountInSyp($sypRate), $marginPercent, $sypRate,
+            )) + $debtSales->sum(fn (Debt $debt) => $this->actualProfitSyp(
+                $fuelType, $debt->date, (float) $debt->liters, $debt->amountInSyp($sypRate), $marginPercent, $sypRate,
+            ));
 
             $currentPrice = $fuelType->currentPrice();
             $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
-
-            $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
             $marginSyp = $priceSyp * ($marginPercent / 100);
-            $marginEarningsSyp = $litersSold * $marginSyp;
 
             $topUpLiters = (float) $topUps
                 ->filter(fn (TankTopUp $topUp) => $topUp->tank?->fuel_type_id === $fuelType->id)
@@ -144,6 +156,30 @@ class EarningsController extends Controller
         })->values()->all();
 
         return [$breakdown, $total];
+    }
+
+    /**
+     * Real profit for one sale: actual revenue collected minus the fuel type's cost basis on
+     * the date of that specific sale (its official selling price back then x (1 - margin%)).
+     * Margin percent itself has no historical record — only the current value is ever known —
+     * so it's the one input here that isn't looked up as of the sale's date.
+     */
+    private function actualProfitSyp(FuelType $fuelType, CarbonInterface $occurredAt, float $liters, float $revenueSyp, float $marginPercent, float $sypRate): float
+    {
+        if ($liters <= 0) {
+            return 0.0;
+        }
+
+        $priceAtSale = $fuelType->prices
+            ->filter(fn (FuelPrice $price) => $price->effective_at <= $occurredAt)
+            ->sortByDesc('effective_at')
+            ->first();
+
+        $costPerLiterSyp = $priceAtSale
+            ? $priceAtSale->amountInSyp($sypRate) * (1 - $marginPercent / 100)
+            : 0.0;
+
+        return $revenueSyp - ($liters * $costPerLiterSyp);
     }
 
     /**

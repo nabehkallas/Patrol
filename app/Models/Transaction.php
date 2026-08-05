@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'type',
     'fuel_type_id',
     'tank_id',
+    'pump_id',
     'liters',
     'price_per_liter',
     'description',
@@ -58,6 +59,11 @@ class Transaction extends Model
         return $this->belongsTo(Tank::class);
     }
 
+    public function pump(): BelongsTo
+    {
+        return $this->belongsTo(FuelPump::class, 'pump_id');
+    }
+
     public function debt(): HasOne
     {
         return $this->hasOne(Debt::class);
@@ -66,6 +72,11 @@ class Transaction extends Model
     public function sadcopLedgerEntry(): HasOne
     {
         return $this->hasOne(SadcopLedgerEntry::class);
+    }
+
+    public function pumpCounterReading(): HasOne
+    {
+        return $this->hasOne(PumpCounterReading::class, 'transaction_id');
     }
 
     public function isPendingDebt(): bool

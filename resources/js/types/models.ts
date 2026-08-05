@@ -85,6 +85,7 @@ export type Transaction = {
     type: TransactionType;
     fuel_type_id: number | null;
     tank_id: number | null;
+    pump_id: number | null;
     liters: string | null;
     price_per_liter: string | null;
     description: string | null;
@@ -96,6 +97,7 @@ export type Transaction = {
     user?: UserSummary;
     fuel_type?: FuelType | null;
     tank?: Tank | null;
+    pump?: { id: number; name: string } | null;
     debt?: {
         debtor_id?: number;
         debtor?: { name: string };
@@ -201,25 +203,22 @@ export type TransactionTotals = {
     debts_liters_sold: number;
 };
 
-export type DebtsSummary = {
-    outstanding_syp: number;
-    total_syp: number;
+export type CurrencyBreakdown = Partial<Record<Currency, number>> & {
+    SYP: number;
 };
 
-export type DailyCashBox = {
-    SYP: number;
-    TRY: number;
-    USD: number;
+export type DebtsSummary = {
+    outstanding: CurrencyBreakdown;
+    total: CurrencyBreakdown;
 };
 
 export type CashBoxSummary = {
-    income_syp: number;
+    income: CurrencyBreakdown;
     sadcop_expense_syp: number;
-    other_expense_syp: number;
-    expense_syp: number;
-    net_syp: number;
+    other_expense: CurrencyBreakdown;
+    net: CurrencyBreakdown;
     liters_sold: number;
-    debts_syp: number;
+    debts: CurrencyBreakdown;
     debts_liters_sold: number;
 };
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
 use App\Enums\DebtStatus;
 use App\Http\Requests\StoreDebtRequest;
@@ -20,19 +21,19 @@ use Inertia\Response;
 
 class DebtController extends Controller
 {
+    use GroupsByCurrency;
+
     public function index(Request $request): Response
     {
         $query = $this->filteredQuery($request);
-
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
         return Inertia::render('debts/index', [
             'debts' => $query->paginate(25)->withQueryString(),
             'filters' => $request->only(['status', 'sort', 'sort_dir', 'debtor_id']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'totals' => [
-                'outstanding_syp' => $this->outstandingTotal($request, $sypRate),
-                'total_syp' => $this->allDebtsTotal($request, $sypRate),
+                'outstanding' => $this->outstandingTotal($request),
+                'total' => $this->allDebtsTotal($request),
             ],
         ]);
     }
@@ -64,7 +65,6 @@ class DebtController extends Controller
     {
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
         $debts = $this->filteredQuery($request)->get();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
         $labels = app()->getLocale() === 'ar' ? [
             'title' => 'الديون',
@@ -107,17 +107,21 @@ class DebtController extends Controller
             ];
         })->all();
 
+        $totalBreakdown = collect($this->allDebtsTotal($request))
+            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->implode(' + ');
+
         return $exporter->download(
             filename: 'debts-'.now()->format('Y-m-d').'.pdf',
             title: $labels['title'],
-            subtitle: $labels['total'].': '.number_format($this->allDebtsTotal($request, $sypRate), 0).' SYP',
+            subtitle: $labels['total'].': '.$totalBreakdown,
             headers: [$labels['date'], $labels['debtor'], $labels['what_for'], $labels['amount'], $labels['status'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
         );
     }
 
-    private function outstandingTotal(Request $request, float $sypRate): float
+    private function outstandingTotal(Request $request): array
     {
         $query = Debt::where('status', DebtStatus::Outstanding);
 
@@ -125,10 +129,10 @@ class DebtController extends Controller
             $query->where('debtor_id', $request->integer('debtor_id'));
         }
 
-        return round($query->get()->sum(fn (Debt $debt) => $debt->amountInSyp($sypRate)), 0);
+        return $this->byCurrency($query->get());
     }
 
-    private function allDebtsTotal(Request $request, float $sypRate): float
+    private function allDebtsTotal(Request $request): array
     {
         $query = Debt::query();
 
@@ -136,7 +140,7 @@ class DebtController extends Controller
             $query->where('debtor_id', $request->integer('debtor_id'));
         }
 
-        return round($query->get()->sum(fn (Debt $debt) => $debt->amountInSyp($sypRate)), 0);
+        return $this->byCurrency($query->get());
     }
 
     public function create(): Response

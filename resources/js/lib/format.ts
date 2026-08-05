@@ -34,6 +34,21 @@ export function formatSyp(amount: number): string {
     return formatNumber(amount, 1) + ' SYP';
 }
 
+export function formatCurrencyAmount(
+    amount: number,
+    currency: Currency,
+): string {
+    if (currency === 'SYP') {
+        return formatSyp(amount);
+    }
+
+    if (currency === 'USD') {
+        return formatUsd(amount);
+    }
+
+    return formatMoney(amount, currency);
+}
+
 export function formatDateTime(value: string): string {
     return new Date(value).toLocaleString(undefined, {
         dateStyle: 'medium',

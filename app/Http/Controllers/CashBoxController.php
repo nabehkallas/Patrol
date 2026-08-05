@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class CashBoxController extends Controller
 {
+    use GroupsByCurrency;
+
     public function index(Request $request): Response
     {
         $from = $request->date('from') ?? now()->startOfMonth();
@@ -81,13 +84,17 @@ class CashBoxController extends Controller
             'debts_liters' => 'Liters sold in debt (unsettled)',
         ];
 
+        $formatBreakdown = fn (array $breakdown) => collect($breakdown)
+            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->implode(' + ');
+
         $rowsFor = fn (array $summary) => [
-            [$labels['income'], number_format($summary['income_syp'], 0).' SYP'],
+            [$labels['income'], $formatBreakdown($summary['income'])],
             [$labels['sadcop'], number_format($summary['sadcop_expense_syp'], 0).' SYP'],
-            [$labels['other_expenses'], number_format($summary['other_expense_syp'], 0).' SYP'],
-            [$labels['net'], number_format($summary['net_syp'], 0).' SYP'],
+            [$labels['other_expenses'], $formatBreakdown($summary['other_expense'])],
+            [$labels['net'], $formatBreakdown($summary['net'])],
             [$labels['liters_sold'], number_format($summary['liters_sold'], 3).' L'],
-            [$labels['debts'], number_format($summary['debts_syp'], 0).' SYP'],
+            [$labels['debts'], $formatBreakdown($summary['debts'])],
             [$labels['debts_liters'], number_format($summary['debts_liters_sold'], 3).' L'],
         ];
 
@@ -135,10 +142,9 @@ class CashBoxController extends Controller
         // regardless of settlement status.
         $outstandingDebts = $debts->where('status', DebtStatus::Outstanding);
 
-        $incomeSyp = $transactions
+        $incomeTransactions = $transactions
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $transaction) => $transaction->isPendingDebt())
-            ->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+            ->reject(fn (Transaction $transaction) => $transaction->isPendingDebt());
 
         $expenseTransactions = $transactions
             ->where('type', TransactionType::Expense)
@@ -146,13 +152,13 @@ class CashBoxController extends Controller
 
         $isSadcopPayment = fn (Transaction $transaction) => $transaction->sadcopLedgerEntry !== null;
 
-        $sadcopExpenseSyp = $expenseTransactions
-            ->filter($isSadcopPayment)
-            ->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+        $sadcopTransactions = $expenseTransactions->filter($isSadcopPayment);
+        $otherExpenseTransactions = $expenseTransactions->reject($isSadcopPayment);
 
-        $otherExpenseSyp = $expenseTransactions
-            ->reject($isSadcopPayment)
-            ->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+        $sadcopExpenseSyp = $sadcopTransactions->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+
+        $incomeBreakdown = $this->byCurrency($incomeTransactions);
+        $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions);
 
         $standaloneDebtLiters = $debts->whereNotNull('liters');
 
@@ -167,14 +173,41 @@ class CashBoxController extends Controller
             ->sum(fn (Debt $debt) => (float) ($debt->liters ?? $debt->transaction?->liters ?? 0));
 
         return [
-            'income_syp' => round($incomeSyp, 0),
+            'income' => $incomeBreakdown,
             'sadcop_expense_syp' => round($sadcopExpenseSyp, 0),
-            'other_expense_syp' => round($otherExpenseSyp, 0),
-            'expense_syp' => round($sadcopExpenseSyp + $otherExpenseSyp, 0),
-            'net_syp' => round($incomeSyp - $sadcopExpenseSyp - $otherExpenseSyp, 0),
+            'other_expense' => $otherExpenseBreakdown,
+            'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp),
             'liters_sold' => round($litersSold, 3),
-            'debts_syp' => round($outstandingDebts->sum(fn (Debt $debt) => $debt->amountInSyp($sypRate)), 0),
+            'debts' => $this->byCurrency($outstandingDebts),
             'debts_liters_sold' => round($litersSoldInDebt, 3),
         ];
+    }
+
+    /**
+     * Income minus expenses, per currency — sadcop expenses are always SYP by construction
+     * (see SadcopController), so they only ever reduce the SYP side.
+     *
+     * @param  array<string, float>  $income
+     * @param  array<string, float>  $otherExpense
+     */
+    private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp): array
+    {
+        $currencies = array_unique([...array_keys($income), ...array_keys($otherExpense), 'SYP']);
+
+        $result = [];
+
+        foreach ($currencies as $currency) {
+            $value = ($income[$currency] ?? 0.0)
+                - ($otherExpense[$currency] ?? 0.0)
+                - ($currency === 'SYP' ? $sadcopExpenseSyp : 0.0);
+
+            $rounded = round($value, $currency === 'SYP' ? 0 : 2);
+
+            if ($currency === 'SYP' || $rounded != 0) {
+                $result[$currency] = $rounded;
+            }
+        }
+
+        return $result;
     }
 }

@@ -1,9 +1,9 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { CurrencyCard } from '@/components/currency-card';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -11,7 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDate, formatNumber, formatSyp } from '@/lib/format';
+import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     create,
@@ -21,7 +21,7 @@ import {
     index,
     settle,
 } from '@/routes/debts';
-import type { Debt, Debtor, Paginated } from '@/types';
+import type { Debt, Debtor, DebtsSummary, Paginated } from '@/types';
 
 type PageProps = {
     debts: Paginated<Debt>;
@@ -32,10 +32,7 @@ type PageProps = {
         sort_dir?: string;
         debtor_id?: string;
     };
-    totals: {
-        outstanding_syp: number;
-        total_syp: number;
-    };
+    totals: DebtsSummary;
 };
 
 export default function DebtsIndex() {
@@ -99,27 +96,15 @@ export default function DebtsIndex() {
                     </Link>
                 </div>
 
-                <div className="flex flex-wrap gap-4">
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('debts.total_unpaid')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            {formatSyp(totals.outstanding_syp)}
-                        </CardContent>
-                    </Card>
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('debts.total_debts')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            {formatSyp(totals.total_syp)}
-                        </CardContent>
-                    </Card>
+                <div className="flex flex-wrap gap-4 [&>*]:max-w-xs [&>*]:min-w-[12rem] [&>*]:flex-1">
+                    <CurrencyCard
+                        label={t('debts.total_unpaid')}
+                        breakdown={totals.outstanding}
+                    />
+                    <CurrencyCard
+                        label={t('debts.total_debts')}
+                        breakdown={totals.total}
+                    />
                 </div>
 
                 <div className="flex flex-wrap gap-4">
