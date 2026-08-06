@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use App\Tenancy\SqliteDatabaseManager;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
@@ -10,7 +11,6 @@ use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain;
 use Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager;
 use Stancl\Tenancy\TenantDatabaseManagers\PostgreSQLDatabaseManager;
-use Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager;
 use Stancl\Tenancy\UUIDGenerator;
 
 return [
@@ -63,10 +63,20 @@ return [
         'suffix' => '.sqlite',
 
         /**
+         * Directory tenant .sqlite files are read from/written to. Defaults to database_path()
+         * (same as stock stancl/tenancy behavior) for local dev; in production this should point
+         * at a persistent volume (e.g. TENANT_SQLITE_PATH=/data on Fly.io) so tenant data isn't
+         * lost when the container restarts or redeploys. See App\Tenancy\SqliteDatabaseManager.
+         */
+        // `?:` (not env()'s own default) so an empty-but-present TENANT_SQLITE_PATH in .env
+        // still falls back correctly — env()'s default only kicks in when the var is unset.
+        'sqlite_path' => env('TENANT_SQLITE_PATH') ?: database_path(),
+
+        /**
          * TenantDatabaseManagers are classes that handle the creation & deletion of tenant databases.
          */
         'managers' => [
-            'sqlite' => SQLiteDatabaseManager::class,
+            'sqlite' => SqliteDatabaseManager::class,
             'mysql' => MySQLDatabaseManager::class,
             'mariadb' => MySQLDatabaseManager::class,
             'pgsql' => PostgreSQLDatabaseManager::class,

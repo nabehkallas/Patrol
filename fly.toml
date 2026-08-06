@@ -1,0 +1,44 @@
+# Fly.io app config. Generated for initial setup — the app name below is a placeholder;
+# `fly launch` (or `fly apps create`) will prompt you to pick a real, globally-unique one, and
+# update this line automatically.
+app = "patrol-station"
+primary_region = "iad"
+
+[build]
+
+[env]
+  APP_ENV = "production"
+  APP_DEBUG = "false"
+  LOG_CHANNEL = "stack"
+  LOG_LEVEL = "info"
+  DB_CONNECTION = "central"
+  SESSION_DRIVER = "database"
+  SESSION_CONNECTION = "central"
+  CACHE_STORE = "database"
+  QUEUE_CONNECTION = "database"
+  # Everything below points station data at the persistent volume mounted at /data (see
+  # [[mounts]]) instead of the container's ephemeral disk.
+  DB_DATABASE = "/data/database.sqlite"
+  TENANT_SQLITE_PATH = "/data"
+
+[[mounts]]
+  source = "patrol_station_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/login"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
