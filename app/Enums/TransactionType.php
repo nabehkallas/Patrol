@@ -8,4 +8,5 @@ enum TransactionType: string
     case FuelDelivery = 'fuel_delivery';
     case OtherIncome = 'other_income';
     case Expense = 'expense';
+    case CurrencyExchange = 'currency_exchange';
 }

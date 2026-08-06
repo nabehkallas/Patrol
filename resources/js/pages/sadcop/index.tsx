@@ -21,6 +21,7 @@ import { useTranslation } from '@/lib/i18n';
 import { exportPdf, index } from '@/routes/sadcop';
 import { create as createDelivery } from '@/routes/sadcop/deliveries';
 import { create as createDeposit } from '@/routes/sadcop/deposits';
+import { destroy, edit } from '@/routes/sadcop/entries';
 import { store as storeOpeningBalance } from '@/routes/sadcop/opening-balance';
 import type {
     Auth,
@@ -70,6 +71,12 @@ export default function SadcopIndex() {
             { ...filters, ...updates },
             { preserveState: true, replace: true },
         );
+    }
+
+    function remove(entry: SadcopLedgerEntry) {
+        if (confirm(t('common.confirm_delete'))) {
+            router.delete(destroy.url(entry.id));
+        }
     }
 
     if (needsOpeningBalance) {
@@ -256,6 +263,9 @@ export default function SadcopIndex() {
                                 <th className="px-4 py-2">
                                     {t('common.recorded_by')}
                                 </th>
+                                {auth.isAdmin && (
+                                    <th className="px-4 py-2"></th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -286,12 +296,29 @@ export default function SadcopIndex() {
                                     <td className="px-4 py-2">
                                         {entry.recorded_by?.name}
                                     </td>
+                                    {auth.isAdmin && (
+                                        <td className="space-x-2 px-4 py-2 text-end">
+                                            <Link
+                                                href={edit(entry.id)}
+                                                className="text-sm underline"
+                                            >
+                                                {t('common.edit')}
+                                            </Link>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => remove(entry)}
+                                            >
+                                                {t('common.delete')}
+                                            </Button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                             {entries.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={6}
+                                        colSpan={auth.isAdmin ? 7 : 6}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         {t('common.no_results')}

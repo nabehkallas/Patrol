@@ -8,6 +8,7 @@ use App\Enums\TransactionType;
 use App\Http\Requests\StoreSadcopDeliveryRequest;
 use App\Http\Requests\StoreSadcopDepositRequest;
 use App\Http\Requests\StoreSadcopOpeningBalanceRequest;
+use App\Http\Requests\UpdateSadcopEntryRequest;
 use App\Models\ExchangeRate;
 use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
@@ -241,6 +242,107 @@ class SadcopController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Delivery recorded.')]);
+
+        return to_route('sadcop.index');
+    }
+
+    public function editEntry(SadcopLedgerEntry $entry): Response
+    {
+        $entry->loadMissing('transaction');
+
+        return Inertia::render('sadcop/entry-edit', [
+            'entry' => [
+                'id' => $entry->id,
+                'type' => $entry->type,
+                'amount' => $entry->amount,
+                'liters' => $entry->liters,
+                'price_per_liter' => $entry->price_per_liter,
+                'occurred_at' => $entry->occurred_at,
+                'notes' => $entry->notes,
+                'tank_id' => $entry->transaction?->tank_id,
+            ],
+            'tanks' => $this->tankOptions(),
+            'balance' => round(SadcopLedgerEntry::currentBalanceSyp(), 0),
+        ]);
+    }
+
+    public function updateEntry(UpdateSadcopEntryRequest $request, SadcopLedgerEntry $entry): RedirectResponse
+    {
+        $data = $request->validated();
+
+        if ($entry->type === SadcopLedgerEntryType::Delivery) {
+            $balanceExcludingThis = SadcopLedgerEntry::currentBalanceSyp() + (float) $entry->amount;
+
+            if ((float) $data['amount'] > $balanceExcludingThis + 0.01) {
+                return back()->withErrors(['amount' => __('This exceeds the current Sadcop balance.')])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($entry, $data) {
+            match ($entry->type) {
+                SadcopLedgerEntryType::Opening => $entry->update([
+                    'amount' => $data['amount'],
+                    'notes' => $data['notes'] ?? null,
+                ]),
+                SadcopLedgerEntryType::Deposit => $this->applyDepositUpdate($entry, $data),
+                SadcopLedgerEntryType::Delivery => $this->applyDeliveryUpdate($entry, $data),
+            };
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Entry updated.')]);
+
+        return to_route('sadcop.index');
+    }
+
+    private function applyDepositUpdate(SadcopLedgerEntry $entry, array $data): void
+    {
+        $payload = [
+            'amount' => $data['amount'],
+            'occurred_at' => $data['occurred_at'] ?? $entry->occurred_at,
+            'notes' => $data['notes'] ?? null,
+        ];
+
+        $entry->transaction?->update($payload);
+        $entry->update($payload);
+    }
+
+    private function applyDeliveryUpdate(SadcopLedgerEntry $entry, array $data): void
+    {
+        $tank = Tank::find($data['tank_id']);
+        $occurredAt = $data['occurred_at'] ?? $entry->occurred_at;
+
+        $entry->transaction?->update([
+            'tank_id' => $data['tank_id'],
+            'fuel_type_id' => $tank?->fuel_type_id,
+            'liters' => $data['liters'],
+            'price_per_liter' => $data['price_per_liter'],
+            'amount' => $data['amount'],
+            'occurred_at' => $occurredAt,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $entry->update([
+            'liters' => $data['liters'],
+            'price_per_liter' => $data['price_per_liter'],
+            'amount' => $data['amount'],
+            'occurred_at' => $occurredAt,
+            'notes' => $data['notes'] ?? null,
+        ]);
+    }
+
+    public function destroyEntry(SadcopLedgerEntry $entry): RedirectResponse
+    {
+        DB::transaction(function () use ($entry) {
+            if ($entry->transaction) {
+                // Cascades to delete the ledger entry itself (transactions.id is
+                // sadcop_ledger_entries.transaction_id, cascadeOnDelete).
+                $entry->transaction->delete();
+            } else {
+                $entry->delete();
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Entry deleted.')]);
 
         return to_route('sadcop.index');
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'transaction_id',
+    'direction',
     'debtor_id',
     'fuel_type_id',
     'liters',
@@ -29,6 +31,7 @@ class Debt extends Model
     {
         return [
             'currency' => Currency::class,
+            'direction' => DebtDirection::class,
             'status' => DebtStatus::class,
             'amount' => 'decimal:2',
             'liters' => 'decimal:3',

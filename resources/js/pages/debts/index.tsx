@@ -28,6 +28,7 @@ type PageProps = {
     debtors: Debtor[];
     filters: {
         status?: string;
+        direction?: string;
         sort?: string;
         sort_dir?: string;
         debtor_id?: string;
@@ -105,9 +106,41 @@ export default function DebtsIndex() {
                         label={t('debts.total_debts')}
                         breakdown={totals.total}
                     />
+                    <CurrencyCard
+                        label={t('debts.payable_unpaid')}
+                        breakdown={totals.payable_outstanding}
+                    />
+                    <CurrencyCard
+                        label={t('debts.payable_total')}
+                        breakdown={totals.payable_total}
+                    />
                 </div>
 
                 <div className="flex flex-wrap gap-4">
+                    <Select
+                        value={filters.direction ?? 'all'}
+                        onValueChange={(value) =>
+                            applyFilter({
+                                direction: value === 'all' ? undefined : value,
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-48">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">
+                                {t('debts.all_directions')}
+                            </SelectItem>
+                            <SelectItem value="receivable">
+                                {t('debts.direction.receivable')}
+                            </SelectItem>
+                            <SelectItem value="payable">
+                                {t('debts.direction.payable')}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <Select
                         value={filters.status ?? 'all'}
                         onValueChange={(value) =>
@@ -180,6 +213,9 @@ export default function DebtsIndex() {
                                     {t('common.amount')}
                                 </th>
                                 <th className="px-4 py-2">
+                                    {t('debts.direction')}
+                                </th>
+                                <th className="px-4 py-2">
                                     <button
                                         type="button"
                                         onClick={toggleStatusSort}
@@ -216,6 +252,11 @@ export default function DebtsIndex() {
                                     <td className="px-4 py-2">
                                         {formatNumber(debt.amount)}{' '}
                                         {debt.currency}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {debt.direction === 'payable'
+                                            ? t('debts.direction.payable')
+                                            : t('debts.direction.receivable')}
                                     </td>
                                     <td className="px-4 py-2">
                                         {debt.status === 'outstanding'
@@ -256,7 +297,7 @@ export default function DebtsIndex() {
                             {debts.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         {t('common.no_results')}

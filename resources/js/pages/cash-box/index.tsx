@@ -30,6 +30,7 @@ function otherCurrencies(totals: CashBoxSummary): Currency[] {
     for (const breakdown of [
         totals.income,
         totals.other_expense,
+        totals.exchanged,
         totals.net,
         totals.debts,
     ]) {
@@ -80,6 +81,18 @@ function SypGrid({
                     </CardTitle>
                 </CardHeader>
             </Card>
+            {totals.exchanged.SYP !== undefined && (
+                <Card>
+                    <CardHeader>
+                        <CardDescription>
+                            {t('cash_box.exchanged')}
+                        </CardDescription>
+                        <CardTitle className="text-2xl">
+                            {formatSyp(totals.exchanged.SYP)}
+                        </CardTitle>
+                    </CardHeader>
+                </Card>
+            )}
             <Card>
                 <CardHeader>
                     <CardDescription>{t('dashboard.net')}</CardDescription>
@@ -163,6 +176,19 @@ function OtherCurrencyBoxes({
                                 )}
                             </span>
                         </div>
+                        {totals.exchanged[currency] !== undefined && (
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                    {t('cash_box.exchanged')}
+                                </span>
+                                <span className="font-medium">
+                                    {formatCurrencyAmount(
+                                        totals.exchanged[currency] ?? 0,
+                                        currency,
+                                    )}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">
                                 {t('dashboard.net')}

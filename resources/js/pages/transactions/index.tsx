@@ -37,6 +37,7 @@ export default function TransactionsIndex() {
         fuel_delivery: t('transactions.type.fuel_delivery'),
         other_income: t('transactions.type.other_income'),
         expense: t('transactions.type.expense'),
+        currency_exchange: t('transactions.type.currency_exchange'),
     };
 
     function applyFilter(key: 'type' | 'user_id', value: string) {
@@ -62,6 +63,10 @@ export default function TransactionsIndex() {
                 transaction.tank?.name ?? transaction.fuel_type?.name;
 
             return `${tankLabel} - ${formatNumber(transaction.liters ?? 0)} L`;
+        }
+
+        if (transaction.type === 'currency_exchange') {
+            return `→ ${formatNumber(transaction.to_amount ?? 0)} ${transaction.to_currency ?? ''}`;
         }
 
         return transaction.description ?? '';

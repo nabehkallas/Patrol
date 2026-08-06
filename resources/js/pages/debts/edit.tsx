@@ -20,6 +20,7 @@ import { index, update } from '@/routes/debts';
 import type {
     Currency,
     Debt,
+    DebtDirection,
     Debtor,
     DebtStatus,
     FuelTypeWithPrice,
@@ -43,6 +44,7 @@ export default function DebtEdit() {
     );
 
     const form = useForm({
+        direction: debt.direction,
         debtor_id: String(debt.debtor_id),
         fuel_type_id: debt.fuel_type_id ? String(debt.fuel_type_id) : '',
         liters: debt.liters ?? '',
@@ -148,6 +150,34 @@ export default function DebtEdit() {
                 <Heading variant="small" title={t('debts.edit')} />
 
                 <form onSubmit={submit} className="space-y-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="direction">
+                            {t('debts.direction')}
+                        </Label>
+                        <Select
+                            value={form.data.direction}
+                            onValueChange={(value) =>
+                                form.setData(
+                                    'direction',
+                                    value as DebtDirection,
+                                )
+                            }
+                        >
+                            <SelectTrigger id="direction" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="receivable">
+                                    {t('debts.direction.receivable')}
+                                </SelectItem>
+                                <SelectItem value="payable">
+                                    {t('debts.direction.payable')}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.direction} />
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="debtor_id">{t('common.debtor')}</Label>
                         <Select

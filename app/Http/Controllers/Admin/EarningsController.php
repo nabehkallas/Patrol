@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SetupEarningsPasswordRequest;
@@ -97,6 +98,7 @@ class EarningsController extends Controller
             ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
 
         $standaloneDebtSales = Debt::query()
+            ->where('direction', DebtDirection::Receivable)
             ->whereNotNull('liters')
             ->whereNull('transaction_id')
             ->whereDate('date', '>=', $from->toDateString())

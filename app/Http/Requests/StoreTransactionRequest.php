@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\TransactionType;
 use App\Models\FuelPump;
 use App\Models\Tank;
@@ -23,17 +24,25 @@ class StoreTransactionRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', new Enum(Currency::class)],
+            'to_currency' => ['nullable', 'required_if:type,currency_exchange', new Enum(Currency::class)],
+            'to_amount' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'min:0.01'],
             'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
             'occurred_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'mark_as_debt' => ['nullable', 'boolean'],
             'debt_debtor_id' => ['nullable', 'required_if:mark_as_debt,1', 'exists:debtors,id'],
+            'debt_direction' => ['nullable', new Enum(DebtDirection::class)],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if ($this->input('type') === TransactionType::CurrencyExchange->value
+                && $this->input('currency') === $this->input('to_currency')) {
+                $validator->errors()->add('to_currency', __('Choose a different currency to exchange into.'));
+            }
+
             if ($this->input('type') === TransactionType::FuelSale->value) {
                 $this->validatePumpFuelTypeMatch($validator);
 

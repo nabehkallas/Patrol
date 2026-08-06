@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Http\Requests\StoreTransactionRequest;
@@ -125,15 +126,17 @@ class TransactionController extends Controller
             $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor(Currency::from($data['currency']));
         }
 
-        $markAsDebt = $data['mark_as_debt'] ?? false;
+        $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;
         $debtDebtorId = $data['debt_debtor_id'] ?? null;
-        unset($data['mark_as_debt'], $data['debt_debtor_id']);
+        $debtDirection = $data['debt_direction'] ?? DebtDirection::Receivable->value;
+        unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
 
-        DB::transaction(function () use ($data, $markAsDebt, $debtDebtorId) {
+        DB::transaction(function () use ($data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction = Transaction::create($data);
 
             if ($markAsDebt) {
                 $transaction->debt()->create([
+                    'direction' => $debtDirection,
                     'debtor_id' => $debtDebtorId,
                     'amount' => $transaction->amount,
                     'currency' => $transaction->currency,
@@ -162,10 +165,10 @@ class TransactionController extends Controller
             'transaction' => [
                 ...$transaction->only([
                     'id', 'type', 'fuel_type_id', 'tank_id', 'pump_id', 'liters', 'price_per_liter',
-                    'description', 'amount', 'currency', 'exchange_rate_to_usd',
+                    'description', 'amount', 'currency', 'to_currency', 'to_amount', 'exchange_rate_to_usd',
                     'occurred_at', 'notes',
                 ]),
-                'debt' => $transaction->debt?->only(['debtor_id']),
+                'debt' => $transaction->debt?->only(['debtor_id', 'direction']),
             ],
             'tanks' => $this->tankOptions(),
             'pumps' => $this->pumpOptions(),
@@ -186,17 +189,19 @@ class TransactionController extends Controller
             $data['fuel_type_id'] = Tank::find($data['tank_id'])?->fuel_type_id;
         }
 
-        $markAsDebt = $data['mark_as_debt'] ?? false;
+        $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;
         $debtDebtorId = $data['debt_debtor_id'] ?? null;
-        unset($data['mark_as_debt'], $data['debt_debtor_id']);
+        $debtDirection = $data['debt_direction'] ?? DebtDirection::Receivable->value;
+        unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
 
-        DB::transaction(function () use ($transaction, $data, $markAsDebt, $debtDebtorId) {
+        DB::transaction(function () use ($transaction, $data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction->update($data);
 
             $existingDebt = $transaction->debt;
 
             if ($markAsDebt) {
                 $payload = [
+                    'direction' => $debtDirection,
                     'debtor_id' => $debtDebtorId,
                     'amount' => $transaction->amount,
                     'currency' => $transaction->currency,

@@ -18,7 +18,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debts';
-import type { Currency, Debtor, FuelTypeWithPrice } from '@/types';
+import type {
+    Currency,
+    DebtDirection,
+    Debtor,
+    FuelTypeWithPrice,
+} from '@/types';
 
 type PageProps = {
     debtors: Debtor[];
@@ -34,6 +39,7 @@ export default function DebtCreate() {
     const [debtKind, setDebtKind] = useState<DebtKind>('money');
 
     const form = useForm({
+        direction: 'receivable' as DebtDirection,
         debtor_id: String(debtors[0]?.id ?? ''),
         fuel_type_id: '',
         liters: '',
@@ -136,6 +142,34 @@ export default function DebtCreate() {
                 />
 
                 <form onSubmit={submit} className="space-y-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="direction">
+                            {t('debts.direction')}
+                        </Label>
+                        <Select
+                            value={form.data.direction}
+                            onValueChange={(value) =>
+                                form.setData(
+                                    'direction',
+                                    value as DebtDirection,
+                                )
+                            }
+                        >
+                            <SelectTrigger id="direction" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="receivable">
+                                    {t('debts.direction.receivable')}
+                                </SelectItem>
+                                <SelectItem value="payable">
+                                    {t('debts.direction.payable')}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.direction} />
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="debtor_id">{t('common.debtor')}</Label>
                         <Select

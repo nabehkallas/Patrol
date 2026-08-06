@@ -21,11 +21,35 @@ import { useTranslation } from '@/lib/i18n';
 import { index, update } from '@/routes/transactions';
 import type {
     Currency,
+    DebtDirection,
     Debtor,
     TankOption,
     Transaction,
     TransactionType,
 } from '@/types';
+
+const CURRENCIES: Currency[] = ['SYP', 'TRY', 'USD'];
+
+/** Converts an amount between currencies via USD, using each currency's rate-to-USD. */
+function convertAmount(
+    amount: number,
+    from: Currency,
+    to: Currency,
+    rates: Record<Currency, number>,
+): number | null {
+    if (!Number.isFinite(amount) || amount <= 0 || from === to) {
+        return null;
+    }
+
+    const fromRate = from === 'USD' ? 1 : rates[from];
+    const toRate = to === 'USD' ? 1 : rates[to];
+
+    if (!fromRate || !toRate) {
+        return null;
+    }
+
+    return (amount / fromRate) * toRate;
+}
 
 type PumpOption = {
     id: number;
@@ -51,6 +75,7 @@ export default function TransactionEdit() {
         fuel_delivery: t('transactions.type.fuel_delivery'),
         other_income: t('transactions.type.other_income'),
         expense: t('transactions.type.expense'),
+        currency_exchange: t('transactions.type.currency_exchange'),
     };
 
     const form = useForm({
@@ -62,15 +87,20 @@ export default function TransactionEdit() {
         description: transaction.description ?? '',
         amount: transaction.amount,
         currency: transaction.currency as Currency,
+        to_currency: (transaction.to_currency ?? 'USD') as Currency,
+        to_amount: transaction.to_amount ?? '',
         exchange_rate_to_usd: transaction.exchange_rate_to_usd ?? '',
         notes: transaction.notes ?? '',
         mark_as_debt: transaction.debt != null,
         debt_debtor_id: String(
             transaction.debt?.debtor_id ?? debtors[0]?.id ?? '',
         ),
+        debt_direction: (transaction.debt?.direction ??
+            'receivable') as DebtDirection,
     });
 
     const isDebt = form.data.mark_as_debt;
+    const isExchange = form.data.type === 'currency_exchange';
 
     function toggleDebt(checked: boolean) {
         form.setData('mark_as_debt', checked);
@@ -78,6 +108,7 @@ export default function TransactionEdit() {
 
     const tankBased =
         form.data.type === 'fuel_sale' || form.data.type === 'fuel_delivery';
+    const showDescription = !tankBased && !isExchange;
 
     const selectedTank = useMemo(
         () => tanks.find((tank) => tank.id === Number(form.data.tank_id)),
@@ -144,11 +175,93 @@ export default function TransactionEdit() {
     }
 
     function handleCurrencyChange(currency: Currency) {
+        form.setData((data) => {
+            const nextToCurrency =
+                data.to_currency === currency
+                    ? (CURRENCIES.find((option) => option !== currency) ??
+                      data.to_currency)
+                    : data.to_currency;
+
+            const converted =
+                data.type === 'currency_exchange'
+                    ? convertAmount(
+                          parseFloat(String(data.amount)),
+                          currency,
+                          nextToCurrency,
+                          exchangeRates,
+                      )
+                    : null;
+
+            return {
+                ...data,
+                currency,
+                to_currency: nextToCurrency,
+                to_amount:
+                    converted !== null
+                        ? converted.toFixed(2)
+                        : data.to_amount,
+                exchange_rate_to_usd:
+                    currency === 'USD'
+                        ? ''
+                        : String(exchangeRates[currency] ?? ''),
+            };
+        });
+    }
+
+    function handleToCurrencyChange(currency: Currency) {
+        form.setData((data) => {
+            const nextCurrency =
+                data.currency === currency
+                    ? (CURRENCIES.find((option) => option !== currency) ??
+                      data.currency)
+                    : data.currency;
+
+            const converted = convertAmount(
+                parseFloat(String(data.amount)),
+                nextCurrency,
+                currency,
+                exchangeRates,
+            );
+
+            return {
+                ...data,
+                to_currency: currency,
+                currency: nextCurrency,
+                to_amount:
+                    converted !== null
+                        ? converted.toFixed(2)
+                        : data.to_amount,
+            };
+        });
+    }
+
+    function handleGiveAmountChange(value: string) {
+        const converted = convertAmount(
+            parseFloat(value),
+            form.data.currency,
+            form.data.to_currency,
+            exchangeRates,
+        );
+
         form.setData((data) => ({
             ...data,
-            currency,
-            exchange_rate_to_usd:
-                currency === 'USD' ? '' : String(exchangeRates[currency] ?? ''),
+            amount: value,
+            to_amount: converted !== null ? converted.toFixed(2) : data.to_amount,
+        }));
+    }
+
+    function handleReceiveAmountChange(value: string) {
+        const converted = convertAmount(
+            parseFloat(value),
+            form.data.to_currency,
+            form.data.currency,
+            exchangeRates,
+        );
+
+        form.setData((data) => ({
+            ...data,
+            to_amount: value,
+            amount: converted !== null ? converted.toFixed(2) : data.amount,
         }));
     }
 
@@ -338,7 +451,7 @@ export default function TransactionEdit() {
                         </>
                     )}
 
-                    {!tankBased && (
+                    {showDescription && (
                         <div className="grid gap-2">
                             <Label htmlFor="description">
                                 {t('transactions.description')}
@@ -356,12 +469,18 @@ export default function TransactionEdit() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="amount">{t('common.amount')}</Label>
+                            <Label htmlFor="amount">
+                                {isExchange
+                                    ? t('transactions.you_give')
+                                    : t('common.amount')}
+                            </Label>
                             <MoneyInput
                                 id="amount"
                                 value={form.data.amount}
                                 onChange={(value) =>
-                                    form.setData('amount', value)
+                                    isExchange
+                                        ? handleGiveAmountChange(value)
+                                        : form.setData('amount', value)
                                 }
                             />
                             <InputError message={form.errors.amount} />
@@ -394,6 +513,54 @@ export default function TransactionEdit() {
                             <InputError message={form.errors.currency} />
                         </div>
                     </div>
+
+                    {isExchange && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="to_amount">
+                                    {t('transactions.you_receive')}
+                                </Label>
+                                <MoneyInput
+                                    id="to_amount"
+                                    value={form.data.to_amount}
+                                    onChange={handleReceiveAmountChange}
+                                />
+                                <InputError message={form.errors.to_amount} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="to_currency">
+                                    {t('common.currency')}
+                                </Label>
+                                <Select
+                                    value={form.data.to_currency}
+                                    onValueChange={(value) =>
+                                        handleToCurrencyChange(
+                                            value as Currency,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="to_currency"
+                                        className="w-full"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="SYP">
+                                            Syrian Pound
+                                        </SelectItem>
+                                        <SelectItem value="TRY">
+                                            Turkish Lira
+                                        </SelectItem>
+                                        <SelectItem value="USD">
+                                            US Dollar
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={form.errors.to_currency} />
+                            </div>
+                        </div>
+                    )}
 
                     {form.data.currency !== 'USD' && (
                         <div className="grid gap-2">
@@ -428,20 +595,59 @@ export default function TransactionEdit() {
                         <InputError message={form.errors.notes} />
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="is_debt"
-                            checked={isDebt}
-                            onCheckedChange={(checked) =>
-                                toggleDebt(checked === true)
-                            }
-                        />
-                        <Label htmlFor="is_debt">
-                            {t('transactions.mark_as_debt')}
-                        </Label>
-                    </div>
+                    {!isExchange && (
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="is_debt"
+                                checked={isDebt}
+                                onCheckedChange={(checked) =>
+                                    toggleDebt(checked === true)
+                                }
+                            />
+                            <Label htmlFor="is_debt">
+                                {t('transactions.mark_as_debt')}
+                            </Label>
+                        </div>
+                    )}
 
-                    {isDebt && (
+                    {isDebt && !isExchange && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="debt_direction">
+                                {t('transactions.debt_direction')}
+                            </Label>
+                            <Select
+                                value={form.data.debt_direction}
+                                onValueChange={(value) =>
+                                    form.setData(
+                                        'debt_direction',
+                                        value as DebtDirection,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id="debt_direction"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="receivable">
+                                        {t(
+                                            'transactions.debt_direction.receivable',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem value="payable">
+                                        {t(
+                                            'transactions.debt_direction.payable',
+                                        )}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={form.errors.debt_direction} />
+                        </div>
+                    )}
+
+                    {isDebt && !isExchange && (
                         <div className="grid gap-2">
                             <Label htmlFor="debt_debtor_id">
                                 {t('common.debtor')}

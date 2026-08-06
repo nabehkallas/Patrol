@@ -79,6 +79,9 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::get('sadcop/deposits/create', [SadcopController::class, 'createDeposit'])->name('sadcop.deposits.create')->middleware('role:admin');
         Route::post('sadcop/deposits', [SadcopController::class, 'storeDeposit'])->name('sadcop.deposits.store')->middleware('role:admin');
         Route::post('sadcop/opening-balance', [SadcopController::class, 'storeOpeningBalance'])->name('sadcop.opening-balance.store')->middleware('role:admin');
+        Route::get('sadcop/entries/{entry}/edit', [SadcopController::class, 'editEntry'])->name('sadcop.entries.edit')->middleware('role:admin');
+        Route::patch('sadcop/entries/{entry}', [SadcopController::class, 'updateEntry'])->name('sadcop.entries.update')->middleware('role:admin');
+        Route::delete('sadcop/entries/{entry}', [SadcopController::class, 'destroyEntry'])->name('sadcop.entries.destroy')->middleware('role:admin');
 
         Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
         Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');

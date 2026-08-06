@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Http\Requests\StoreDebtRequest;
 use App\Http\Requests\UpdateDebtRequest;
@@ -29,11 +30,13 @@ class DebtController extends Controller
 
         return Inertia::render('debts/index', [
             'debts' => $query->paginate(25)->withQueryString(),
-            'filters' => $request->only(['status', 'sort', 'sort_dir', 'debtor_id']),
+            'filters' => $request->only(['status', 'direction', 'sort', 'sort_dir', 'debtor_id']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'totals' => [
-                'outstanding' => $this->outstandingTotal($request),
-                'total' => $this->allDebtsTotal($request),
+                'outstanding' => $this->outstandingTotal($request, DebtDirection::Receivable),
+                'total' => $this->allDebtsTotal($request, DebtDirection::Receivable),
+                'payable_outstanding' => $this->outstandingTotal($request, DebtDirection::Payable),
+                'payable_total' => $this->allDebtsTotal($request, DebtDirection::Payable),
             ],
         ]);
     }
@@ -48,6 +51,10 @@ class DebtController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('direction')) {
+            $query->where('direction', $request->string('direction'));
         }
 
         $sortDir = $request->string('sort_dir')->toString() === 'asc' ? 'asc' : 'desc';
@@ -72,22 +79,32 @@ class DebtController extends Controller
             'debtor' => 'المدين',
             'what_for' => 'سبب الدين',
             'amount' => 'المبلغ',
+            'direction' => 'الاتجاه',
             'status' => 'الحالة',
             'recorded_by' => 'سجّله',
             'outstanding' => 'غير مسدد',
             'settled' => 'مسدد',
             'total' => 'الإجمالي',
+            'receivable' => 'لنا',
+            'payable' => 'علينا',
+            'owed_to_us' => 'مستحق لنا',
+            'we_owe' => 'مستحق علينا',
         ] : [
             'title' => 'Debts',
             'date' => 'Date',
             'debtor' => 'Debtor',
             'what_for' => 'What for',
             'amount' => 'Amount',
+            'direction' => 'Direction',
             'status' => 'Status',
             'recorded_by' => 'Recorded by',
             'outstanding' => 'Outstanding',
             'settled' => 'Settled',
             'total' => 'Total',
+            'receivable' => 'Owed to us',
+            'payable' => 'We owe',
+            'owed_to_us' => 'Owed to us',
+            'we_owe' => 'We owe',
         ];
 
         $rows = $debts->map(function (Debt $debt) use ($labels) {
@@ -102,28 +119,32 @@ class DebtController extends Controller
                 $debt->debtor?->name ?? '—',
                 $whatFor,
                 number_format((float) $debt->amount, 1).' '.$debt->currency->value,
+                $debt->direction === DebtDirection::Payable ? $labels['payable'] : $labels['receivable'],
                 $debt->status === DebtStatus::Outstanding ? $labels['outstanding'] : $labels['settled'],
                 $debt->recordedBy?->name ?? '—',
             ];
         })->all();
 
-        $totalBreakdown = collect($this->allDebtsTotal($request))
+        $formatTotal = fn (array $breakdown) => collect($breakdown)
             ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
             ->implode(' + ');
+
+        $totalBreakdown = $labels['owed_to_us'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Receivable))
+            .' — '.$labels['we_owe'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Payable));
 
         return $exporter->download(
             filename: 'debts-'.now()->format('Y-m-d').'.pdf',
             title: $labels['title'],
-            subtitle: $labels['total'].': '.$totalBreakdown,
-            headers: [$labels['date'], $labels['debtor'], $labels['what_for'], $labels['amount'], $labels['status'], $labels['recorded_by']],
+            subtitle: $totalBreakdown,
+            headers: [$labels['date'], $labels['debtor'], $labels['what_for'], $labels['amount'], $labels['direction'], $labels['status'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
         );
     }
 
-    private function outstandingTotal(Request $request): array
+    private function outstandingTotal(Request $request, DebtDirection $direction): array
     {
-        $query = Debt::where('status', DebtStatus::Outstanding);
+        $query = Debt::where('status', DebtStatus::Outstanding)->where('direction', $direction);
 
         if ($request->filled('debtor_id')) {
             $query->where('debtor_id', $request->integer('debtor_id'));
@@ -132,9 +153,9 @@ class DebtController extends Controller
         return $this->byCurrency($query->get());
     }
 
-    private function allDebtsTotal(Request $request): array
+    private function allDebtsTotal(Request $request, DebtDirection $direction): array
     {
-        $query = Debt::query();
+        $query = Debt::where('direction', $direction);
 
         if ($request->filled('debtor_id')) {
             $query->where('debtor_id', $request->integer('debtor_id'));
@@ -186,7 +207,7 @@ class DebtController extends Controller
 
         return Inertia::render('debts/edit', [
             'debt' => $debt->only([
-                'id', 'debtor_id', 'fuel_type_id', 'liters', 'price_per_liter', 'amount', 'currency',
+                'id', 'direction', 'debtor_id', 'fuel_type_id', 'liters', 'price_per_liter', 'amount', 'currency',
                 'exchange_rate_to_usd', 'date', 'details', 'status',
             ]),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),

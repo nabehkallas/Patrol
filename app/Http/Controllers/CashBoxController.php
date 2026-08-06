@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debt;
@@ -13,6 +14,7 @@ use App\Services\PdfTableExporter;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,6 +66,7 @@ class CashBoxController extends Controller
             'income' => 'الدخل',
             'sadcop' => 'مدفوعات سادكوب',
             'other_expenses' => 'مصروفات أخرى',
+            'exchanged' => 'تحويل عملة',
             'net' => 'الصافي',
             'liters_sold' => 'اللترات المباعة',
             'debts' => 'الديون (غير مسددة)',
@@ -78,6 +81,7 @@ class CashBoxController extends Controller
             'income' => 'Income',
             'sadcop' => 'Sadcop payments',
             'other_expenses' => 'Other expenses',
+            'exchanged' => 'Currency exchanged',
             'net' => 'Net',
             'liters_sold' => 'Liters sold',
             'debts' => 'Debts (unsettled)',
@@ -92,6 +96,7 @@ class CashBoxController extends Controller
             [$labels['income'], $formatBreakdown($summary['income'])],
             [$labels['sadcop'], number_format($summary['sadcop_expense_syp'], 0).' SYP'],
             [$labels['other_expenses'], $formatBreakdown($summary['other_expense'])],
+            [$labels['exchanged'], $formatBreakdown($summary['exchanged'])],
             [$labels['net'], $formatBreakdown($summary['net'])],
             [$labels['liters_sold'], number_format($summary['liters_sold'], 3).' L'],
             [$labels['debts'], $formatBreakdown($summary['debts'])],
@@ -130,7 +135,11 @@ class CashBoxController extends Controller
             ->with(['fuelType', 'debt', 'sadcopLedgerEntry'])
             ->get();
 
+        // Only debts owed *to* the station reflect cash the business is still due — a debt
+        // where the station is the debtor (money or fuel it owes someone else) is tracked
+        // separately and must not inflate income, liters sold, or the "owed to us" figures.
         $debts = Debt::query()
+            ->where('direction', DebtDirection::Receivable)
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
             ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
@@ -142,13 +151,17 @@ class CashBoxController extends Controller
         // regardless of settlement status.
         $outstandingDebts = $debts->where('status', DebtStatus::Outstanding);
 
+        // A debt (of either direction) is the source of truth for *when* its cash actually
+        // moves — settled here means paid today, regardless of when the underlying sale or
+        // expense was first recorded — so debt-linked transactions never contribute to
+        // income/expense themselves; $settledReceivableDebts / $settledPayableDebts below do.
         $incomeTransactions = $transactions
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $transaction) => $transaction->isPendingDebt());
+            ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
 
         $expenseTransactions = $transactions
             ->where('type', TransactionType::Expense)
-            ->reject(fn (Transaction $transaction) => $transaction->isPendingDebt());
+            ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
 
         $isSadcopPayment = fn (Transaction $transaction) => $transaction->sadcopLedgerEntry !== null;
 
@@ -157,8 +170,29 @@ class CashBoxController extends Controller
 
         $sadcopExpenseSyp = $sadcopTransactions->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
 
-        $incomeBreakdown = $this->byCurrency($incomeTransactions);
-        $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions);
+        // Debts settled within this window — whether tied to a transaction or standalone —
+        // are cash that actually arrived (receivable) or went out (payable) today.
+        $settledReceivableDebts = Debt::query()
+            ->where('direction', DebtDirection::Receivable)
+            ->where('status', DebtStatus::Settled)
+            ->where('settled_at', '>=', $from)
+            ->where('settled_at', '<=', $to)
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
+            ->get();
+
+        $settledPayableDebts = Debt::query()
+            ->where('direction', DebtDirection::Payable)
+            ->where('status', DebtStatus::Settled)
+            ->where('settled_at', '>=', $from)
+            ->where('settled_at', '<=', $to)
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
+            ->get();
+
+        $incomeBreakdown = $this->byCurrency($incomeTransactions->concat($settledReceivableDebts));
+        $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions->concat($settledPayableDebts));
+
+        $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
+        $exchangedBreakdown = $this->exchangedByCurrency($exchangeTransactions);
 
         $standaloneDebtLiters = $debts->whereNotNull('liters');
 
@@ -176,7 +210,8 @@ class CashBoxController extends Controller
             'income' => $incomeBreakdown,
             'sadcop_expense_syp' => round($sadcopExpenseSyp, 0),
             'other_expense' => $otherExpenseBreakdown,
-            'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp),
+            'exchanged' => $exchangedBreakdown,
+            'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp, $exchangedBreakdown),
             'liters_sold' => round($litersSold, 3),
             'debts' => $this->byCurrency($outstandingDebts),
             'debts_liters_sold' => round($litersSoldInDebt, 3),
@@ -184,21 +219,58 @@ class CashBoxController extends Controller
     }
 
     /**
-     * Income minus expenses, per currency — sadcop expenses are always SYP by construction
-     * (see SadcopController), so they only ever reduce the SYP side.
+     * Net effect of currency-exchange transactions on cash held in each currency: negative
+     * for the currency given up, positive for the currency received. Unlike income/expense
+     * breakdowns this is signed and may be negative per currency (an exchange doesn't create
+     * or destroy value, it just moves it between currencies).
+     *
+     * @param  Collection<int, Transaction>  $exchanges
+     * @return array<string, float>
+     */
+    private function exchangedByCurrency($exchanges): array
+    {
+        $totals = [];
+
+        foreach ($exchanges as $transaction) {
+            $from = $transaction->currency->value;
+            $to = $transaction->to_currency->value;
+
+            $totals[$from] = ($totals[$from] ?? 0.0) - (float) $transaction->amount;
+            $totals[$to] = ($totals[$to] ?? 0.0) + (float) $transaction->to_amount;
+        }
+
+        $result = [];
+
+        foreach ($totals as $currency => $amount) {
+            $rounded = round($amount, $currency === 'SYP' ? 0 : 2);
+
+            if ($currency === 'SYP' || $rounded != 0) {
+                $result[$currency] = $rounded;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Income minus expenses plus the net effect of currency exchanges, per currency — sadcop
+     * expenses are always SYP by construction (see SadcopController), so they only ever
+     * reduce the SYP side.
      *
      * @param  array<string, float>  $income
      * @param  array<string, float>  $otherExpense
+     * @param  array<string, float>  $exchanged
      */
-    private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp): array
+    private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp, array $exchanged): array
     {
-        $currencies = array_unique([...array_keys($income), ...array_keys($otherExpense), 'SYP']);
+        $currencies = array_unique([...array_keys($income), ...array_keys($otherExpense), ...array_keys($exchanged), 'SYP']);
 
         $result = [];
 
         foreach ($currencies as $currency) {
             $value = ($income[$currency] ?? 0.0)
                 - ($otherExpense[$currency] ?? 0.0)
+                + ($exchanged[$currency] ?? 0.0)
                 - ($currency === 'SYP' ? $sadcopExpenseSyp : 0.0);
 
             $rounded = round($value, $currency === 'SYP' ? 0 : 2);

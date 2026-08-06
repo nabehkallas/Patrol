@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
@@ -12,6 +13,7 @@ class UpdateDebtRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'direction' => ['required', new Enum(DebtDirection::class)],
             'debtor_id' => ['required', 'exists:debtors,id'],
             'fuel_type_id' => ['nullable', 'exists:fuel_types,id'],
             'liters' => ['nullable', 'required_with:fuel_type_id', 'numeric', 'min:0.001'],

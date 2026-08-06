@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Http\Requests\StoreDebtorRequest;
 use App\Http\Requests\UpdateDebtorRequest;
@@ -84,11 +85,16 @@ class DebtorController extends Controller
         );
     }
 
+    /**
+     * Money owed *to the station* by this party — payable debts (where the station owes
+     * them instead) are tracked separately and excluded here, matching the Debts page.
+     */
     private function outstandingTotal(Debtor $debtor, float $sypRate): float
     {
         return round(
             $debtor->debts()
                 ->where('status', DebtStatus::Outstanding)
+                ->where('direction', DebtDirection::Receivable)
                 ->get()
                 ->sum(fn (Debt $debt) => $debt->amountInSyp($sypRate)),
             0

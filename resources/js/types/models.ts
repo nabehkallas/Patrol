@@ -4,11 +4,14 @@ export type TransactionType =
     | 'fuel_sale'
     | 'fuel_delivery'
     | 'other_income'
-    | 'expense';
+    | 'expense'
+    | 'currency_exchange';
 
 export type UserRole = 'admin' | 'attendant';
 
 export type DebtStatus = 'outstanding' | 'settled';
+
+export type DebtDirection = 'receivable' | 'payable';
 
 export type SadcopLedgerEntryType = 'opening' | 'deposit' | 'delivery';
 
@@ -91,6 +94,8 @@ export type Transaction = {
     description: string | null;
     amount: string;
     currency: Currency;
+    to_currency: Currency | null;
+    to_amount: string | null;
     exchange_rate_to_usd: string | null;
     occurred_at: string;
     notes: string | null;
@@ -100,6 +105,7 @@ export type Transaction = {
     pump?: { id: number; name: string } | null;
     debt?: {
         debtor_id?: number;
+        direction?: DebtDirection;
         debtor?: { name: string };
     } | null;
 };
@@ -144,6 +150,7 @@ export type DebtorSummary = Debtor & {
 
 export type Debt = {
     id: number;
+    direction: DebtDirection;
     debtor_id: number;
     fuel_type_id: number | null;
     liters: string | null;
@@ -210,12 +217,15 @@ export type CurrencyBreakdown = Partial<Record<Currency, number>> & {
 export type DebtsSummary = {
     outstanding: CurrencyBreakdown;
     total: CurrencyBreakdown;
+    payable_outstanding: CurrencyBreakdown;
+    payable_total: CurrencyBreakdown;
 };
 
 export type CashBoxSummary = {
     income: CurrencyBreakdown;
     sadcop_expense_syp: number;
     other_expense: CurrencyBreakdown;
+    exchanged: Partial<Record<Currency, number>>;
     net: CurrencyBreakdown;
     liters_sold: number;
     debts: CurrencyBreakdown;
