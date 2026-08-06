@@ -356,13 +356,6 @@ const dictionary = {
         'earnings.set_password': 'Set password',
         'earnings.unlock': 'Unlock',
         'earnings.forgot_password': 'Forgot password?',
-        'earnings.forgot_password_description':
-            'A reset link will be emailed to all admin accounts',
-        'earnings.send_reset_link': 'Send reset link',
-        'earnings.reset_password': 'Reset password',
-        'earnings.reset_link_invalid':
-            'This reset link is invalid or has expired. Request a new one from the Earnings unlock screen.',
-        'earnings.new_password': 'New earnings password',
         'earnings.total_earnings': 'Total earnings',
         'earnings.liters_sold': 'Liters sold',
         'earnings.profit_margin_percent': 'Profit margin (%)',
@@ -718,13 +711,6 @@ const dictionary = {
         'earnings.set_password': 'تعيين كلمة المرور',
         'earnings.unlock': 'فتح',
         'earnings.forgot_password': 'نسيت كلمة المرور؟',
-        'earnings.forgot_password_description':
-            'سيتم إرسال رابط إعادة التعيين إلى جميع حسابات المدراء عبر البريد الإلكتروني',
-        'earnings.send_reset_link': 'إرسال رابط إعادة التعيين',
-        'earnings.reset_password': 'إعادة تعيين كلمة المرور',
-        'earnings.reset_link_invalid':
-            'رابط إعادة التعيين غير صالح أو منتهي الصلاحية. اطلب رابطًا جديدًا من شاشة فتح الأرباح.',
-        'earnings.new_password': 'كلمة مرور الأرباح الجديدة',
         'earnings.total_earnings': 'إجمالي الأرباح',
         'earnings.liters_sold': 'اللترات المباعة',
         'earnings.profit_margin_percent': 'هامش الربح (%)',

@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -34,6 +34,10 @@ type UnlockedProps = {
 };
 
 type PageProps = LockedProps | UnlockedProps;
+
+const EARNINGS_PASSWORD_RESET_WHATSAPP_URL =
+    'https://wa.me/963997361673?text=' +
+    encodeURIComponent('I forgot the Earnings password.');
 
 function EarningsGate({ needsSetup }: { needsSetup: boolean }) {
     const { t } = useTranslation();
@@ -112,12 +116,12 @@ function EarningsGate({ needsSetup }: { needsSetup: boolean }) {
             </form>
 
             {!needsSetup && (
-                <Link
-                    href={earnings.forgotPassword.url()}
+                <a
+                    href={EARNINGS_PASSWORD_RESET_WHATSAPP_URL}
                     className="text-sm text-muted-foreground underline"
                 >
                     {t('earnings.forgot_password')}
-                </Link>
+                </a>
             )}
         </div>
     );

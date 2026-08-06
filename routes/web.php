@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\EarningsController;
-use App\Http\Controllers\Admin\EarningsPasswordResetController;
 use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\Admin\FuelPriceController;
 use App\Http\Controllers\Admin\FuelPumpController;
@@ -112,10 +111,6 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
             Route::get('/', [EarningsController::class, 'index'])->name('index');
             Route::post('unlock', [EarningsController::class, 'unlock'])->name('unlock')->middleware('throttle:5,1');
             Route::post('setup', [EarningsController::class, 'setup'])->name('setup');
-            Route::get('forgot-password', [EarningsPasswordResetController::class, 'show'])->name('forgot-password');
-            Route::post('forgot-password', [EarningsPasswordResetController::class, 'send'])->name('forgot-password.send')->middleware('throttle:3,1');
-            Route::get('reset-password/{token}', [EarningsPasswordResetController::class, 'edit'])->name('reset-password');
-            Route::post('reset-password', [EarningsPasswordResetController::class, 'update'])->name('reset-password.update');
         });
     });
 });
