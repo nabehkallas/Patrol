@@ -7,8 +7,10 @@ primary_region = "iad"
 [build]
 
 [env]
+  APP_NAME = "Patrol"
   APP_ENV = "production"
   APP_DEBUG = "false"
+  APP_URL = "https://patrol-station.fly.dev"
   LOG_CHANNEL = "stack"
   LOG_LEVEL = "info"
   DB_CONNECTION = "central"

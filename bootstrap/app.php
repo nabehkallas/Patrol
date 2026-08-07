@@ -19,6 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Fly.io terminates TLS at its edge and forwards plain HTTP to the container, so
+        // without this Laravel thinks every request is insecure (wrong scheme in generated
+        // asset/route URLs, session cookies not marked secure, etc). Fly's proxy is the only
+        // thing that can reach the container, so trusting all proxies here is safe.
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
 
         $middleware->web(append: [
