@@ -7,7 +7,8 @@
 set -eu
 
 DATA_DIR="${TENANT_SQLITE_PATH:-/var/www/html/database}"
-CONFIG_FILE=/etc/litestream.yml
+# /tmp rather than /etc: this runs as www-data (a non-root user), which can't write to /etc.
+CONFIG_FILE=/tmp/litestream.yml
 LITESTREAM_PID=""
 
 if [ -z "${LITESTREAM_BUCKET:-}" ]; then

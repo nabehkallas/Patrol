@@ -63,6 +63,12 @@ fi
 
 php artisan tenants:migrate --force || true
 
+# Everything above (migrations, litestream restores) runs as root, so the database files on
+# the volume end up root-owned — but php-fpm's workers run as www-data and can't write to
+# them, which fails every request that touches the database (e.g. saving the session) with
+# "attempt to write a readonly database". Fix ownership before handing off to supervisord.
+chown -R www-data:www-data "$DATA_DIR"
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
