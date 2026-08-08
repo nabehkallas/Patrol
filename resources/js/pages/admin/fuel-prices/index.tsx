@@ -52,7 +52,7 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
                     <Input
                         id={`profit_margin_${fuelType.id}`}
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         min="0"
                         max="100"
                         className="pe-7"

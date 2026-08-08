@@ -12,15 +12,26 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatCurrencyAmount, formatNumber, formatSyp } from '@/lib/format';
+import {
+    formatCurrencyAmount,
+    formatDateTime,
+    formatNumber,
+    formatSyp,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import { exportPdf, index } from '@/routes/cash-box';
-import type { CashBox, CashBoxSummary, Currency } from '@/types';
+import type {
+    CashBox,
+    CashBoxHistoryEntry,
+    CashBoxSummary,
+    Currency,
+} from '@/types';
 
 type PageProps = {
     filters: { from: string; to: string };
     cashBox: CashBox;
+    history: CashBoxHistoryEntry[];
 };
 
 /** Every currency besides SYP that has activity anywhere in this summary. */
@@ -233,8 +244,88 @@ function CashBoxSection({
     );
 }
 
+function CashBoxHistory({
+    entries,
+    t,
+}: {
+    entries: CashBoxHistoryEntry[];
+    t: (key: TranslationKey) => string;
+}) {
+    const typeLabels: Record<CashBoxHistoryEntry['type'], string> = {
+        income: t('cash_box.history_type.income'),
+        expense: t('cash_box.history_type.expense'),
+        sadcop: t('cash_box.history_type.sadcop'),
+        exchange: t('cash_box.history_type.exchange'),
+    };
+
+    return (
+        <div className="space-y-3">
+            <div>
+                <h2 className="text-sm font-medium text-muted-foreground">
+                    {t('cash_box.history_title')}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    {t('cash_box.history_description')}
+                </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="bg-muted/50 text-start">
+                            <th className="px-4 py-2">{t('common.date')}</th>
+                            <th className="px-4 py-2">{t('common.type')}</th>
+                            <th className="px-4 py-2">
+                                {t('transactions.detail')}
+                            </th>
+                            <th className="px-4 py-2">{t('common.amount')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {entries.map((entry) => (
+                            <tr key={entry.id} className="border-t">
+                                <td className="px-4 py-2 whitespace-nowrap">
+                                    {formatDateTime(entry.date)}
+                                </td>
+                                <td className="px-4 py-2">
+                                    {typeLabels[entry.type]}
+                                </td>
+                                <td className="px-4 py-2">
+                                    {entry.description}
+                                </td>
+                                <td className="px-4 py-2">
+                                    {entry.type === 'expense' ||
+                                    entry.type === 'sadcop'
+                                        ? '-'
+                                        : entry.type === 'income'
+                                          ? '+'
+                                          : ''}
+                                    {formatCurrencyAmount(
+                                        entry.amount,
+                                        entry.currency,
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                        {entries.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan={4}
+                                    className="px-4 py-6 text-center text-muted-foreground"
+                                >
+                                    {t('common.no_results')}
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 export default function CashBoxIndex() {
-    const { filters, cashBox: totals } = usePage<PageProps>().props;
+    const { filters, cashBox: totals, history } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const [fromVal, setFromVal] = useState(filters.from);
@@ -258,6 +349,13 @@ export default function CashBoxIndex() {
                     title={t('cash_box.title')}
                     description={t('cash_box.description')}
                 />
+
+                <div className="space-y-3">
+                    <h2 className="text-sm font-medium text-muted-foreground">
+                        {t('dashboard.today')}
+                    </h2>
+                    <CashBoxSection totals={totals.today} t={t} />
+                </div>
 
                 <Card>
                     <CardContent className="pt-6">
@@ -298,18 +396,13 @@ export default function CashBoxIndex() {
 
                 <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground">
-                        {t('dashboard.today')}
-                    </h2>
-                    <CashBoxSection totals={totals.today} t={t} />
-                </div>
-
-                <div className="space-y-3">
-                    <h2 className="text-sm font-medium text-muted-foreground">
                         {t('cash_box.selected_period')} ({filters.from} —{' '}
                         {filters.to})
                     </h2>
                     <CashBoxSection totals={totals.period} t={t} />
                 </div>
+
+                <CashBoxHistory entries={history} t={t} />
             </div>
         </>
     );

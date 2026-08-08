@@ -237,6 +237,21 @@ export type CashBox = {
     today: CashBoxSummary;
 };
 
+export type CashBoxHistoryEntryType =
+    | 'income'
+    | 'expense'
+    | 'sadcop'
+    | 'exchange';
+
+export type CashBoxHistoryEntry = {
+    id: string;
+    date: string;
+    type: CashBoxHistoryEntryType;
+    description: string;
+    amount: number;
+    currency: Currency;
+};
+
 export type EarningsBreakdownRow = {
     fuel_type: { id: number; name: string };
     liters_sold: number;
@@ -270,8 +285,13 @@ export type PumpSummary = {
     id: number;
     name: string;
     fuel_type_id: number | null;
+    fuel_type_name: string | null;
     daily_liters_sold: number;
-    latest_reading: { date: string; reading_value: string } | null;
+    latest_reading: {
+        date: string;
+        reading_value: number;
+        tank_id: number | null;
+    } | null;
 };
 
 export type PumpCounterReading = {
@@ -279,7 +299,8 @@ export type PumpCounterReading = {
     pump_id: number;
     tank_id: number | null;
     date: string;
-    reading_value: string;
+    created_at: string;
+    reading_value: number;
     liters_sold: string | null;
     governmental_liters: string | null;
     return_liters: string | null;
@@ -297,5 +318,17 @@ export type TankTopUp = {
     date: string;
     notes: string | null;
     tank?: Tank;
+    recorded_by?: UserSummary;
+};
+
+export type TankTransfer = {
+    id: number;
+    from_tank_id: number;
+    to_tank_id: number;
+    liters: string;
+    date: string;
+    notes: string | null;
+    from_tank?: Tank;
+    to_tank?: Tank;
     recorded_by?: UserSummary;
 };

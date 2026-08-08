@@ -17,7 +17,7 @@ class PumpCounterReading extends Model
     {
         return [
             'date' => 'date',
-            'reading_value' => 'decimal:3',
+            'reading_value' => 'integer',
             'liters_sold' => 'decimal:3',
             'governmental_liters' => 'decimal:3',
             'return_liters' => 'decimal:3',

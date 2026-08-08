@@ -27,24 +27,28 @@ import {
     store,
 } from '@/routes/inventory';
 import { store as storeTopUp } from '@/routes/tank-top-ups';
+import { store as storeTransfer } from '@/routes/tank-transfers';
 import type {
     InventoryEntry,
     Paginated,
     TankSummary,
     TankTopUp,
+    TankTransfer,
 } from '@/types';
 
 type PageProps = {
     tanks: TankSummary[];
     entries: Paginated<InventoryEntry>;
     topUps: TankTopUp[];
+    transfers: TankTransfer[];
     topUpDate: string;
 };
 
 type Tab = 'amounts' | 'actual';
 
 export default function InventoryIndex() {
-    const { tanks, entries, topUps, topUpDate } = usePage<PageProps>().props;
+    const { tanks, entries, topUps, transfers, topUpDate } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<Tab>('amounts');
     const [topUpLiters, setTopUpLiters] = useState<Record<number, string>>({});
@@ -56,6 +60,46 @@ export default function InventoryIndex() {
         quantity_liters: '',
         notes: '',
     });
+
+    const transferForm = useForm({
+        from_tank_id: String(tanks[0]?.id ?? ''),
+        to_tank_id: '',
+        liters: '',
+        date: new Date().toISOString().slice(0, 10),
+        notes: '',
+    });
+
+    const transferFromTank = tanks.find(
+        (tank) => String(tank.id) === transferForm.data.from_tank_id,
+    );
+    const transferDestinationOptions = tanks.filter(
+        (tank) =>
+            tank.fuel_type.id === transferFromTank?.fuel_type.id &&
+            String(tank.id) !== transferForm.data.from_tank_id,
+    );
+
+    function handleTransferFromChange(tankId: string) {
+        const nextFromTank = tanks.find((tank) => String(tank.id) === tankId);
+        const nextDestinations = tanks.filter(
+            (tank) =>
+                tank.fuel_type.id === nextFromTank?.fuel_type.id &&
+                String(tank.id) !== tankId,
+        );
+
+        transferForm.setData((data) => ({
+            ...data,
+            from_tank_id: tankId,
+            to_tank_id: String(nextDestinations[0]?.id ?? ''),
+        }));
+    }
+
+    function submitTransfer(event: FormEvent) {
+        event.preventDefault();
+        transferForm.post(storeTransfer.url(), {
+            preserveScroll: true,
+            onSuccess: () => transferForm.reset('liters', 'notes'),
+        });
+    }
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -210,6 +254,226 @@ export default function InventoryIndex() {
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    {t('inventory.transfer_fuel')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form
+                                    onSubmit={submitTransfer}
+                                    className="grid gap-4 md:grid-cols-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="from_tank_id">
+                                            {t('inventory.from_tank')}
+                                        </Label>
+                                        <Select
+                                            value={
+                                                transferForm.data.from_tank_id
+                                            }
+                                            onValueChange={
+                                                handleTransferFromChange
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="from_tank_id"
+                                                className="w-full"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tanks.map((tank) => (
+                                                    <SelectItem
+                                                        key={tank.id}
+                                                        value={String(tank.id)}
+                                                    >
+                                                        {tank.fuel_type.name} —{' '}
+                                                        {tank.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                transferForm.errors.from_tank_id
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="to_tank_id">
+                                            {t('inventory.to_tank')}
+                                        </Label>
+                                        <Select
+                                            value={transferForm.data.to_tank_id}
+                                            onValueChange={(value) =>
+                                                transferForm.setData(
+                                                    'to_tank_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="to_tank_id"
+                                                className="w-full"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {transferDestinationOptions.map(
+                                                    (tank) => (
+                                                        <SelectItem
+                                                            key={tank.id}
+                                                            value={String(
+                                                                tank.id,
+                                                            )}
+                                                        >
+                                                            {
+                                                                tank.fuel_type
+                                                                    .name
+                                                            }{' '}
+                                                            — {tank.name}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                transferForm.errors.to_tank_id
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="transfer_liters">
+                                            {t('common.liters')}
+                                        </Label>
+                                        <Input
+                                            id="transfer_liters"
+                                            type="number"
+                                            step="0.001"
+                                            min="0"
+                                            value={transferForm.data.liters}
+                                            onChange={(e) =>
+                                                transferForm.setData(
+                                                    'liters',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={transferForm.errors.liters}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="transfer_date">
+                                            {t('common.date')}
+                                        </Label>
+                                        <Input
+                                            id="transfer_date"
+                                            type="date"
+                                            value={transferForm.data.date}
+                                            onChange={(e) =>
+                                                transferForm.setData(
+                                                    'date',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={transferForm.errors.date}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={
+                                            transferForm.processing ||
+                                            transferDestinationOptions.length ===
+                                                0
+                                        }
+                                        className="md:col-span-4 md:w-fit"
+                                    >
+                                        {t('inventory.transfer')}
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <div className="space-y-3">
+                            <h3 className="font-semibold">
+                                {t('inventory.transfer_history')}
+                            </h3>
+                            <div className="overflow-x-auto rounded-xl border">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-muted/50 text-start">
+                                            <th className="px-4 py-2">
+                                                {t('inventory.from_tank')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('inventory.to_tank')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.liters')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.recorded_by')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.notes')}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {transfers.map((transfer) => (
+                                            <tr
+                                                key={transfer.id}
+                                                className="border-t"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {
+                                                        transfer.from_tank
+                                                            ?.fuel_type?.name
+                                                    }{' '}
+                                                    — {transfer.from_tank?.name}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {
+                                                        transfer.to_tank
+                                                            ?.fuel_type?.name
+                                                    }{' '}
+                                                    — {transfer.to_tank?.name}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {formatNumber(
+                                                        transfer.liters,
+                                                    )}{' '}
+                                                    L
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {transfer.recorded_by?.name}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {transfer.notes}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {transfers.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={5}
+                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                >
+                                                    {t('common.no_results')}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div className="space-y-3">

@@ -140,4 +140,12 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Instrument Sans (this app's font) has no Arabic glyphs, so Arabic text falls back to
+       the system's Arabic font — those tend to render visually smaller than Instrument Sans
+       at the same declared size, making Arabic text look noticeably tinier/harder to read
+       than the English UI. Bump the base size in RTL to compensate. */
+    html[dir='rtl'] {
+        font-size: 1.125rem;
+    }
 }

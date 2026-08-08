@@ -153,7 +153,7 @@ function DetailCard({
                     <span className="text-muted-foreground">
                         {t('earnings.profit_margin_percent')}
                     </span>
-                    <span>{formatNumber(row.profit_margin_percent)}%</span>
+                    <span>{formatNumber(row.profit_margin_percent, 4)}%</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">

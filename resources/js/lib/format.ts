@@ -20,11 +20,11 @@ export function formatMoney(
 ): string {
     const value = typeof amount === 'string' ? parseFloat(amount) : amount;
 
-    return `${value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${currency}`;
+    return `${value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${currency}`;
 }
 
 export function formatUsd(amount: number): string {
-    return amount.toLocaleString(undefined, {
+    return amount.toLocaleString('en-US', {
         style: 'currency',
         currency: 'USD',
     });
@@ -49,15 +49,21 @@ export function formatCurrencyAmount(
     return formatMoney(amount, currency);
 }
 
+/**
+ * Formats a date/time using a fixed 'en-US' locale regardless of the browser's own locale —
+ * otherwise a browser set to Arabic renders these with Arabic-Indic digits and a different
+ * layout than the rest of the app (which always shows Western numerals, see formatNumber
+ * above), making the two look inconsistent/broken side by side.
+ */
 export function formatDateTime(value: string): string {
-    return new Date(value).toLocaleString(undefined, {
+    return new Date(value).toLocaleString('en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
     });
 }
 
 export function formatDate(value: string): string {
-    return new Date(value).toLocaleDateString(undefined, {
+    return new Date(value).toLocaleDateString('en-US', {
         dateStyle: 'medium',
     });
 }

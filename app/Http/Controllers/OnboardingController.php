@@ -117,7 +117,7 @@ class OnboardingController extends Controller
             'readings' => ['required', 'array'],
             'readings.*.pump_id' => ['required', 'exists:fuel_pumps,id'],
             'readings.*.tank_id' => ['required', 'exists:tanks,id'],
-            'readings.*.reading_value' => ['required', 'numeric', 'min:0'],
+            'readings.*.reading_value' => ['required', 'integer', 'min:0'],
         ]);
 
         foreach ($data['readings'] as $reading) {

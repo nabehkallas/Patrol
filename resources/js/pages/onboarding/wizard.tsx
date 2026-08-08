@@ -1,5 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useEffect } from 'react';
+import LocaleTabs from '@/components/locale-tabs';
 import { MoneyInput } from '@/components/money-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/hooks/use-locale';
 import { formatNumber } from '@/lib/format';
+import { useTranslation } from '@/lib/i18n';
 import {
     debts,
     finish,
@@ -66,10 +70,13 @@ type PageProps = {
 };
 
 function Done() {
-    return <Badge variant="secondary">Done</Badge>;
+    const { t } = useTranslation();
+
+    return <Badge variant="secondary">{t('wizard.done')}</Badge>;
 }
 
 function SadcopSection({ done }: { done: boolean }) {
+    const { t } = useTranslation();
     const form = useForm({ amount: '' });
 
     function submit(event: FormEvent) {
@@ -84,11 +91,11 @@ function SadcopSection({ done }: { done: boolean }) {
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle>Sadcop opening balance</CardTitle>
+                    <CardTitle>{t('wizard.sadcop_title')}</CardTitle>
                     {done && <Done />}
                 </div>
                 <CardDescription>
-                    How much money Sadcop currently holds for this station.
+                    {t('wizard.sadcop_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -97,7 +104,9 @@ function SadcopSection({ done }: { done: boolean }) {
                     className="flex flex-wrap items-end gap-4"
                 >
                     <div className="grid gap-2">
-                        <Label htmlFor="sadcop_amount">Amount (SYP)</Label>
+                        <Label htmlFor="sadcop_amount">
+                            {t('wizard.sadcop_amount')}
+                        </Label>
                         <MoneyInput
                             id="sadcop_amount"
                             value={form.data.amount}
@@ -106,7 +115,7 @@ function SadcopSection({ done }: { done: boolean }) {
                         />
                     </div>
                     <Button type="submit" disabled={form.processing || done}>
-                        Save
+                        {t('wizard.save')}
                     </Button>
                 </form>
             </CardContent>
@@ -115,6 +124,7 @@ function SadcopSection({ done }: { done: boolean }) {
 }
 
 function TankLevelsSection({ tanks }: { tanks: Tank[] }) {
+    const { t } = useTranslation();
     const form = useForm<{ levels: Record<number, string> }>({ levels: {} });
 
     function submit(event: FormEvent) {
@@ -140,16 +150,15 @@ function TankLevelsSection({ tanks }: { tanks: Tank[] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Starting fuel level per tank</CardTitle>
+                <CardTitle>{t('wizard.tank_levels_title')}</CardTitle>
                 <CardDescription>
-                    How much fuel is physically in each tank right now.
+                    {t('wizard.tank_levels_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {tanks.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                        No tanks yet — add them in Admin &rarr; Tanks first,
-                        then come back here.
+                        {t('wizard.no_tanks')}
                     </p>
                 )}
                 {tanks.length > 0 && (
@@ -172,7 +181,7 @@ function TankLevelsSection({ tanks }: { tanks: Tank[] }) {
                                     step="0.001"
                                     min="0"
                                     className="max-w-40"
-                                    placeholder="Liters"
+                                    placeholder={t('wizard.liters_placeholder')}
                                     value={form.data.levels[tank.id] ?? ''}
                                     onChange={(e) =>
                                         form.setData('levels', {
@@ -184,7 +193,7 @@ function TankLevelsSection({ tanks }: { tanks: Tank[] }) {
                             </div>
                         ))}
                         <Button type="submit" disabled={form.processing}>
-                            Save levels
+                            {t('wizard.save_levels')}
                         </Button>
                     </form>
                 )}
@@ -200,6 +209,7 @@ function PumpReadingsSection({
     pumps: Pump[];
     tanks: Tank[];
 }) {
+    const { t } = useTranslation();
     const form = useForm<{
         readings: Record<number, { reading_value: string; tank_id: string }>;
     }>({ readings: {} });
@@ -246,16 +256,15 @@ function PumpReadingsSection({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Starting counter reading per pump</CardTitle>
+                <CardTitle>{t('wizard.pump_readings_title')}</CardTitle>
                 <CardDescription>
-                    Each pump's current physical meter reading.
+                    {t('wizard.pump_readings_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {pumps.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                        No pumps yet — add them in Admin &rarr; Fuel Pumps
-                        first, then come back here.
+                        {t('wizard.no_pumps')}
                     </p>
                 )}
                 {pumps.length > 0 && (
@@ -292,7 +301,11 @@ function PumpReadingsSection({
                                         }
                                     >
                                         <SelectTrigger className="w-56">
-                                            <SelectValue placeholder="Tank" />
+                                            <SelectValue
+                                                placeholder={t(
+                                                    'wizard.tank_placeholder',
+                                                )}
+                                            />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {availableTanks.map((tank) => (
@@ -308,10 +321,12 @@ function PumpReadingsSection({
                                     </Select>
                                     <Input
                                         type="number"
-                                        step="0.001"
+                                        step="1"
                                         min="0"
                                         className="max-w-40"
-                                        placeholder="Reading"
+                                        placeholder={t(
+                                            'wizard.reading_placeholder',
+                                        )}
                                         value={
                                             form.data.readings[pump.id]
                                                 ?.reading_value ?? ''
@@ -328,7 +343,7 @@ function PumpReadingsSection({
                             );
                         })}
                         <Button type="submit" disabled={form.processing}>
-                            Save readings
+                            {t('wizard.save_readings')}
                         </Button>
                     </form>
                 )}
@@ -338,6 +353,7 @@ function PumpReadingsSection({
 }
 
 function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
+    const { t } = useTranslation();
     const form = useForm<{
         prices: Record<number, { price: string; currency: string }>;
     }>({ prices: {} });
@@ -382,16 +398,15 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Initial fuel prices</CardTitle>
+                <CardTitle>{t('wizard.fuel_prices_title')}</CardTitle>
                 <CardDescription>
-                    Selling price per liter for each fuel type.
+                    {t('wizard.fuel_prices_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {fuelTypes.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                        No fuel types yet — add them in Admin &rarr; Fuel Types
-                        first, then come back here.
+                        {t('wizard.no_fuel_types')}
                     </p>
                 )}
                 {fuelTypes.length > 0 && (
@@ -437,7 +452,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
                             </div>
                         ))}
                         <Button type="submit" disabled={form.processing}>
-                            Save prices
+                            {t('wizard.save_prices')}
                         </Button>
                     </form>
                 )}
@@ -447,6 +462,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
 }
 
 function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
+    const { t } = useTranslation();
     const form = useForm({
         debtor_name: '',
         amount: '',
@@ -465,10 +481,9 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Opening debts</CardTitle>
+                <CardTitle>{t('wizard.debts_title')}</CardTitle>
                 <CardDescription>
-                    Debts owed by existing customers, from before this system.
-                    Optional — add as many as you need, or none.
+                    {t('wizard.debts_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -493,7 +508,9 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                     className="flex flex-wrap items-end gap-4"
                 >
                     <div className="grid gap-2">
-                        <Label htmlFor="debtor_name">Debtor name</Label>
+                        <Label htmlFor="debtor_name">
+                            {t('wizard.debtor_name')}
+                        </Label>
                         <Input
                             id="debtor_name"
                             className="max-w-48"
@@ -504,7 +521,9 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="debt_amount">Amount</Label>
+                        <Label htmlFor="debt_amount">
+                            {t('wizard.debt_amount')}
+                        </Label>
                         <MoneyInput
                             id="debt_amount"
                             className="max-w-40"
@@ -513,7 +532,9 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="debt_currency">Currency</Label>
+                        <Label htmlFor="debt_currency">
+                            {t('wizard.debt_currency')}
+                        </Label>
                         <Select
                             value={form.data.currency}
                             onValueChange={(value) =>
@@ -532,7 +553,7 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="debt_details">
-                            What for (optional)
+                            {t('wizard.debt_details')}
                         </Label>
                         <Input
                             id="debt_details"
@@ -544,7 +565,7 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                         />
                     </div>
                     <Button type="submit" disabled={form.processing}>
-                        Add debt
+                        {t('wizard.add_debt')}
                     </Button>
                 </form>
             </CardContent>
@@ -552,7 +573,11 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
     );
 }
 
+const WIZARD_LOCALE_DEFAULTED_KEY = 'wizard_locale_defaulted';
+
 export default function OnboardingWizard() {
+    const { t } = useTranslation();
+    const { updateLocale } = useLocale();
     const {
         sadcopDone,
         tanks,
@@ -561,27 +586,42 @@ export default function OnboardingWizard() {
         debts: debtRows,
     } = usePage<PageProps>().props;
 
+    // Station admins here are overwhelmingly Arabic-speaking, and this is the very first
+    // screen they see — before they'd have had any chance to visit Settings and pick a
+    // language. Default to Arabic once; if they explicitly switch away via the selector
+    // below, later reloads of this same wizard won't fight that choice.
+    useEffect(() => {
+        if (!localStorage.getItem(WIZARD_LOCALE_DEFAULTED_KEY)) {
+            localStorage.setItem(WIZARD_LOCALE_DEFAULTED_KEY, '1');
+            updateLocale('ar');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     function finishSetup() {
         router.post(finish.url());
     }
 
     return (
         <>
-            <Head title="Station setup" />
+            <Head title={t('wizard.title')} />
 
             <div className="mx-auto max-w-3xl space-y-6 p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-lg font-semibold">
-                            Set up your station
+                            {t('wizard.heading')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Fill in what applies — everything here is optional
-                            and can be corrected later. Finish whenever you're
-                            ready.
+                            {t('wizard.intro')}
                         </p>
                     </div>
-                    <Button onClick={finishSetup}>Finish setup</Button>
+                    <div className="flex items-center gap-3">
+                        <LocaleTabs />
+                        <Button onClick={finishSetup}>
+                            {t('wizard.finish')}
+                        </Button>
+                    </div>
                 </div>
 
                 <SadcopSection done={sadcopDone} />
@@ -591,7 +631,7 @@ export default function OnboardingWizard() {
                 <DebtsSection debts={debtRows} />
 
                 <div className="flex justify-end">
-                    <Button onClick={finishSetup}>Finish setup</Button>
+                    <Button onClick={finishSetup}>{t('wizard.finish')}</Button>
                 </div>
             </div>
         </>

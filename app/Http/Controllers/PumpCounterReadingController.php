@@ -27,7 +27,7 @@ class PumpCounterReadingController extends Controller
     {
         $date = Carbon::parse($request->input('date', today()->toDateString()));
 
-        $pumps = FuelPump::orderBy('name')->get()
+        $pumps = FuelPump::with('fuelType')->orderBy('name')->get()
             ->map(function (FuelPump $pump) use ($date) {
                 $latest = $pump->counterReadings()->latest('id')->first();
                 $dailyLiters = (float) $pump->counterReadings()
@@ -38,17 +38,19 @@ class PumpCounterReadingController extends Controller
                     'id' => $pump->id,
                     'name' => $pump->name,
                     'fuel_type_id' => $pump->fuel_type_id,
+                    'fuel_type_name' => $pump->fuelType?->name,
                     'daily_liters_sold' => round($dailyLiters, 3),
                     'latest_reading' => $latest ? [
                         'date' => $latest->date->toDateString(),
                         'reading_value' => $latest->reading_value,
+                        'tank_id' => $latest->tank_id,
                     ] : null,
                 ];
             });
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
             ->whereDate('date', $date)
-            ->oldest('id')
+            ->latest('id')
             ->get();
 
         $tanks = Tank::with('fuelType')
@@ -77,7 +79,7 @@ class PumpCounterReadingController extends Controller
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
             ->whereDate('date', $date)
-            ->oldest('id')
+            ->latest('id')
             ->get();
 
         $labels = app()->getLocale() === 'ar' ? [
@@ -103,7 +105,7 @@ class PumpCounterReadingController extends Controller
         $rows = $readings->map(fn (PumpCounterReading $reading) => [
             $reading->pump?->name ?? '—',
             $reading->tank ? $reading->tank->fuelType?->name.' — '.$reading->tank->name : '—',
-            number_format((float) $reading->reading_value, 3),
+            number_format((float) $reading->reading_value, 0),
             $reading->liters_sold !== null ? number_format((float) $reading->liters_sold, 3).' L' : '—',
             $reading->governmental_liters !== null ? number_format((float) $reading->governmental_liters, 3).' L' : '—',
             $reading->return_liters !== null ? number_format((float) $reading->return_liters, 3).' L' : '—',
@@ -126,7 +128,7 @@ class PumpCounterReadingController extends Controller
             'pump_id' => 'required|exists:fuel_pumps,id',
             'tank_id' => 'required|exists:tanks,id',
             'date' => 'required|date',
-            'reading_value' => 'required|numeric|min:0',
+            'reading_value' => 'required|integer|min:0',
             'governmental_liters' => 'nullable|numeric|min:0',
             'return_liters' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
@@ -198,7 +200,7 @@ class PumpCounterReadingController extends Controller
     {
         $data = $request->validate([
             'date' => 'required|date',
-            'reading_value' => 'required|numeric|min:0',
+            'reading_value' => 'required|integer|min:0',
             'governmental_liters' => 'nullable|numeric|min:0',
             'return_liters' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',

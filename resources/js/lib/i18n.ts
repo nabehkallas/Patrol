@@ -209,6 +209,13 @@ const dictionary = {
         'inventory.add_liters': 'Add',
         'inventory.add_liters_placeholder': 'Liters to add (no charge)',
         'inventory.top_up_history': 'Added liters history',
+        'inventory.transfer_fuel': 'Transfer fuel between tanks',
+        'inventory.transfer_description':
+            'Move fuel from one tank to another tank of the same fuel type',
+        'inventory.from_tank': 'From tank',
+        'inventory.to_tank': 'To tank',
+        'inventory.transfer': 'Transfer',
+        'inventory.transfer_history': 'Transfer history',
 
         'tanks.title': 'Tanks',
         'tanks.description':
@@ -287,6 +294,13 @@ const dictionary = {
         'cash_box.sadcop_payments': 'Sadcop payments',
         'cash_box.other_expenses': 'Other expenses',
         'cash_box.exchanged': 'Currency exchanged',
+        'cash_box.history_title': 'History',
+        'cash_box.history_description':
+            'Every transaction that affected the cash box in the selected period',
+        'cash_box.history_type.income': 'Income',
+        'cash_box.history_type.expense': 'Expense',
+        'cash_box.history_type.sadcop': 'Sadcop transfer',
+        'cash_box.history_type.exchange': 'Currency exchange',
 
         'nav.statistics': 'Statistics',
         'nav.pump_counters': 'Pump counters',
@@ -317,6 +331,8 @@ const dictionary = {
         'pump_counters.governmental_sale': 'Governmental sale (L)',
         'pump_counters.max': 'max',
         'pump_counters.return_liters': 'Return (L)',
+        'pump_counters.fuel_type_daily_total': 'Liters sold today',
+        'pump_counters.time': 'Time',
 
         'fuel_pumps.title': 'Fuel pumps',
         'fuel_pumps.description': 'Define the dispensing pumps at this station',
@@ -364,6 +380,47 @@ const dictionary = {
         'earnings.topup_liters': 'Free top-up liters',
         'earnings.sale_price': 'Sale price / liter',
         'earnings.topup_earnings': 'Top-up earnings',
+
+        'wizard.title': 'Station setup',
+        'wizard.heading': 'Set up your station',
+        'wizard.intro':
+            "Fill in what applies — everything here is optional and can be corrected later. Finish whenever you're ready.",
+        'wizard.done': 'Done',
+        'wizard.finish': 'Finish setup',
+        'wizard.save': 'Save',
+        'wizard.sadcop_title': 'Sadcop opening balance',
+        'wizard.sadcop_description':
+            'How much money Sadcop currently holds for this station.',
+        'wizard.sadcop_amount': 'Amount (SYP)',
+        'wizard.tank_levels_title': 'Starting fuel level per tank',
+        'wizard.tank_levels_description':
+            'How much fuel is physically in each tank right now.',
+        'wizard.no_tanks':
+            'No tanks yet — add them in Admin → Tanks first, then come back here.',
+        'wizard.liters_placeholder': 'Liters',
+        'wizard.save_levels': 'Save levels',
+        'wizard.pump_readings_title': 'Starting counter reading per pump',
+        'wizard.pump_readings_description':
+            "Each pump's current physical meter reading.",
+        'wizard.no_pumps':
+            'No pumps yet — add them in Admin → Fuel Pumps first, then come back here.',
+        'wizard.tank_placeholder': 'Tank',
+        'wizard.reading_placeholder': 'Reading',
+        'wizard.save_readings': 'Save readings',
+        'wizard.fuel_prices_title': 'Initial fuel prices',
+        'wizard.fuel_prices_description':
+            'Selling price per liter for each fuel type.',
+        'wizard.no_fuel_types':
+            'No fuel types yet — add them in Admin → Fuel Types first, then come back here.',
+        'wizard.save_prices': 'Save prices',
+        'wizard.debts_title': 'Opening debts',
+        'wizard.debts_description':
+            'Debts owed by existing customers, from before this system. Optional — add as many as you need, or none.',
+        'wizard.debtor_name': 'Debtor name',
+        'wizard.debt_amount': 'Amount',
+        'wizard.debt_currency': 'Currency',
+        'wizard.debt_details': 'What for (optional)',
+        'wizard.add_debt': 'Add debt',
     },
     ar: {
         'nav.cash_box': 'صندوق النقد',
@@ -567,6 +624,13 @@ const dictionary = {
         'inventory.add_liters': 'إضافة',
         'inventory.add_liters_placeholder': 'اللترات المضافة (بدون دفع)',
         'inventory.top_up_history': 'سجل اللترات المضافة',
+        'inventory.transfer_fuel': 'نقل وقود بين الخزانات',
+        'inventory.transfer_description':
+            'نقل وقود من خزان إلى خزان آخر من نفس نوع الوقود',
+        'inventory.from_tank': 'من خزان',
+        'inventory.to_tank': 'إلى خزان',
+        'inventory.transfer': 'نقل',
+        'inventory.transfer_history': 'سجل النقل',
 
         'tanks.title': 'الخزانات',
         'tanks.description': 'إدارة خزانات البنزين والديزل في المحطة',
@@ -642,6 +706,13 @@ const dictionary = {
         'cash_box.sadcop_payments': 'مدفوعات سادكوب',
         'cash_box.other_expenses': 'مصروفات أخرى',
         'cash_box.exchanged': 'تحويل عملة',
+        'cash_box.history_title': 'السجل',
+        'cash_box.history_description':
+            'كل معاملة أثّرت على صندوق النقد خلال الفترة المحددة',
+        'cash_box.history_type.income': 'دخل',
+        'cash_box.history_type.expense': 'مصروف',
+        'cash_box.history_type.sadcop': 'تحويل سادكوب',
+        'cash_box.history_type.exchange': 'تحويل عملة',
 
         'nav.statistics': 'الإحصائيات',
         'nav.pump_counters': 'عدادات المضخات',
@@ -672,6 +743,8 @@ const dictionary = {
         'pump_counters.governmental_sale': 'مبيعات حكومية (لتر)',
         'pump_counters.max': 'الحد الأقصى',
         'pump_counters.return_liters': 'مرتجع (لتر)',
+        'pump_counters.fuel_type_daily_total': 'اللترات المباعة اليوم',
+        'pump_counters.time': 'الوقت',
 
         'fuel_pumps.title': 'مضخات الوقود',
         'fuel_pumps.description': 'تعريف مضخات التوزيع في المحطة',
@@ -719,6 +792,46 @@ const dictionary = {
         'earnings.topup_liters': 'لترات الإضافة المجانية',
         'earnings.sale_price': 'سعر البيع / لتر',
         'earnings.topup_earnings': 'أرباح الإضافة',
+
+        'wizard.title': 'إعداد المحطة',
+        'wizard.heading': 'إعداد محطتك',
+        'wizard.intro':
+            'أدخل ما ينطبق عليك — كل شيء هنا اختياري ويمكن تصحيحه لاحقًا. أنهِ الإعداد متى شئت.',
+        'wizard.done': 'تم',
+        'wizard.finish': 'إنهاء الإعداد',
+        'wizard.save': 'حفظ',
+        'wizard.sadcop_title': 'الرصيد الافتتاحي لسادكوب',
+        'wizard.sadcop_description':
+            'المبلغ الذي يحتفظ به سادكوب حاليًا لهذه المحطة.',
+        'wizard.sadcop_amount': 'المبلغ (ليرة سورية)',
+        'wizard.tank_levels_title': 'مستوى الوقود الابتدائي لكل خزان',
+        'wizard.tank_levels_description':
+            'كمية الوقود الموجودة فعليًا في كل خزان الآن.',
+        'wizard.no_tanks':
+            'لا توجد خزانات بعد — أضفها من الإدارة ← الخزانات أولاً، ثم عد إلى هنا.',
+        'wizard.liters_placeholder': 'لتر',
+        'wizard.save_levels': 'حفظ المستويات',
+        'wizard.pump_readings_title': 'قراءة العداد الابتدائية لكل مضخة',
+        'wizard.pump_readings_description':
+            'قراءة العداد الفعلية الحالية لكل مضخة.',
+        'wizard.no_pumps':
+            'لا توجد مضخات بعد — أضفها من الإدارة ← مضخات الوقود أولاً، ثم عد إلى هنا.',
+        'wizard.tank_placeholder': 'الخزان',
+        'wizard.reading_placeholder': 'القراءة',
+        'wizard.save_readings': 'حفظ القراءات',
+        'wizard.fuel_prices_title': 'أسعار الوقود الابتدائية',
+        'wizard.fuel_prices_description': 'سعر البيع لكل لتر من كل نوع وقود.',
+        'wizard.no_fuel_types':
+            'لا توجد أنواع وقود بعد — أضفها من الإدارة ← أنواع الوقود أولاً، ثم عد إلى هنا.',
+        'wizard.save_prices': 'حفظ الأسعار',
+        'wizard.debts_title': 'الديون الافتتاحية',
+        'wizard.debts_description':
+            'ديون مستحقة على زبائن حاليين، من قبل استخدام هذا النظام. اختياري — أضف بقدر ما تحتاج، أو لا شيء.',
+        'wizard.debtor_name': 'اسم المدين',
+        'wizard.debt_amount': 'المبلغ',
+        'wizard.debt_currency': 'العملة',
+        'wizard.debt_details': 'سبب الدين (اختياري)',
+        'wizard.add_debt': 'إضافة دين',
     },
 } as const;
 

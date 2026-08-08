@@ -38,13 +38,25 @@ class Tank extends Model
         return $this->hasMany(TankTopUp::class);
     }
 
+    public function transfersIn(): HasMany
+    {
+        return $this->hasMany(TankTransfer::class, 'to_tank_id');
+    }
+
+    public function transfersOut(): HasMany
+    {
+        return $this->hasMany(TankTransfer::class, 'from_tank_id');
+    }
+
     public function expectedLiters(): float
     {
         $delivered = (float) $this->transactions()->where('type', TransactionType::FuelDelivery)->sum('liters');
         $sold = (float) $this->transactions()->where('type', TransactionType::FuelSale)->sum('liters');
         $toppedUp = (float) $this->topUps()->sum('liters');
+        $transferredIn = (float) $this->transfersIn()->sum('liters');
+        $transferredOut = (float) $this->transfersOut()->sum('liters');
 
-        return $delivered + $toppedUp - $sold;
+        return $delivered + $toppedUp + $transferredIn - $sold - $transferredOut;
     }
 
     /**

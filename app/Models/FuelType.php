@@ -12,7 +12,7 @@ class FuelType extends Model
     protected function casts(): array
     {
         return [
-            'profit_margin_percent' => 'decimal:2',
+            'profit_margin_percent' => 'decimal:4',
         ];
     }
 

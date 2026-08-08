@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/format';
+import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { edit, exportPdf, index, store } from '@/routes/pump-counters';
@@ -43,7 +43,9 @@ export default function PumpCountersIndex() {
 
     const form = useForm({
         pump_id: String(pumps[0]?.id ?? ''),
-        tank_id: String(tanks[0]?.id ?? ''),
+        tank_id: String(
+            pumps[0]?.latest_reading?.tank_id ?? tanks[0]?.id ?? '',
+        ),
         date: new Date().toISOString().slice(0, 10),
         reading_value: '',
         governmental_liters: '',
@@ -63,6 +65,21 @@ export default function PumpCountersIndex() {
         [tanks, selectedPump],
     );
 
+    // Defaults to whichever tank was used for this pump's last reading — attendants almost
+    // always feed the same pump from the same tank, so this saves a re-selection every time.
+    function defaultTankFor(
+        pump: PumpSummary | undefined,
+        options: TankOption[],
+    ) {
+        const lastTankId = pump?.latest_reading?.tank_id;
+        const lastTankStillValid =
+            lastTankId !== null &&
+            lastTankId !== undefined &&
+            options.some((tank) => tank.id === lastTankId);
+
+        return lastTankStillValid ? lastTankId : (options[0]?.id ?? '');
+    }
+
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
         const nextTanks = pump?.fuel_type_id
@@ -72,9 +89,27 @@ export default function PumpCountersIndex() {
         form.setData((data) => ({
             ...data,
             pump_id: pumpId,
-            tank_id: String(nextTanks[0]?.id ?? ''),
+            tank_id: String(defaultTankFor(pump, nextTanks)),
         }));
     }
+
+    const pumpsByFuelType = useMemo(() => {
+        const groups = new Map<string, PumpSummary[]>();
+
+        for (const pump of pumps) {
+            const key = pump.fuel_type_name ?? t('common.none');
+            groups.set(key, [...(groups.get(key) ?? []), pump]);
+        }
+
+        return Array.from(groups.entries()).map(([fuelTypeName, group]) => ({
+            fuelTypeName,
+            pumps: group,
+            dailyLitersSold: group.reduce(
+                (total, pump) => total + pump.daily_liters_sold,
+                0,
+            ),
+        }));
+    }, [pumps, t]);
 
     const maxLitersSold =
         selectedPump?.latest_reading && form.data.reading_value !== ''
@@ -110,47 +145,86 @@ export default function PumpCountersIndex() {
                     description={t('pump_counters.description')}
                 />
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    {pumps.map((pump) => (
-                        <Card key={pump.id}>
-                            <CardHeader>
-                                <CardTitle className="text-base">
-                                    {pump.name}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-1 text-sm">
-                                <div className="flex justify-between font-medium">
+                <div className="space-y-6">
+                    {pumpsByFuelType.map((group) => (
+                        <div key={group.fuelTypeName} className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold">
+                                    {group.fuelTypeName}
+                                </h3>
+                                <div className="text-sm">
                                     <span className="text-muted-foreground">
-                                        {t('pump_counters.daily_total')}
+                                        {t(
+                                            'pump_counters.fuel_type_daily_total',
+                                        )}
+                                        :{' '}
                                     </span>
                                     <span
                                         className={cn(
-                                            pump.daily_liters_sold > 0 &&
+                                            'font-medium',
+                                            group.dailyLitersSold > 0 &&
                                                 'text-green-600 dark:text-green-400',
                                         )}
                                     >
-                                        {formatNumber(pump.daily_liters_sold)} L
+                                        {formatNumber(group.dailyLitersSold)} L
                                     </span>
                                 </div>
-                                {pump.latest_reading ? (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            {t('pump_counters.reading_value')}
-                                        </span>
-                                        <span>
-                                            {formatNumber(
-                                                pump.latest_reading
-                                                    .reading_value,
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                {group.pumps.map((pump) => (
+                                    <Card key={pump.id}>
+                                        <CardHeader>
+                                            <CardTitle className="text-base">
+                                                {pump.name}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-1 text-sm">
+                                            <div className="flex justify-between font-medium">
+                                                <span className="text-muted-foreground">
+                                                    {t(
+                                                        'pump_counters.daily_total',
+                                                    )}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        pump.daily_liters_sold >
+                                                            0 &&
+                                                            'text-green-600 dark:text-green-400',
+                                                    )}
+                                                >
+                                                    {formatNumber(
+                                                        pump.daily_liters_sold,
+                                                    )}{' '}
+                                                    L
+                                                </span>
+                                            </div>
+                                            {pump.latest_reading ? (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">
+                                                        {t(
+                                                            'pump_counters.reading_value',
+                                                        )}
+                                                    </span>
+                                                    <span>
+                                                        {formatNumber(
+                                                            pump.latest_reading
+                                                                .reading_value,
+                                                            0,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <p className="text-muted-foreground">
+                                                    {t(
+                                                        'pump_counters.no_previous',
+                                                    )}
+                                                </p>
                                             )}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">
-                                        {t('pump_counters.no_previous')}
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
 
@@ -244,6 +318,7 @@ export default function PumpCountersIndex() {
                                             {formatNumber(
                                                 selectedPump.latest_reading
                                                     .reading_value,
+                                                0,
                                             )}
                                             )
                                         </span>
@@ -252,7 +327,7 @@ export default function PumpCountersIndex() {
                                 <Input
                                     id="reading_value"
                                     type="number"
-                                    step="0.001"
+                                    step="1"
                                     min="0"
                                     value={form.data.reading_value}
                                     onChange={(e) =>
@@ -368,6 +443,9 @@ export default function PumpCountersIndex() {
                             <thead>
                                 <tr className="bg-muted/50 text-start">
                                     <th className="px-4 py-2">
+                                        {t('pump_counters.time')}
+                                    </th>
+                                    <th className="px-4 py-2">
                                         {t('pump_counters.pump')}
                                     </th>
                                     <th className="px-4 py-2">
@@ -399,6 +477,9 @@ export default function PumpCountersIndex() {
                             <tbody>
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {formatDateTime(reading.created_at)}
+                                        </td>
                                         <td className="px-4 py-2">
                                             {reading.pump?.name}
                                         </td>
@@ -410,6 +491,7 @@ export default function PumpCountersIndex() {
                                         <td className="px-4 py-2">
                                             {formatNumber(
                                                 reading.reading_value,
+                                                0,
                                             )}
                                         </td>
                                         <td className="px-4 py-2">
@@ -449,7 +531,7 @@ export default function PumpCountersIndex() {
                                 {readings.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={auth.isAdmin ? 9 : 8}
+                                            colSpan={auth.isAdmin ? 10 : 9}
                                             className="px-4 py-6 text-center text-muted-foreground"
                                         >
                                             {t('common.no_results')}

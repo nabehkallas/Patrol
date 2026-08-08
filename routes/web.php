@@ -18,6 +18,7 @@ use App\Http\Controllers\SadcopController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TankTopUpController;
+use App\Http\Controllers\TankTransferController;
 use App\Http\Controllers\TankVolumeCalculatorController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\ForcePasswordChange;
@@ -60,6 +61,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf');
         Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf');
         Route::post('tank-top-ups', [TankTopUpController::class, 'store'])->name('tank-top-ups.store');
+        Route::post('tank-transfers', [TankTransferController::class, 'store'])->name('tank-transfers.store');
 
         Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
 

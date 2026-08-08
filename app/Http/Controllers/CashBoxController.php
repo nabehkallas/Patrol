@@ -40,6 +40,7 @@ class CashBoxController extends Controller
                 'period' => $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate),
                 'today' => $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate),
             ],
+            'history' => $this->historyEntries($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id),
         ]);
     }
 
@@ -216,6 +217,84 @@ class CashBoxController extends Controller
             'debts' => $this->byCurrency($outstandingDebts),
             'debts_liters_sold' => round($litersSoldInDebt, 3),
         ];
+    }
+
+    /**
+     * A chronological ledger of everything that actually moved cash in the register — every
+     * income/expense/exchange transaction plus every settled debt (dated at settlement, since
+     * that's when the cash actually moved) — everything the "period" summary above is built
+     * from, laid out row by row. Fuel deliveries (including Sadcop's) never touch the cash
+     * register, so they're excluded entirely, same as in summarize().
+     *
+     * @return array<int, array{id: string, date: string, type: string, description: string, amount: float, currency: string}>
+     */
+    private function historyEntries(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
+    {
+        $transactions = Transaction::query()
+            ->whereIn('type', [
+                TransactionType::FuelSale,
+                TransactionType::OtherIncome,
+                TransactionType::Expense,
+                TransactionType::CurrencyExchange,
+            ])
+            ->where('occurred_at', '>=', $from)
+            ->where('occurred_at', '<=', $to)
+            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $userId))
+            ->with(['fuelType', 'debt', 'sadcopLedgerEntry'])
+            ->get()
+            // A transaction with a debt is represented by that debt's settlement entry
+            // instead (below) — it hasn't moved cash yet if outstanding, and if settled, the
+            // settlement date (not this transaction's date) is when the cash actually moved.
+            ->reject(fn (Transaction $transaction) => $transaction->debt !== null)
+            ->map(fn (Transaction $transaction) => [
+                'id' => 'transaction-'.$transaction->id,
+                'date' => $transaction->occurred_at->toIso8601String(),
+                'type' => match (true) {
+                    $transaction->type === TransactionType::CurrencyExchange => 'exchange',
+                    $transaction->sadcopLedgerEntry !== null => 'sadcop',
+                    $transaction->type === TransactionType::Expense => 'expense',
+                    default => 'income',
+                },
+                'description' => $this->describeTransaction($transaction),
+                'amount' => (float) $transaction->amount,
+                'currency' => $transaction->currency->value,
+            ]);
+
+        $settledDebts = Debt::query()
+            ->where('status', DebtStatus::Settled)
+            ->whereNotNull('settled_at')
+            ->where('settled_at', '>=', $from)
+            ->where('settled_at', '<=', $to)
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
+            ->with('debtor')
+            ->get()
+            ->map(fn (Debt $debt) => [
+                'id' => 'debt-'.$debt->id,
+                'date' => $debt->settled_at->toIso8601String(),
+                'type' => $debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
+                'description' => ($debt->debtor?->name ?? '—').' — '.__('debt settled'),
+                'amount' => (float) $debt->amount,
+                'currency' => $debt->currency->value,
+            ]);
+
+        return $transactions->concat($settledDebts)
+            ->sortByDesc('date')
+            ->values()
+            ->all();
+    }
+
+    private function describeTransaction(Transaction $transaction): string
+    {
+        if ($transaction->type === TransactionType::CurrencyExchange) {
+            return number_format((float) $transaction->amount, 2).' '.$transaction->currency->value
+                .' → '.number_format((float) $transaction->to_amount, 2).' '.$transaction->to_currency->value;
+        }
+
+        if ($transaction->sadcopLedgerEntry !== null) {
+            return __('Sadcop transfer');
+        }
+
+        return $transaction->fuelType?->name ?? $transaction->description ?? $transaction->type->value;
     }
 
     /**

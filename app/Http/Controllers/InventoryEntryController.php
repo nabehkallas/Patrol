@@ -6,6 +6,7 @@ use App\Http\Requests\StoreInventoryEntryRequest;
 use App\Models\InventoryEntry;
 use App\Models\Tank;
 use App\Models\TankTopUp;
+use App\Models\TankTransfer;
 use App\Services\PdfTableExporter;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +32,10 @@ class InventoryEntryController extends Controller
                 ->latest('date')
                 ->paginate(25),
             'topUps' => TankTopUp::with(['tank.fuelType', 'recordedBy'])
+                ->whereDate('date', $topUpDate)
+                ->latest('id')
+                ->get(),
+            'transfers' => TankTransfer::with(['fromTank.fuelType', 'toTank.fuelType', 'recordedBy'])
                 ->whereDate('date', $topUpDate)
                 ->latest('id')
                 ->get(),

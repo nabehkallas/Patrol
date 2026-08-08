@@ -147,7 +147,7 @@ class EarningsController extends Controller
             return [
                 'fuel_type' => ['id' => $fuelType->id, 'name' => $fuelType->name],
                 'liters_sold' => round($litersSold, 3),
-                'profit_margin_percent' => round($marginPercent, 2),
+                'profit_margin_percent' => round($marginPercent, 4),
                 'profit_margin_syp' => round($marginSyp, 2),
                 'margin_earnings_syp' => round($marginEarningsSyp, 0),
                 'topup_liters' => round($topUpLiters, 3),
