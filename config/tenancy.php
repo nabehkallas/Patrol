@@ -6,7 +6,6 @@ use App\Models\Tenant;
 use App\Tenancy\SqliteDatabaseManager;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
-use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain;
 use Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager;
@@ -35,10 +34,13 @@ return [
      *
      * To configure their behavior, see the config keys below.
      */
+    // FilesystemTenancyBootstrapper is intentionally omitted: this app never stores files
+    // per-tenant (no Storage:: usage anywhere), and it also rewrites every asset()/Vite URL to
+    // go through a tenant-scoped route whenever tenancy is initialized — which broke the
+    // production JS/CSS bundle (a single static build shared by all tenants) with 500s.
     'bootstrappers' => [
         DatabaseTenancyBootstrapper::class,
         CacheTenancyBootstrapper::class,
-        FilesystemTenancyBootstrapper::class,
         QueueTenancyBootstrapper::class,
         // Stancl\Tenancy\Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
     ],
