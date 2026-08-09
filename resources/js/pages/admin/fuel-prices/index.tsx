@@ -64,7 +64,7 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
                             )
                         }
                     />
-                    <span className="absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                    <span className="absolute inset-y-0 end-3 flex items-center text-sm text-muted-foreground">
                         %
                     </span>
                 </div>

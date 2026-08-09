@@ -7,6 +7,7 @@ import {
     Gauge,
     PiggyBank,
     Receipt,
+    ShoppingBag,
     Truck,
     TrendingUp,
     Users,
@@ -38,6 +39,7 @@ import { index as debtsIndex } from '@/routes/debts';
 import { index as inventoryIndex } from '@/routes/inventory';
 import { index as pumpCountersIndex } from '@/routes/pump-counters';
 import { index as sadcopIndex } from '@/routes/sadcop';
+import { index as shopIndex } from '@/routes/shop';
 import { index as statisticsIndex } from '@/routes/statistics';
 import { tankVolume as tankVolumeIndex } from '@/routes/tools';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -72,6 +74,11 @@ export function AppSidebar() {
             title: t('nav.pump_counters'),
             href: pumpCountersIndex(),
             icon: Gauge,
+        },
+        {
+            title: t('nav.shop'),
+            href: shopIndex(),
+            icon: ShoppingBag,
         },
     ];
 

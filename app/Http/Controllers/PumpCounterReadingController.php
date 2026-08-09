@@ -183,28 +183,39 @@ class PumpCounterReadingController extends Controller
             'reading' => [
                 'id' => $pumpCounterReading->id,
                 'pump_id' => $pumpCounterReading->pump_id,
+                'tank_id' => $pumpCounterReading->tank_id,
                 'date' => $pumpCounterReading->date->toDateString(),
                 'reading_value' => (string) $pumpCounterReading->reading_value,
                 'liters_sold' => $pumpCounterReading->liters_sold !== null ? (string) $pumpCounterReading->liters_sold : null,
                 'governmental_liters' => $pumpCounterReading->governmental_liters !== null ? (string) $pumpCounterReading->governmental_liters : null,
                 'return_liters' => $pumpCounterReading->return_liters !== null ? (string) $pumpCounterReading->return_liters : null,
                 'notes' => $pumpCounterReading->notes,
-                'pump_name' => $pumpCounterReading->pump->name,
-                'tank_name' => $pumpCounterReading->tank?->name,
-                'fuel_type_name' => $pumpCounterReading->tank?->fuelType?->name,
             ],
+            'pumps' => FuelPump::orderBy('name')->get(['id', 'name', 'fuel_type_id']),
+            'tanks' => $this->tankOptions(),
         ]);
     }
 
     public function update(Request $request, PumpCounterReading $pumpCounterReading): RedirectResponse
     {
         $data = $request->validate([
+            'pump_id' => 'required|exists:fuel_pumps,id',
+            'tank_id' => 'required|exists:tanks,id',
             'date' => 'required|date',
             'reading_value' => 'required|integer|min:0',
             'governmental_liters' => 'nullable|numeric|min:0',
             'return_liters' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
         ]);
+
+        $pump = FuelPump::findOrFail($data['pump_id']);
+        $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
+
+        if ($pump->fuel_type_id !== null && $tank->fuel_type_id !== $pump->fuel_type_id) {
+            throw ValidationException::withMessages([
+                'tank_id' => __('This tank\'s fuel type does not match the pump\'s fuel type.'),
+            ]);
+        }
 
         if ($pumpCounterReading->transaction_id) {
             Transaction::find($pumpCounterReading->transaction_id)?->delete();
@@ -214,21 +225,19 @@ class PumpCounterReadingController extends Controller
             Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
         }
 
-        $pumpCounterReading->loadMissing(['pump', 'tank.fuelType']);
-
-        $tank = $pumpCounterReading->tank ?? Tank::with('fuelType')->first();
-
-        $prevReading = PumpCounterReading::where('pump_id', $pumpCounterReading->pump_id)
+        $prevReading = PumpCounterReading::where('pump_id', $pump->id)
             ->where('id', '<', $pumpCounterReading->id)
             ->latest('id')
             ->first();
 
         [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
-            $pumpCounterReading->pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
+            $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
             $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
         );
 
         $pumpCounterReading->update([
+            'pump_id' => $pump->id,
+            'tank_id' => $tank->id,
             'date' => $data['date'],
             'reading_value' => $data['reading_value'],
             'liters_sold' => $litersSold,
@@ -242,6 +251,27 @@ class PumpCounterReadingController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading updated.')]);
 
         return to_route('pump-counters.index', ['date' => $data['date']]);
+    }
+
+    public function destroy(PumpCounterReading $pumpCounterReading): RedirectResponse
+    {
+        $date = $pumpCounterReading->date->toDateString();
+
+        // Cascades to delete any debt tied to the governmental-sale transaction too
+        // (debts.transaction_id is cascadeOnDelete).
+        if ($pumpCounterReading->transaction_id) {
+            Transaction::find($pumpCounterReading->transaction_id)?->delete();
+        }
+
+        if ($pumpCounterReading->governmental_transaction_id) {
+            Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
+        }
+
+        $pumpCounterReading->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading deleted.')]);
+
+        return to_route('pump-counters.index', ['date' => $date]);
     }
 
     /**

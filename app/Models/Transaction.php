@@ -16,7 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'fuel_type_id',
     'tank_id',
     'pump_id',
+    'shop_item_id',
     'liters',
+    'quantity',
     'price_per_liter',
     'description',
     'amount',
@@ -38,6 +40,7 @@ class Transaction extends Model
             'currency' => Currency::class,
             'to_currency' => Currency::class,
             'liters' => 'decimal:3',
+            'quantity' => 'integer',
             'price_per_liter' => 'decimal:4',
             'amount' => 'decimal:2',
             'to_amount' => 'decimal:2',
@@ -66,6 +69,11 @@ class Transaction extends Model
     public function pump(): BelongsTo
     {
         return $this->belongsTo(FuelPump::class, 'pump_id');
+    }
+
+    public function shopItem(): BelongsTo
+    {
+        return $this->belongsTo(ShopItem::class);
     }
 
     public function debt(): HasOne

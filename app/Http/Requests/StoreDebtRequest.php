@@ -22,6 +22,7 @@ class StoreDebtRequest extends FormRequest
             'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
             'date' => ['required', 'date'],
             'details' => ['nullable', 'string'],
+            'affect_cash_box' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { edit, exportPdf, index, store } from '@/routes/pump-counters';
+import { destroy, edit, exportPdf, index, store } from '@/routes/pump-counters';
 import type { Auth, PumpCounterReading, PumpSummary } from '@/types';
 
 type TankOption = {
@@ -132,6 +132,12 @@ export default function PumpCountersIndex() {
 
     function handleDateChange(newDate: string) {
         router.get(index(), { date: newDate }, { preserveScroll: false });
+    }
+
+    function removeReading(reading: PumpCounterReading) {
+        if (confirm(t('common.confirm_delete'))) {
+            router.delete(destroy.url(reading.id));
+        }
     }
 
     return (
@@ -517,13 +523,22 @@ export default function PumpCountersIndex() {
                                             {reading.notes}
                                         </td>
                                         {auth.isAdmin && (
-                                            <td className="px-4 py-2 text-end">
+                                            <td className="space-x-2 px-4 py-2 text-end">
                                                 <Link
                                                     href={edit(reading.id)}
                                                     className="text-sm underline"
                                                 >
                                                     {t('common.edit')}
                                                 </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        removeReading(reading)
+                                                    }
+                                                >
+                                                    {t('common.delete')}
+                                                </Button>
                                             </td>
                                         )}
                                     </tr>

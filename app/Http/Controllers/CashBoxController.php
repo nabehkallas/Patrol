@@ -230,6 +230,14 @@ class CashBoxController extends Controller
      */
     private function historyEntries(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
+        $labels = app()->getLocale() === 'ar' ? [
+            'sadcop_transfer' => 'تحويل سادكوب',
+            'debt_settled' => 'تسوية دين',
+        ] : [
+            'sadcop_transfer' => 'Sadcop transfer',
+            'debt_settled' => 'Debt settled',
+        ];
+
         $transactions = Transaction::query()
             ->whereIn('type', [
                 TransactionType::FuelSale,
@@ -255,7 +263,7 @@ class CashBoxController extends Controller
                     $transaction->type === TransactionType::Expense => 'expense',
                     default => 'income',
                 },
-                'description' => $this->describeTransaction($transaction),
+                'description' => $this->describeTransaction($transaction, $labels),
                 'amount' => (float) $transaction->amount,
                 'currency' => $transaction->currency->value,
             ]);
@@ -272,7 +280,7 @@ class CashBoxController extends Controller
                 'id' => 'debt-'.$debt->id,
                 'date' => $debt->settled_at->toIso8601String(),
                 'type' => $debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
-                'description' => ($debt->debtor?->name ?? '—').' — '.__('debt settled'),
+                'description' => ($debt->debtor?->name ?? '—').' — '.$labels['debt_settled'],
                 'amount' => (float) $debt->amount,
                 'currency' => $debt->currency->value,
             ]);
@@ -283,7 +291,10 @@ class CashBoxController extends Controller
             ->all();
     }
 
-    private function describeTransaction(Transaction $transaction): string
+    /**
+     * @param  array<string, string>  $labels
+     */
+    private function describeTransaction(Transaction $transaction, array $labels): string
     {
         if ($transaction->type === TransactionType::CurrencyExchange) {
             return number_format((float) $transaction->amount, 2).' '.$transaction->currency->value
@@ -291,7 +302,7 @@ class CashBoxController extends Controller
         }
 
         if ($transaction->sadcopLedgerEntry !== null) {
-            return __('Sadcop transfer');
+            return $labels['sadcop_transfer'];
         }
 
         return $transaction->fuelType?->name ?? $transaction->description ?? $transaction->type->value;

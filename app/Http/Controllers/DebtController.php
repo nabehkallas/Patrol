@@ -6,17 +6,20 @@ use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
+use App\Enums\TransactionType;
 use App\Http\Requests\StoreDebtRequest;
 use App\Http\Requests\UpdateDebtRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Models\ExchangeRate;
 use App\Models\FuelType;
+use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -194,11 +197,42 @@ class DebtController extends Controller
             $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor(Currency::from($data['currency']));
         }
 
-        Debt::create($data);
+        $affectCashBoxNow = $data['affect_cash_box'] ?? false;
+        unset($data['affect_cash_box']);
+
+        DB::transaction(function () use ($request, $data, $affectCashBoxNow) {
+            $debt = Debt::create($data);
+
+            if ($affectCashBoxNow) {
+                $this->recordImmediateCashEffect($debt, $request->user()->id);
+            }
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt recorded.')]);
 
         return to_route('debts.index');
+    }
+
+    /**
+     * Some debts represent cash that actually moved right now — e.g. handing someone cash as
+     * an advance (receivable: it leaves the register now, comes back when they repay) or
+     * borrowing cash from someone (payable: it arrives now, leaves again when repaid). The
+     * debt's own settlement already produces the "money returns" side (see
+     * CashBoxController::historyEntries()); this transaction is the "money leaves/arrives now"
+     * side, recorded as an ordinary transaction so it shows up in the Cash Box immediately.
+     */
+    private function recordImmediateCashEffect(Debt $debt, int $userId): void
+    {
+        Transaction::create([
+            'user_id' => $userId,
+            'type' => $debt->direction === DebtDirection::Receivable ? TransactionType::Expense : TransactionType::OtherIncome,
+            'description' => ($debt->debtor?->name ?? '—').' — '.__('cash advance'),
+            'amount' => $debt->amount,
+            'currency' => $debt->currency,
+            'exchange_rate_to_usd' => $debt->exchange_rate_to_usd,
+            'occurred_at' => now(),
+            'notes' => $debt->details,
+        ]);
     }
 
     public function edit(Debt $debt): Response

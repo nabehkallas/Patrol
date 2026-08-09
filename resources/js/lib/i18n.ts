@@ -16,6 +16,7 @@ const dictionary = {
         'nav.exchange_rates': 'Exchange rates',
         'nav.tank_volume_calculator': 'Tank volume calculator',
         'nav.sadcop': 'Sadcop',
+        'nav.shop': 'Shop',
 
         'common.save': 'Save',
         'common.create': 'Create',
@@ -245,6 +246,10 @@ const dictionary = {
         'debts.direction.receivable': 'They owe us',
         'debts.direction.payable': 'We owe them',
         'debts.all_directions': 'All directions',
+        'debts.take_from_cash_box':
+            'Take this amount out of the cash box now (returns when settled)',
+        'debts.add_to_cash_box':
+            'Add this amount to the cash box now (leaves when settled)',
 
         'debtors.title': 'Debtors',
         'debtors.description':
@@ -333,6 +338,23 @@ const dictionary = {
         'pump_counters.return_liters': 'Return (L)',
         'pump_counters.fuel_type_daily_total': 'Liters sold today',
         'pump_counters.time': 'Time',
+
+        'shop.title': 'Shop',
+        'shop.description':
+            'Sell shop items (water, oil, etc.) and manage stock',
+        'shop.new_item': 'New item name',
+        'shop.item_name_placeholder': 'e.g. Water bottle',
+        'shop.add_item': 'Add item',
+        'shop.stock': 'In stock',
+        'shop.restock': 'Restock',
+        'shop.sell': 'Sell',
+        'shop.quantity': 'Quantity',
+        'shop.record_purchase': 'Record purchase',
+        'shop.record_sale': 'Record sale',
+        'shop.history': 'Shop history',
+        'shop.item': 'Item',
+        'shop.type.purchase': 'Purchase',
+        'shop.type.sale': 'Sale',
 
         'fuel_pumps.title': 'Fuel pumps',
         'fuel_pumps.description': 'Define the dispensing pumps at this station',
@@ -437,6 +459,7 @@ const dictionary = {
         'nav.exchange_rates': 'أسعار الصرف',
         'nav.tank_volume_calculator': 'حاسبة حجم الخزان',
         'nav.sadcop': 'سادكوب',
+        'nav.shop': 'المتجر',
 
         'common.save': 'حفظ',
         'common.create': 'إنشاء',
@@ -659,6 +682,10 @@ const dictionary = {
         'debts.direction.receivable': 'مستحق لنا',
         'debts.direction.payable': 'مستحق علينا',
         'debts.all_directions': 'كل الاتجاهات',
+        'debts.take_from_cash_box':
+            'سحب هذا المبلغ من صندوق النقد الآن (يعود عند التسديد)',
+        'debts.add_to_cash_box':
+            'إضافة هذا المبلغ إلى صندوق النقد الآن (يخرج عند التسديد)',
 
         'debtors.title': 'المدينون',
         'debtors.description':
@@ -745,6 +772,22 @@ const dictionary = {
         'pump_counters.return_liters': 'مرتجع (لتر)',
         'pump_counters.fuel_type_daily_total': 'اللترات المباعة اليوم',
         'pump_counters.time': 'الوقت',
+
+        'shop.title': 'المتجر',
+        'shop.description': 'بيع أصناف المتجر (ماء، زيت، إلخ) وإدارة المخزون',
+        'shop.new_item': 'اسم الصنف الجديد',
+        'shop.item_name_placeholder': 'مثال: قنينة ماء',
+        'shop.add_item': 'إضافة صنف',
+        'shop.stock': 'المخزون',
+        'shop.restock': 'تعبئة المخزون',
+        'shop.sell': 'بيع',
+        'shop.quantity': 'الكمية',
+        'shop.record_purchase': 'تسجيل شراء',
+        'shop.record_sale': 'تسجيل بيع',
+        'shop.history': 'سجل المتجر',
+        'shop.item': 'الصنف',
+        'shop.type.purchase': 'شراء',
+        'shop.type.sale': 'بيع',
 
         'fuel_pumps.title': 'مضخات الوقود',
         'fuel_pumps.description': 'تعريف مضخات التوزيع في المحطة',

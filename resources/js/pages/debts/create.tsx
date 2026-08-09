@@ -5,6 +5,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -49,6 +50,7 @@ export default function DebtCreate() {
         exchange_rate_to_usd: '',
         date: new Date().toISOString().slice(0, 10),
         details: '',
+        affect_cash_box: false,
     });
 
     function computeAmount(liters: string, pricePerLiter: string): string {
@@ -389,6 +391,24 @@ export default function DebtCreate() {
                             }
                         />
                         <InputError message={form.errors.details} />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="affect_cash_box"
+                            checked={form.data.affect_cash_box}
+                            onCheckedChange={(checked) =>
+                                form.setData(
+                                    'affect_cash_box',
+                                    checked === true,
+                                )
+                            }
+                        />
+                        <Label htmlFor="affect_cash_box">
+                            {form.data.direction === 'receivable'
+                                ? t('debts.take_from_cash_box')
+                                : t('debts.add_to_cash_box')}
+                        </Label>
                     </div>
 
                     <Button type="submit" disabled={form.processing}>

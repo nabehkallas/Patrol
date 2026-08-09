@@ -1,10 +1,18 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useMemo } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -13,32 +21,76 @@ import { index, update } from '@/routes/pump-counters';
 type Reading = {
     id: number;
     pump_id: number;
+    tank_id: number | null;
     date: string;
     reading_value: string;
     liters_sold: string | null;
     governmental_liters: string | null;
     return_liters: string | null;
     notes: string | null;
-    pump_name: string;
-    tank_name: string;
+};
+
+type PumpOption = {
+    id: number;
+    name: string;
+    fuel_type_id: number | null;
+};
+
+type TankOption = {
+    id: number;
+    name: string;
+    fuel_type_id: number;
     fuel_type_name: string;
 };
 
 type PageProps = {
     reading: Reading;
+    pumps: PumpOption[];
+    tanks: TankOption[];
 };
 
 export default function PumpCounterReadingEdit() {
-    const { reading } = usePage<PageProps>().props;
+    const { reading, pumps, tanks } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const form = useForm({
+        pump_id: String(reading.pump_id),
+        tank_id: String(reading.tank_id ?? tanks[0]?.id ?? ''),
         date: reading.date,
         reading_value: reading.reading_value,
         governmental_liters: reading.governmental_liters ?? '',
         return_liters: reading.return_liters ?? '',
         notes: reading.notes ?? '',
     });
+
+    const selectedPump = pumps.find(
+        (pump) => String(pump.id) === form.data.pump_id,
+    );
+
+    const availableTanks = useMemo(
+        () =>
+            selectedPump?.fuel_type_id
+                ? tanks.filter(
+                      (tank) => tank.fuel_type_id === selectedPump.fuel_type_id,
+                  )
+                : tanks,
+        [tanks, selectedPump],
+    );
+
+    function handlePumpChange(pumpId: string) {
+        const pump = pumps.find((p) => String(p.id) === pumpId);
+        const nextTanks = pump?.fuel_type_id
+            ? tanks.filter((tank) => tank.fuel_type_id === pump.fuel_type_id)
+            : tanks;
+
+        form.setData((data) => ({
+            ...data,
+            pump_id: pumpId,
+            tank_id: nextTanks.some((tank) => String(tank.id) === data.tank_id)
+                ? data.tank_id
+                : String(nextTanks[0]?.id ?? ''),
+        }));
+    }
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -55,18 +107,66 @@ export default function PumpCounterReadingEdit() {
                     title={t('pump_counters.edit_reading')}
                 />
 
-                <p className="text-sm text-muted-foreground">
-                    {reading.pump_name} — {reading.tank_name} (
-                    {reading.fuel_type_name})
-                    {reading.liters_sold !== null && (
-                        <span className="ms-2 font-medium">
-                            · {t('pump_counters.liters_sold')}:{' '}
+                {reading.liters_sold !== null && (
+                    <p className="text-sm text-muted-foreground">
+                        {t('pump_counters.liters_sold')}:{' '}
+                        <span className="font-medium">
                             {formatNumber(reading.liters_sold)} L
                         </span>
-                    )}
-                </p>
+                    </p>
+                )}
 
                 <form onSubmit={submit} className="space-y-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="pump_id">
+                            {t('pump_counters.pump')}
+                        </Label>
+                        <Select
+                            value={form.data.pump_id}
+                            onValueChange={handlePumpChange}
+                        >
+                            <SelectTrigger id="pump_id" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {pumps.map((pump) => (
+                                    <SelectItem
+                                        key={pump.id}
+                                        value={String(pump.id)}
+                                    >
+                                        {pump.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.pump_id} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="tank_id">{t('common.tank')}</Label>
+                        <Select
+                            value={form.data.tank_id}
+                            onValueChange={(value) =>
+                                form.setData('tank_id', value)
+                            }
+                        >
+                            <SelectTrigger id="tank_id" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableTanks.map((tank) => (
+                                    <SelectItem
+                                        key={tank.id}
+                                        value={String(tank.id)}
+                                    >
+                                        {tank.fuel_type_name} — {tank.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.tank_id} />
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="date">{t('common.date')}</Label>
                         <Input

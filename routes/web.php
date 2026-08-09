@@ -15,6 +15,7 @@ use App\Http\Controllers\InventoryEntryController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PumpCounterReadingController;
 use App\Http\Controllers\SadcopController;
+use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TankTopUpController;
@@ -92,6 +93,14 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::post('pump-counters', [PumpCounterReadingController::class, 'store'])->name('pump-counters.store');
         Route::get('pump-counters/{pumpCounterReading}/edit', [PumpCounterReadingController::class, 'edit'])->name('pump-counters.edit')->middleware('role:admin');
         Route::patch('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'update'])->name('pump-counters.update')->middleware('role:admin');
+        Route::delete('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'destroy'])->name('pump-counters.destroy')->middleware('role:admin');
+
+        Route::get('shop', [ShopController::class, 'index'])->name('shop.index');
+        Route::get('shop/export-pdf', [ShopController::class, 'exportPdf'])->name('shop.export-pdf');
+        Route::post('shop/items', [ShopController::class, 'storeItem'])->name('shop.items.store');
+        Route::delete('shop/items/{shopItem}', [ShopController::class, 'destroyItem'])->name('shop.items.destroy');
+        Route::post('shop/purchases', [ShopController::class, 'storePurchase'])->name('shop.purchases.store');
+        Route::post('shop/sales', [ShopController::class, 'storeSale'])->name('shop.sales.store');
     });
 
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
