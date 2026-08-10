@@ -319,7 +319,7 @@ export default function PumpCountersIndex() {
                                 <Label htmlFor="reading_value">
                                     {t('pump_counters.reading_value')}
                                     {selectedPump?.latest_reading && (
-                                        <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                        <span className="ms-2 text-sm font-normal text-muted-foreground">
                                             ({t('pump_counters.previous')}:{' '}
                                             {formatNumber(
                                                 selectedPump.latest_reading
