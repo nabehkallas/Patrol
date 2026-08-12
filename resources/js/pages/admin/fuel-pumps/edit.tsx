@@ -3,21 +3,15 @@ import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useTranslation } from '@/lib/i18n';
 import { index, update } from '@/routes/admin/fuel-pumps';
 import type { FuelType } from '@/types';
 
 type PageProps = {
-    pump: { id: number; name: string; fuel_type_id: number | null };
+    pump: { id: number; name: string; fuel_type_ids: number[] };
     fuelTypes: FuelType[];
 };
 
@@ -27,8 +21,17 @@ export default function FuelPumpEdit() {
 
     const form = useForm({
         name: pump.name,
-        fuel_type_id: pump.fuel_type_id ? String(pump.fuel_type_id) : '',
+        fuel_type_ids: pump.fuel_type_ids,
     });
+
+    function toggleFuelType(id: number, checked: boolean) {
+        form.setData(
+            'fuel_type_ids',
+            checked
+                ? [...form.data.fuel_type_ids, id]
+                : form.data.fuel_type_ids.filter((ftId) => ftId !== id),
+        );
+    }
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -57,36 +60,35 @@ export default function FuelPumpEdit() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="fuel_type_id">
-                            {t('common.fuel_type')}
-                        </Label>
-                        <Select
-                            value={form.data.fuel_type_id || 'none'}
-                            onValueChange={(value) =>
-                                form.setData(
-                                    'fuel_type_id',
-                                    value === 'none' ? '' : value,
-                                )
-                            }
-                        >
-                            <SelectTrigger id="fuel_type_id" className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">
-                                    {t('common.none')}
-                                </SelectItem>
-                                {fuelTypes.map((fuelType) => (
-                                    <SelectItem
-                                        key={fuelType.id}
-                                        value={String(fuelType.id)}
+                        <Label>{t('common.fuel_types')}</Label>
+                        <div className="space-y-2">
+                            {fuelTypes.map((fuelType) => (
+                                <div
+                                    key={fuelType.id}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Checkbox
+                                        id={`fuel_type_${fuelType.id}`}
+                                        checked={form.data.fuel_type_ids.includes(
+                                            fuelType.id,
+                                        )}
+                                        onCheckedChange={(checked) =>
+                                            toggleFuelType(
+                                                fuelType.id,
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    <Label
+                                        htmlFor={`fuel_type_${fuelType.id}`}
+                                        className="font-normal"
                                     >
                                         {fuelType.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={form.errors.fuel_type_id} />
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
+                        <InputError message={form.errors.fuel_type_ids} />
                     </div>
 
                     <Button type="submit" disabled={form.processing}>

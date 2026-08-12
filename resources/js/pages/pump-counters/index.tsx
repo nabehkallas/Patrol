@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,16 +30,24 @@ type TankOption = {
     fuel_type_name: string;
 };
 
+type FuelTypeTotal = {
+    fuel_type_id: number;
+    fuel_type_name: string;
+    liters_sold: number;
+};
+
 type PageProps = {
     auth: Auth;
     pumps: PumpSummary[];
     tanks: TankOption[];
     readings: PumpCounterReading[];
+    fuelTypeTotals: FuelTypeTotal[];
     date: string;
 };
 
 export default function PumpCountersIndex() {
-    const { auth, pumps, tanks, readings, date } = usePage<PageProps>().props;
+    const { auth, pumps, tanks, readings, fuelTypeTotals, date } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const form = useForm({
@@ -57,9 +66,9 @@ export default function PumpCountersIndex() {
 
     const availableTanks = useMemo(
         () =>
-            selectedPump?.fuel_type_id
-                ? tanks.filter(
-                      (tank) => tank.fuel_type_id === selectedPump.fuel_type_id,
+            selectedPump && selectedPump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
                 : tanks,
         [tanks, selectedPump],
@@ -82,9 +91,12 @@ export default function PumpCountersIndex() {
 
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
-        const nextTanks = pump?.fuel_type_id
-            ? tanks.filter((tank) => tank.fuel_type_id === pump.fuel_type_id)
-            : tanks;
+        const nextTanks =
+            pump && pump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      pump.fuel_type_ids.includes(tank.fuel_type_id),
+                  )
+                : tanks;
 
         form.setData((data) => ({
             ...data,
@@ -92,24 +104,6 @@ export default function PumpCountersIndex() {
             tank_id: String(defaultTankFor(pump, nextTanks)),
         }));
     }
-
-    const pumpsByFuelType = useMemo(() => {
-        const groups = new Map<string, PumpSummary[]>();
-
-        for (const pump of pumps) {
-            const key = pump.fuel_type_name ?? t('common.none');
-            groups.set(key, [...(groups.get(key) ?? []), pump]);
-        }
-
-        return Array.from(groups.entries()).map(([fuelTypeName, group]) => ({
-            fuelTypeName,
-            pumps: group,
-            dailyLitersSold: group.reduce(
-                (total, pump) => total + pump.daily_liters_sold,
-                0,
-            ),
-        }));
-    }, [pumps, t]);
 
     const maxLitersSold =
         selectedPump?.latest_reading && form.data.reading_value !== ''
@@ -151,86 +145,77 @@ export default function PumpCountersIndex() {
                     description={t('pump_counters.description')}
                 />
 
-                <div className="space-y-6">
-                    {pumpsByFuelType.map((group) => (
-                        <div key={group.fuelTypeName} className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">
-                                    {group.fuelTypeName}
-                                </h3>
-                                <div className="text-sm">
+                {fuelTypeTotals.length > 0 && (
+                    <div className="flex flex-wrap gap-4">
+                        {fuelTypeTotals.map((total) => (
+                            <div
+                                key={total.fuel_type_id}
+                                className="rounded-lg border px-4 py-2 text-sm"
+                            >
+                                <div className="text-muted-foreground">
+                                    {total.fuel_type_name}
+                                </div>
+                                <div
+                                    className={cn(
+                                        'font-medium',
+                                        total.liters_sold > 0 &&
+                                            'text-green-600 dark:text-green-400',
+                                    )}
+                                >
+                                    {formatNumber(total.liters_sold)} L
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    {pumps.map((pump) => (
+                        <Card key={pump.id}>
+                            <CardHeader>
+                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                                    {pump.name}
+                                    {pump.fuel_type_names.map((name) => (
+                                        <Badge key={name} variant="secondary">
+                                            {name}
+                                        </Badge>
+                                    ))}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-1 text-sm">
+                                <div className="flex justify-between font-medium">
                                     <span className="text-muted-foreground">
-                                        {t(
-                                            'pump_counters.fuel_type_daily_total',
-                                        )}
-                                        :{' '}
+                                        {t('pump_counters.daily_total')}
                                     </span>
                                     <span
                                         className={cn(
-                                            'font-medium',
-                                            group.dailyLitersSold > 0 &&
+                                            pump.daily_liters_sold > 0 &&
                                                 'text-green-600 dark:text-green-400',
                                         )}
                                     >
-                                        {formatNumber(group.dailyLitersSold)} L
+                                        {formatNumber(pump.daily_liters_sold)} L
                                     </span>
                                 </div>
-                            </div>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {group.pumps.map((pump) => (
-                                    <Card key={pump.id}>
-                                        <CardHeader>
-                                            <CardTitle className="text-base">
-                                                {pump.name}
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-1 text-sm">
-                                            <div className="flex justify-between font-medium">
-                                                <span className="text-muted-foreground">
-                                                    {t(
-                                                        'pump_counters.daily_total',
-                                                    )}
-                                                </span>
-                                                <span
-                                                    className={cn(
-                                                        pump.daily_liters_sold >
-                                                            0 &&
-                                                            'text-green-600 dark:text-green-400',
-                                                    )}
-                                                >
-                                                    {formatNumber(
-                                                        pump.daily_liters_sold,
-                                                    )}{' '}
-                                                    L
-                                                </span>
-                                            </div>
-                                            {pump.latest_reading ? (
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        {t(
-                                                            'pump_counters.reading_value',
-                                                        )}
-                                                    </span>
-                                                    <span>
-                                                        {formatNumber(
-                                                            pump.latest_reading
-                                                                .reading_value,
-                                                            0,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <p className="text-muted-foreground">
-                                                    {t(
-                                                        'pump_counters.no_previous',
-                                                    )}
-                                                </p>
+                                {pump.latest_reading ? (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            {t('pump_counters.reading_value')}
+                                        </span>
+                                        <span>
+                                            {formatNumber(
+                                                pump.latest_reading
+                                                    .reading_value,
+                                                0,
                                             )}
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground">
+                                        {t('pump_counters.no_previous')}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
 

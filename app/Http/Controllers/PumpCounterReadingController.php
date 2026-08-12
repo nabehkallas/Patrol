@@ -27,7 +27,7 @@ class PumpCounterReadingController extends Controller
     {
         $date = Carbon::parse($request->input('date', today()->toDateString()));
 
-        $pumps = FuelPump::with('fuelType')->orderBy('name')->get()
+        $pumps = FuelPump::with('fuelTypes')->orderBy('name')->get()
             ->map(function (FuelPump $pump) use ($date) {
                 $latest = $pump->counterReadings()->latest('id')->first();
                 $dailyLiters = (float) $pump->counterReadings()
@@ -37,8 +37,8 @@ class PumpCounterReadingController extends Controller
                 return [
                     'id' => $pump->id,
                     'name' => $pump->name,
-                    'fuel_type_id' => $pump->fuel_type_id,
-                    'fuel_type_name' => $pump->fuelType?->name,
+                    'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
+                    'fuel_type_names' => $pump->fuelTypes->pluck('name'),
                     'daily_liters_sold' => round($dailyLiters, 3),
                     'latest_reading' => $latest ? [
                         'date' => $latest->date->toDateString(),
@@ -52,6 +52,20 @@ class PumpCounterReadingController extends Controller
             ->whereDate('date', $date)
             ->latest('id')
             ->get();
+
+        // Since a pump's meter can now be shared across several fuel types, "liters sold today
+        // per fuel type" can no longer be read off the pump — it's derived from each reading's
+        // own tank (which is what actually determines the fuel type of that sale).
+        $fuelTypeTotals = $readings
+            ->filter(fn (PumpCounterReading $reading) => $reading->liters_sold !== null && $reading->tank !== null)
+            ->groupBy(fn (PumpCounterReading $reading) => $reading->tank->fuel_type_id)
+            ->map(fn ($group) => [
+                'fuel_type_id' => $group->first()->tank->fuel_type_id,
+                'fuel_type_name' => $group->first()->tank->fuelType?->name,
+                'liters_sold' => round((float) $group->sum('liters_sold'), 3),
+            ])
+            ->sortBy('fuel_type_name')
+            ->values();
 
         $tanks = Tank::with('fuelType')
             ->orderBy('fuel_type_id')
@@ -68,6 +82,7 @@ class PumpCounterReadingController extends Controller
             'pumps' => $pumps,
             'tanks' => $tanks,
             'readings' => $readings,
+            'fuelTypeTotals' => $fuelTypeTotals,
             'date' => $date->toDateString(),
         ]);
     }
@@ -137,7 +152,7 @@ class PumpCounterReadingController extends Controller
         $pump = FuelPump::findOrFail($data['pump_id']);
         $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
 
-        if ($pump->fuel_type_id !== null && $tank->fuel_type_id !== $pump->fuel_type_id) {
+        if ($pump->fuelTypes()->exists() && ! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
             throw ValidationException::withMessages([
                 'tank_id' => __('This tank\'s fuel type does not match the pump\'s fuel type.'),
             ]);
@@ -191,7 +206,12 @@ class PumpCounterReadingController extends Controller
                 'return_liters' => $pumpCounterReading->return_liters !== null ? (string) $pumpCounterReading->return_liters : null,
                 'notes' => $pumpCounterReading->notes,
             ],
-            'pumps' => FuelPump::orderBy('name')->get(['id', 'name', 'fuel_type_id']),
+            'pumps' => FuelPump::with('fuelTypes')->orderBy('name')->get()
+                ->map(fn (FuelPump $pump) => [
+                    'id' => $pump->id,
+                    'name' => $pump->name,
+                    'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
+                ]),
             'tanks' => $this->tankOptions(),
         ]);
     }
@@ -211,7 +231,7 @@ class PumpCounterReadingController extends Controller
         $pump = FuelPump::findOrFail($data['pump_id']);
         $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
 
-        if ($pump->fuel_type_id !== null && $tank->fuel_type_id !== $pump->fuel_type_id) {
+        if ($pump->fuelTypes()->exists() && ! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
             throw ValidationException::withMessages([
                 'tank_id' => __('This tank\'s fuel type does not match the pump\'s fuel type.'),
             ]);

@@ -46,7 +46,7 @@ export default function FuelPumpsIndex() {
                                     {t('common.name')}
                                 </th>
                                 <th className="px-4 py-2">
-                                    {t('common.fuel_type')}
+                                    {t('common.fuel_types')}
                                 </th>
                                 <th className="px-4 py-2"></th>
                             </tr>
@@ -58,7 +58,9 @@ export default function FuelPumpsIndex() {
                                         {pump.name}
                                     </td>
                                     <td className="px-4 py-2">
-                                        {pump.fuel_type?.name ?? '—'}
+                                        {pump.fuel_type_names.length > 0
+                                            ? pump.fuel_type_names.join(', ')
+                                            : '—'}
                                     </td>
                                     <td className="space-x-2 px-4 py-2 text-end">
                                         <Link

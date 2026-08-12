@@ -282,7 +282,12 @@ class TransactionController extends Controller
 
     private function pumpOptions()
     {
-        return FuelPump::orderBy('name')->get(['id', 'name', 'fuel_type_id']);
+        return FuelPump::with('fuelTypes')->orderBy('name')->get()
+            ->map(fn (FuelPump $pump) => [
+                'id' => $pump->id,
+                'name' => $pump->name,
+                'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
+            ]);
     }
 
     private function tankOptions()

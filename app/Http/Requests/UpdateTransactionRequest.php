@@ -83,11 +83,11 @@ class UpdateTransactionRequest extends FormRequest
         $pump = FuelPump::find($this->input('pump_id'));
         $tank = Tank::find($this->input('tank_id'));
 
-        if (! $pump || ! $tank || $pump->fuel_type_id === null) {
+        if (! $pump || ! $tank || $pump->fuelTypes()->doesntExist()) {
             return;
         }
 
-        if ($pump->fuel_type_id !== $tank->fuel_type_id) {
+        if (! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
             $validator->errors()->add('tank_id', __('This tank\'s fuel type does not match the selected pump.'));
         }
     }

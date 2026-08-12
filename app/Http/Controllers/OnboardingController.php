@@ -44,13 +44,13 @@ class OnboardingController extends Controller
                     'fuel_type_name' => $tank->fuelType->name,
                     'has_opening_level' => $tank->topUps()->exists(),
                 ]),
-            'pumps' => FuelPump::with('fuelType')
+            'pumps' => FuelPump::with('fuelTypes')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (FuelPump $pump) => [
                     'id' => $pump->id,
                     'name' => $pump->name,
-                    'fuel_type_id' => $pump->fuel_type_id,
+                    'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
                     'has_reading' => $pump->counterReadings()->exists(),
                 ]),
             'fuelTypes' => FuelType::orderBy('name')

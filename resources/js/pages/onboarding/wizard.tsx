@@ -44,7 +44,7 @@ type Tank = {
 type Pump = {
     id: number;
     name: string;
-    fuel_type_id: number | null;
+    fuel_type_ids: number[];
     has_reading: boolean;
 };
 
@@ -270,13 +270,14 @@ function PumpReadingsSection({
                 {pumps.length > 0 && (
                     <form onSubmit={submit} className="space-y-3">
                         {pumps.map((pump) => {
-                            const availableTanks = pump.fuel_type_id
-                                ? tanks.filter(
-                                      (tank) =>
-                                          tank.fuel_type_id ===
-                                          pump.fuel_type_id,
-                                  )
-                                : tanks;
+                            const availableTanks =
+                                pump.fuel_type_ids.length > 0
+                                    ? tanks.filter((tank) =>
+                                          pump.fuel_type_ids.includes(
+                                              tank.fuel_type_id,
+                                          ),
+                                      )
+                                    : tanks;
 
                             return (
                                 <div

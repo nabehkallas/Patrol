@@ -277,15 +277,15 @@ export type SalesChartData = {
 export type FuelPump = {
     id: number;
     name: string;
-    fuel_type_id: number | null;
-    fuel_type?: { id: number; name: string } | null;
+    fuel_type_ids: number[];
+    fuel_type_names: string[];
 };
 
 export type PumpSummary = {
     id: number;
     name: string;
-    fuel_type_id: number | null;
-    fuel_type_name: string | null;
+    fuel_type_ids: number[];
+    fuel_type_names: string[];
     daily_liters_sold: number;
     latest_reading: {
         date: string;

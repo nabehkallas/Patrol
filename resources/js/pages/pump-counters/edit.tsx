@@ -33,7 +33,7 @@ type Reading = {
 type PumpOption = {
     id: number;
     name: string;
-    fuel_type_id: number | null;
+    fuel_type_ids: number[];
 };
 
 type TankOption = {
@@ -69,9 +69,9 @@ export default function PumpCounterReadingEdit() {
 
     const availableTanks = useMemo(
         () =>
-            selectedPump?.fuel_type_id
-                ? tanks.filter(
-                      (tank) => tank.fuel_type_id === selectedPump.fuel_type_id,
+            selectedPump && selectedPump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
                 : tanks,
         [tanks, selectedPump],
@@ -79,9 +79,12 @@ export default function PumpCounterReadingEdit() {
 
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
-        const nextTanks = pump?.fuel_type_id
-            ? tanks.filter((tank) => tank.fuel_type_id === pump.fuel_type_id)
-            : tanks;
+        const nextTanks =
+            pump && pump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      pump.fuel_type_ids.includes(tank.fuel_type_id),
+                  )
+                : tanks;
 
         form.setData((data) => ({
             ...data,

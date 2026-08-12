@@ -15,7 +15,13 @@ class FuelPumpController extends Controller
     public function index(): Response
     {
         return Inertia::render('admin/fuel-pumps/index', [
-            'pumps' => FuelPump::with('fuelType')->orderBy('name')->get(['id', 'name', 'fuel_type_id']),
+            'pumps' => FuelPump::with('fuelTypes')->orderBy('name')->get()
+                ->map(fn (FuelPump $pump) => [
+                    'id' => $pump->id,
+                    'name' => $pump->name,
+                    'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
+                    'fuel_type_names' => $pump->fuelTypes->pluck('name'),
+                ]),
         ]);
     }
 
@@ -30,10 +36,12 @@ class FuelPumpController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
+            'fuel_type_ids' => 'required|array|min:1',
+            'fuel_type_ids.*' => 'exists:fuel_types,id',
         ]);
 
-        FuelPump::create($data);
+        $pump = FuelPump::create(['name' => $data['name']]);
+        $pump->fuelTypes()->sync($data['fuel_type_ids']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Pump created.')]);
 
@@ -43,7 +51,11 @@ class FuelPumpController extends Controller
     public function edit(FuelPump $fuelPump): Response
     {
         return Inertia::render('admin/fuel-pumps/edit', [
-            'pump' => $fuelPump->only(['id', 'name', 'fuel_type_id']),
+            'pump' => [
+                'id' => $fuelPump->id,
+                'name' => $fuelPump->name,
+                'fuel_type_ids' => $fuelPump->fuelTypes->pluck('id'),
+            ],
             'fuelTypes' => $this->fuelTypeOptions(),
         ]);
     }
@@ -52,10 +64,12 @@ class FuelPumpController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
+            'fuel_type_ids' => 'required|array|min:1',
+            'fuel_type_ids.*' => 'exists:fuel_types,id',
         ]);
 
-        $fuelPump->update($data);
+        $fuelPump->update(['name' => $data['name']]);
+        $fuelPump->fuelTypes()->sync($data['fuel_type_ids']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Pump updated.')]);
 

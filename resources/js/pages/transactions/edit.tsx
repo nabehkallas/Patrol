@@ -54,7 +54,7 @@ function convertAmount(
 type PumpOption = {
     id: number;
     name: string;
-    fuel_type_id: number | null;
+    fuel_type_ids: number[];
 };
 
 type PageProps = {
@@ -122,9 +122,11 @@ export default function TransactionEdit() {
 
     const availableTanks = useMemo(
         () =>
-            form.data.type === 'fuel_sale' && selectedPump?.fuel_type_id
-                ? tanks.filter(
-                      (tank) => tank.fuel_type_id === selectedPump.fuel_type_id,
+            form.data.type === 'fuel_sale' &&
+            selectedPump &&
+            selectedPump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
                 : tanks,
         [tanks, selectedPump, form.data.type],
@@ -160,9 +162,12 @@ export default function TransactionEdit() {
 
     function handlePumpChange(id: string) {
         const pump = pumps.find((item) => item.id === Number(id));
-        const nextTanks = pump?.fuel_type_id
-            ? tanks.filter((tank) => tank.fuel_type_id === pump.fuel_type_id)
-            : tanks;
+        const nextTanks =
+            pump && pump.fuel_type_ids.length > 0
+                ? tanks.filter((tank) =>
+                      pump.fuel_type_ids.includes(tank.fuel_type_id),
+                  )
+                : tanks;
         const nextTank = nextTanks[0];
 
         form.setData((data) => ({
@@ -197,9 +202,7 @@ export default function TransactionEdit() {
                 currency,
                 to_currency: nextToCurrency,
                 to_amount:
-                    converted !== null
-                        ? converted.toFixed(2)
-                        : data.to_amount,
+                    converted !== null ? converted.toFixed(2) : data.to_amount,
                 exchange_rate_to_usd:
                     currency === 'USD'
                         ? ''
@@ -228,9 +231,7 @@ export default function TransactionEdit() {
                 to_currency: currency,
                 currency: nextCurrency,
                 to_amount:
-                    converted !== null
-                        ? converted.toFixed(2)
-                        : data.to_amount,
+                    converted !== null ? converted.toFixed(2) : data.to_amount,
             };
         });
     }
@@ -246,7 +247,8 @@ export default function TransactionEdit() {
         form.setData((data) => ({
             ...data,
             amount: value,
-            to_amount: converted !== null ? converted.toFixed(2) : data.to_amount,
+            to_amount:
+                converted !== null ? converted.toFixed(2) : data.to_amount,
         }));
     }
 
