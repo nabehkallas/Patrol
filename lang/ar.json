@@ -64,5 +64,6 @@
     "This item has transaction history and cannot be deleted.": "لهذا الصنف سجل معاملات ولا يمكن حذفه.",
     "Purchase recorded.": "تم تسجيل الشراء.",
     "Sale recorded.": "تم تسجيل البيع.",
-    "This exceeds the current stock (:stock).": "هذا يتجاوز المخزون الحالي (:stock)."
+    "This exceeds the current stock (:stock).": "هذا يتجاوز المخزون الحالي (:stock).",
+    "Station data reset.": "تمت إعادة تعيين بيانات المحطة."
 }

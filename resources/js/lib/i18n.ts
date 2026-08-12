@@ -92,6 +92,7 @@ const dictionary = {
         'settings.nav.profile': 'Profile',
         'settings.nav.security': 'Security',
         'settings.nav.appearance': 'Appearance',
+        'settings.nav.data': 'Station Data',
         'settings.profile.title': 'Profile settings',
         'settings.profile.heading': 'Profile',
         'settings.profile.description': 'Update your name and email address',
@@ -119,6 +120,24 @@ const dictionary = {
             'Are you sure you want to delete your account?',
         'settings.delete.confirm_description':
             'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.',
+
+        'settings.data.title': 'Station data',
+        'settings.data.description': 'Back up or reset this station’s data',
+        'settings.data.backup_title': 'Download backup',
+        'settings.data.backup_description':
+            'Download a full backup file of this station’s data. Keep it somewhere safe — you’ll need it if you ever want to recover data after a reset.',
+        'settings.data.backup_button': 'Download backup',
+        'settings.data.danger_title': 'Reset station data',
+        'settings.data.danger_description':
+            'Permanently erase this station’s data and start over',
+        'settings.data.warning_title': 'Warning',
+        'settings.data.warning_description':
+            'This deletes every tank, transaction, debt, and record for this station and returns it to a blank, unconfigured state — as if it were brand new. Your login and employee accounts are not affected. This cannot be undone. Download a backup first.',
+        'settings.data.confirm_title':
+            'Are you sure you want to reset this station’s data?',
+        'settings.data.confirm_description':
+            'All tanks, transactions, debts, and other station data will be permanently deleted. Please enter your password to confirm.',
+        'settings.data.reset_button': 'Reset station data',
 
         'users.title': 'Employees',
         'users.description': 'Manage who can access the station',
@@ -534,6 +553,7 @@ const dictionary = {
         'settings.nav.profile': 'الملف الشخصي',
         'settings.nav.security': 'الأمان',
         'settings.nav.appearance': 'المظهر',
+        'settings.nav.data': 'بيانات المحطة',
         'settings.profile.title': 'إعدادات الملف الشخصي',
         'settings.profile.heading': 'الملف الشخصي',
         'settings.profile.description': 'تحديث الاسم والبريد الإلكتروني',
@@ -557,6 +577,25 @@ const dictionary = {
         'settings.delete.confirm_title': 'هل أنت متأكد من رغبتك في حذف حسابك؟',
         'settings.delete.confirm_description':
             'بعد حذف حسابك، سيتم حذف جميع موارده وبياناته بشكل نهائي. يرجى إدخال كلمة المرور لتأكيد رغبتك في حذف حسابك نهائيًا.',
+
+        'settings.data.title': 'بيانات المحطة',
+        'settings.data.description':
+            'نسخ احتياطي أو إعادة تعيين بيانات هذه المحطة',
+        'settings.data.backup_title': 'تنزيل نسخة احتياطية',
+        'settings.data.backup_description':
+            'نزّل ملف نسخة احتياطية كاملة لبيانات هذه المحطة. احتفظ به في مكان آمن — ستحتاجه إذا رغبت باسترجاع البيانات بعد إعادة التعيين.',
+        'settings.data.backup_button': 'تنزيل نسخة احتياطية',
+        'settings.data.danger_title': 'إعادة تعيين بيانات المحطة',
+        'settings.data.danger_description':
+            'حذف بيانات هذه المحطة نهائيًا والبدء من جديد',
+        'settings.data.warning_title': 'تحذير',
+        'settings.data.warning_description':
+            'سيؤدي هذا إلى حذف كل خزان ومعاملة ودين وسجل لهذه المحطة وإعادتها إلى حالة فارغة غير معدّة، كأنها جديدة تمامًا. لن يتأثر تسجيل دخولك أو حسابات الموظفين. لا يمكن التراجع عن هذا الإجراء. نزّل نسخة احتياطية أولًا.',
+        'settings.data.confirm_title':
+            'هل أنت متأكد من رغبتك في إعادة تعيين بيانات هذه المحطة؟',
+        'settings.data.confirm_description':
+            'سيتم حذف جميع الخزانات والمعاملات والديون وبيانات المحطة الأخرى نهائيًا. يرجى إدخال كلمة المرور للتأكيد.',
+        'settings.data.reset_button': 'إعادة تعيين بيانات المحطة',
 
         'users.title': 'الموظفون',
         'users.description': 'إدارة من يمكنه الوصول إلى المحطة',
