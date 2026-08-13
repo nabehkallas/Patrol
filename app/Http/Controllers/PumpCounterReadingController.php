@@ -67,20 +67,9 @@ class PumpCounterReadingController extends Controller
             ->sortBy('fuel_type_name')
             ->values();
 
-        $tanks = Tank::with('fuelType')
-            ->orderBy('fuel_type_id')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Tank $tank) => [
-                'id' => $tank->id,
-                'name' => $tank->name,
-                'fuel_type_id' => $tank->fuel_type_id,
-                'fuel_type_name' => $tank->fuelType->name,
-            ]);
-
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
-            'tanks' => $tanks,
+            'tanks' => $this->tankOptions(),
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
             'date' => $date->toDateString(),
@@ -400,5 +389,19 @@ class PumpCounterReadingController extends Controller
                 $returnLiters > 0 ? $returnLiters : null,
             ];
         });
+    }
+
+    private function tankOptions()
+    {
+        return Tank::with('fuelType')
+            ->orderBy('fuel_type_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Tank $tank) => [
+                'id' => $tank->id,
+                'name' => $tank->name,
+                'fuel_type_id' => $tank->fuel_type_id,
+                'fuel_type_name' => $tank->fuelType->name,
+            ]);
     }
 }
