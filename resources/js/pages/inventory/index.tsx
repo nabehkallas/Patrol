@@ -1,4 +1,4 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
@@ -26,9 +26,11 @@ import {
     index,
     store,
 } from '@/routes/inventory';
+import { destroy, edit } from '@/routes/inventory/entries';
 import { store as storeTopUp } from '@/routes/tank-top-ups';
 import { store as storeTransfer } from '@/routes/tank-transfers';
 import type {
+    Auth,
     InventoryEntry,
     Paginated,
     TankSummary,
@@ -37,6 +39,7 @@ import type {
 } from '@/types';
 
 type PageProps = {
+    auth: Auth;
     tanks: TankSummary[];
     entries: Paginated<InventoryEntry>;
     topUps: TankTopUp[];
@@ -47,7 +50,7 @@ type PageProps = {
 type Tab = 'amounts' | 'actual';
 
 export default function InventoryIndex() {
-    const { tanks, entries, topUps, transfers, topUpDate } =
+    const { auth, tanks, entries, topUps, transfers, topUpDate } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<Tab>('amounts');
@@ -132,6 +135,12 @@ export default function InventoryIndex() {
                     })),
             },
         );
+    }
+
+    function removeEntry(entry: InventoryEntry) {
+        if (confirm(t('common.confirm_delete'))) {
+            router.delete(destroy.url(entry.id));
+        }
     }
 
     function handleTopUpDateChange(newDate: string) {
@@ -758,6 +767,9 @@ export default function InventoryIndex() {
                                         <th className="px-4 py-2">
                                             {t('common.notes')}
                                         </th>
+                                        {auth.isAdmin && (
+                                            <th className="px-4 py-2"></th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -781,12 +793,31 @@ export default function InventoryIndex() {
                                             <td className="px-4 py-2">
                                                 {entry.notes}
                                             </td>
+                                            {auth.isAdmin && (
+                                                <td className="space-x-2 px-4 py-2 text-end">
+                                                    <Link
+                                                        href={edit(entry.id)}
+                                                        className="text-sm underline"
+                                                    >
+                                                        {t('common.edit')}
+                                                    </Link>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            removeEntry(entry)
+                                                        }
+                                                    >
+                                                        {t('common.delete')}
+                                                    </Button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     {entries.data.length === 0 && (
                                         <tr>
                                             <td
-                                                colSpan={5}
+                                                colSpan={auth.isAdmin ? 6 : 5}
                                                 className="px-4 py-6 text-center text-muted-foreground"
                                             >
                                                 {t('common.no_results')}

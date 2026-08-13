@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInventoryEntryRequest;
+use App\Http\Requests\UpdateInventoryEntryRequest;
 use App\Models\InventoryEntry;
 use App\Models\Tank;
 use App\Models\TankTopUp;
@@ -141,5 +142,70 @@ class InventoryEntryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inventory recorded.')]);
 
         return to_route('inventory.index');
+    }
+
+    public function editEntry(InventoryEntry $entry): Response
+    {
+        return Inertia::render('inventory/entry-edit', [
+            'entry' => [
+                'id' => $entry->id,
+                'tank_id' => $entry->tank_id,
+                'date' => $entry->date->toDateString(),
+                'quantity_liters' => (string) $entry->quantity_liters,
+                'notes' => $entry->notes,
+            ],
+            'tanks' => $this->tankOptions(),
+        ]);
+    }
+
+    public function updateEntry(UpdateInventoryEntryRequest $request, InventoryEntry $entry): RedirectResponse
+    {
+        $data = $request->validated();
+
+        // Rule::unique compares the raw input string against the stored column, which is
+        // saved with a time component — it would never match, so the duplicate check has to
+        // happen here with whereDate() instead of in the FormRequest.
+        $duplicate = InventoryEntry::where('tank_id', $data['tank_id'])
+            ->whereDate('date', $data['date'])
+            ->where('id', '!=', $entry->id)
+            ->exists();
+
+        if ($duplicate) {
+            return back()->withErrors(['date' => __('An entry for this tank and date already exists.')])->withInput();
+        }
+
+        $entry->update([
+            'tank_id' => $data['tank_id'],
+            'date' => $data['date'],
+            'quantity_liters' => $data['quantity_liters'],
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Entry updated.')]);
+
+        return to_route('inventory.index');
+    }
+
+    public function destroyEntry(InventoryEntry $entry): RedirectResponse
+    {
+        $entry->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Entry deleted.')]);
+
+        return to_route('inventory.index');
+    }
+
+    private function tankOptions()
+    {
+        return Tank::with('fuelType')
+            ->orderBy('fuel_type_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Tank $tank) => [
+                'id' => $tank->id,
+                'name' => $tank->name,
+                'fuel_type_id' => $tank->fuel_type_id,
+                'fuel_type_name' => $tank->fuelType->name,
+            ]);
     }
 }
