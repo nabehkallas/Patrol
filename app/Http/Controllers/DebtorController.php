@@ -95,8 +95,9 @@ class DebtorController extends Controller
             $debtor->debts()
                 ->where('status', DebtStatus::Outstanding)
                 ->where('direction', DebtDirection::Receivable)
+                ->with('payments')
                 ->get()
-                ->sum(fn (Debt $debt) => $debt->amountInSyp($sypRate)),
+                ->sum(fn (Debt $debt) => $debt->remainingAmountInSyp($sypRate)),
             0
         );
     }
@@ -144,11 +145,13 @@ class DebtorController extends Controller
         return to_route('debtors.index');
     }
 
-    public function settleAll(Debtor $debtor): RedirectResponse
+    public function settleAll(Request $request, Debtor $debtor): RedirectResponse
     {
         $debtor->debts()
             ->where('status', DebtStatus::Outstanding)
-            ->update(['status' => DebtStatus::Settled, 'settled_at' => now()]);
+            ->with('payments')
+            ->get()
+            ->each(fn (Debt $debt) => $debt->recordPayment($debt->remainingAmount(), $request->user()->id));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('All debts settled.')]);
 

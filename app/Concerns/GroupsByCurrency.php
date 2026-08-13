@@ -13,13 +13,15 @@ trait GroupsByCurrency
      * currencies are included only when non-zero.
      *
      * @param  Collection<int, object{currency: mixed, amount: mixed}>  $items
+     * @param  string|\Closure  $amount  Attribute name (default 'amount') or a per-item resolver —
+     *                                   e.g. a debt's remaining balance instead of its full amount.
      * @return array<string, float>
      */
-    protected function byCurrency(Collection $items): array
+    protected function byCurrency(Collection $items, string|\Closure $amount = 'amount'): array
     {
         $totals = $items
             ->groupBy(fn ($item) => $item->currency->value)
-            ->map(fn ($group) => (float) $group->sum('amount'))
+            ->map(fn ($group) => (float) $group->sum($amount))
             ->all();
 
         $round = fn (string $currency, float $amount) => round($amount, $currency === 'SYP' ? 0 : 2);

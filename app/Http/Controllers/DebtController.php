@@ -7,6 +7,7 @@ use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
+use App\Http\Requests\StoreDebtPaymentRequest;
 use App\Http\Requests\StoreDebtRequest;
 use App\Http\Requests\UpdateDebtRequest;
 use App\Models\Debt;
@@ -20,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,8 +33,16 @@ class DebtController extends Controller
     {
         $query = $this->filteredQuery($request);
 
+        $debts = $query->paginate(25)->withQueryString();
+        $debts->getCollection()->transform(function (Debt $debt) {
+            $debt->remaining_amount = $debt->remainingAmount();
+            $debt->paid_amount = $debt->paidAmount();
+
+            return $debt;
+        });
+
         return Inertia::render('debts/index', [
-            'debts' => $query->paginate(25)->withQueryString(),
+            'debts' => $debts,
             'filters' => $request->only(['status', 'direction', 'sort', 'sort_dir', 'debtor_id']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'totals' => [
@@ -46,7 +56,7 @@ class DebtController extends Controller
 
     private function filteredQuery(Request $request): Builder
     {
-        $query = Debt::with(['recordedBy', 'debtor', 'fuelType', 'transaction.fuelType']);
+        $query = Debt::with(['recordedBy', 'debtor', 'fuelType', 'transaction.fuelType', 'payments']);
 
         if ($request->filled('debtor_id')) {
             $query->where('debtor_id', $request->integer('debtor_id'));
@@ -153,7 +163,7 @@ class DebtController extends Controller
             $query->where('debtor_id', $request->integer('debtor_id'));
         }
 
-        return $this->byCurrency($query->get());
+        return $this->byCurrency($query->with('payments')->get(), fn (Debt $debt) => $debt->remainingAmount());
     }
 
     private function allDebtsTotal(Request $request, DebtDirection $direction): array
@@ -282,18 +292,39 @@ class DebtController extends Controller
         return to_route('debts.index');
     }
 
-    public function settle(Debt $debt): RedirectResponse
+    public function settle(Request $request, Debt $debt): RedirectResponse
     {
         $this->authorize('settle', $debt);
 
         if ($debt->status !== DebtStatus::Settled) {
-            $debt->update([
-                'status' => DebtStatus::Settled,
-                'settled_at' => now(),
-            ]);
+            $debt->recordPayment($debt->remainingAmount(), $request->user()->id);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt settled.')]);
+
+        return to_route('debts.index');
+    }
+
+    public function storePayment(StoreDebtPaymentRequest $request, Debt $debt): RedirectResponse
+    {
+        $this->authorize('settle', $debt);
+
+        $remaining = $debt->remainingAmount();
+        $amount = (float) $request->validated('amount');
+
+        if ($amount > $remaining + 0.01) {
+            throw ValidationException::withMessages([
+                'amount' => __('This exceeds the remaining balance (:remaining).', ['remaining' => number_format($remaining, 2)]),
+            ]);
+        }
+
+        $debt->recordPayment($amount, $request->user()->id);
+
+        $message = $debt->fresh()->status === DebtStatus::Settled
+            ? __('Debt settled.')
+            : __('Payment recorded.');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('debts.index');
     }

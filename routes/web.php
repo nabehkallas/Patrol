@@ -72,6 +72,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::resource('debts', DebtController::class)->except('show');
         Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
         Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
+        Route::post('debts/{debt}/payments', [DebtController::class, 'storePayment'])->name('debts.payments.store');
 
         Route::resource('debtors', DebtorController::class)->except('show');
         Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');

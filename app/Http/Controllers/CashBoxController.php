@@ -8,6 +8,7 @@ use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debt;
+use App\Models\DebtPayment;
 use App\Models\ExchangeRate;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
@@ -144,7 +145,7 @@ class CashBoxController extends Controller
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
             ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
-            ->with(['fuelType', 'transaction'])
+            ->with(['fuelType', 'transaction', 'payments'])
             ->get();
 
         // The "debts" card reflects money still owed, so it only counts unsettled debts —
@@ -152,10 +153,10 @@ class CashBoxController extends Controller
         // regardless of settlement status.
         $outstandingDebts = $debts->where('status', DebtStatus::Outstanding);
 
-        // A debt (of either direction) is the source of truth for *when* its cash actually
-        // moves — settled here means paid today, regardless of when the underlying sale or
-        // expense was first recorded — so debt-linked transactions never contribute to
-        // income/expense themselves; $settledReceivableDebts / $settledPayableDebts below do.
+        // A debt's payments are the source of truth for *when* its cash actually moves — a
+        // payment today counts today, regardless of when the underlying sale or expense was
+        // first recorded — so debt-linked transactions never contribute to income/expense
+        // themselves; $receivablePayments / $payablePayments below do.
         $incomeTransactions = $transactions
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
             ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
@@ -171,26 +172,15 @@ class CashBoxController extends Controller
 
         $sadcopExpenseSyp = $sadcopTransactions->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
 
-        // Debts settled within this window — whether tied to a transaction or standalone —
-        // are cash that actually arrived (receivable) or went out (payable) today.
-        $settledReceivableDebts = Debt::query()
-            ->where('direction', DebtDirection::Receivable)
-            ->where('status', DebtStatus::Settled)
-            ->where('settled_at', '>=', $from)
-            ->where('settled_at', '<=', $to)
-            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
-            ->get();
+        // Payments made within this window — whether they fully settle a debt or only chip
+        // away at it — are cash that actually arrived (receivable) or went out (payable) today.
+        // A debt's own settlement is no longer the source of truth for *when* cash moved: each
+        // payment is, since a debt can now be paid off across several partial payments.
+        $receivablePayments = $this->debtPaymentsFor(DebtDirection::Receivable, $from, $to, $isAdmin, $userId);
+        $payablePayments = $this->debtPaymentsFor(DebtDirection::Payable, $from, $to, $isAdmin, $userId);
 
-        $settledPayableDebts = Debt::query()
-            ->where('direction', DebtDirection::Payable)
-            ->where('status', DebtStatus::Settled)
-            ->where('settled_at', '>=', $from)
-            ->where('settled_at', '<=', $to)
-            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
-            ->get();
-
-        $incomeBreakdown = $this->byCurrency($incomeTransactions->concat($settledReceivableDebts));
-        $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions->concat($settledPayableDebts));
+        $incomeBreakdown = $this->byCurrency($incomeTransactions->concat($receivablePayments));
+        $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions->concat($payablePayments));
 
         $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
         $exchangedBreakdown = $this->exchangedByCurrency($exchangeTransactions);
@@ -214,17 +204,39 @@ class CashBoxController extends Controller
             'exchanged' => $exchangedBreakdown,
             'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp, $exchangedBreakdown),
             'liters_sold' => round($litersSold, 3),
-            'debts' => $this->byCurrency($outstandingDebts),
+            'debts' => $this->byCurrency($outstandingDebts, fn (Debt $debt) => $debt->remainingAmount()),
             'debts_liters_sold' => round($litersSoldInDebt, 3),
         ];
     }
 
     /**
+     * Debt payments of the given direction within a window, as plain currency/amount pairs
+     * (a payment has no currency of its own — it's always in its parent debt's currency).
+     *
+     * @return Collection<int, object{currency: Currency, amount: float}>
+     */
+    private function debtPaymentsFor(DebtDirection $direction, CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): Collection
+    {
+        return DebtPayment::query()
+            ->whereHas('debt', fn ($q) => $q->where('direction', $direction))
+            ->whereDate('paid_at', '>=', $from->toDateString())
+            ->whereDate('paid_at', '<=', $to->toDateString())
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
+            ->with('debt')
+            ->get()
+            ->map(fn (DebtPayment $payment) => (object) [
+                'currency' => $payment->debt->currency,
+                'amount' => (float) $payment->amount,
+            ]);
+    }
+
+    /**
      * A chronological ledger of everything that actually moved cash in the register — every
-     * income/expense/exchange transaction plus every settled debt (dated at settlement, since
-     * that's when the cash actually moved) — everything the "period" summary above is built
-     * from, laid out row by row. Fuel deliveries (including Sadcop's) never touch the cash
-     * register, so they're excluded entirely, same as in summarize().
+     * income/expense/exchange transaction plus every debt payment (dated at payment, since
+     * that's when the cash actually moved — a debt can now be paid off across several partial
+     * payments) — everything the "period" summary above is built from, laid out row by row.
+     * Fuel deliveries (including Sadcop's) never touch the cash register, so they're excluded
+     * entirely, same as in summarize().
      *
      * @return array<int, array{id: string, date: string, type: string, description: string, amount: float, currency: string}>
      */
@@ -232,10 +244,10 @@ class CashBoxController extends Controller
     {
         $labels = app()->getLocale() === 'ar' ? [
             'sadcop_transfer' => 'تحويل سادكوب',
-            'debt_settled' => 'تسوية دين',
+            'debt_payment' => 'دفعة على دين',
         ] : [
             'sadcop_transfer' => 'Sadcop transfer',
-            'debt_settled' => 'Debt settled',
+            'debt_payment' => 'Debt payment',
         ];
 
         $transactions = Transaction::query()
@@ -250,9 +262,9 @@ class CashBoxController extends Controller
             ->when(! $isAdmin, fn ($q) => $q->where('user_id', $userId))
             ->with(['fuelType', 'debt', 'sadcopLedgerEntry'])
             ->get()
-            // A transaction with a debt is represented by that debt's settlement entry
-            // instead (below) — it hasn't moved cash yet if outstanding, and if settled, the
-            // settlement date (not this transaction's date) is when the cash actually moved.
+            // A transaction with a debt is represented by that debt's payment entries instead
+            // (below) — it hasn't moved cash yet if outstanding, and once paid (in full or in
+            // part), the payment date(s) — not this transaction's date — are when cash moved.
             ->reject(fn (Transaction $transaction) => $transaction->debt !== null)
             ->map(fn (Transaction $transaction) => [
                 'id' => 'transaction-'.$transaction->id,
@@ -268,24 +280,22 @@ class CashBoxController extends Controller
                 'currency' => $transaction->currency->value,
             ]);
 
-        $settledDebts = Debt::query()
-            ->where('status', DebtStatus::Settled)
-            ->whereNotNull('settled_at')
-            ->where('settled_at', '>=', $from)
-            ->where('settled_at', '<=', $to)
+        $debtPayments = DebtPayment::query()
+            ->whereDate('paid_at', '>=', $from->toDateString())
+            ->whereDate('paid_at', '<=', $to->toDateString())
             ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
-            ->with('debtor')
+            ->with('debt.debtor')
             ->get()
-            ->map(fn (Debt $debt) => [
-                'id' => 'debt-'.$debt->id,
-                'date' => $debt->settled_at->toIso8601String(),
-                'type' => $debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
-                'description' => ($debt->debtor?->name ?? '—').' — '.$labels['debt_settled'],
-                'amount' => (float) $debt->amount,
-                'currency' => $debt->currency->value,
+            ->map(fn (DebtPayment $payment) => [
+                'id' => 'debt-payment-'.$payment->id,
+                'date' => $payment->paid_at->toIso8601String(),
+                'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
+                'description' => ($payment->debt->debtor?->name ?? '—').' — '.$labels['debt_payment'],
+                'amount' => (float) $payment->amount,
+                'currency' => $payment->debt->currency->value,
             ]);
 
-        return $transactions->concat($settledDebts)
+        return $transactions->concat($debtPayments)
             ->sortByDesc('date')
             ->values()
             ->all();

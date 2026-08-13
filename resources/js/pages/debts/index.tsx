@@ -1,9 +1,13 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 import { CurrencyCard } from '@/components/currency-card';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -13,14 +17,8 @@ import {
 } from '@/components/ui/select';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import {
-    create,
-    destroy,
-    edit,
-    exportPdf,
-    index,
-    settle,
-} from '@/routes/debts';
+import { create, destroy, edit, exportPdf, index } from '@/routes/debts';
+import { store as storePayment } from '@/routes/debts/payments';
 import type { Debt, Debtor, DebtsSummary, Paginated } from '@/types';
 
 type PageProps = {
@@ -74,8 +72,40 @@ export default function DebtsIndex() {
         return fuelTypeName ?? debt.details ?? '—';
     }
 
-    function markSettled(debt: Debt) {
-        router.patch(settle.url(debt.id));
+    const [paymentAmounts, setPaymentAmounts] = useState<
+        Record<number, string>
+    >({});
+    const [paymentErrors, setPaymentErrors] = useState<Record<number, string>>(
+        {},
+    );
+
+    function paymentAmountFor(debt: Debt): string {
+        return paymentAmounts[debt.id] ?? String(debt.remaining_amount);
+    }
+
+    function submitPayment(event: FormEvent, debt: Debt) {
+        event.preventDefault();
+        router.post(
+            storePayment.url(debt.id),
+            { amount: paymentAmountFor(debt) },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setPaymentAmounts((prev) => {
+                        const next = { ...prev };
+                        delete next[debt.id];
+
+                        return next;
+                    });
+                    setPaymentErrors((prev) => ({ ...prev, [debt.id]: '' }));
+                },
+                onError: (errors) =>
+                    setPaymentErrors((prev) => ({
+                        ...prev,
+                        [debt.id]: errors.amount ?? '',
+                    })),
+            },
+        );
     }
 
     return (
@@ -250,8 +280,28 @@ export default function DebtsIndex() {
                                         {whatFor(debt)}
                                     </td>
                                     <td className="px-4 py-2">
-                                        {formatNumber(debt.amount)}{' '}
-                                        {debt.currency}
+                                        {debt.paid_amount > 0 &&
+                                        debt.status === 'outstanding' ? (
+                                            <div>
+                                                <div>
+                                                    {formatNumber(
+                                                        debt.remaining_amount,
+                                                    )}{' '}
+                                                    {debt.currency}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('debts.original_amount')}
+                                                    :{' '}
+                                                    {formatNumber(debt.amount)}{' '}
+                                                    {debt.currency}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {formatNumber(debt.amount)}{' '}
+                                                {debt.currency}
+                                            </>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2">
                                         {debt.direction === 'payable'
@@ -268,15 +318,51 @@ export default function DebtsIndex() {
                                     </td>
                                     <td className="space-x-2 px-4 py-2 text-end">
                                         {debt.status === 'outstanding' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    markSettled(debt)
+                                            <form
+                                                onSubmit={(event) =>
+                                                    submitPayment(event, debt)
                                                 }
+                                                className="mb-1 inline-flex items-start gap-1"
                                             >
-                                                {t('debts.mark_settled')}
-                                            </Button>
+                                                <div>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0.01"
+                                                        max={
+                                                            debt.remaining_amount
+                                                        }
+                                                        value={paymentAmountFor(
+                                                            debt,
+                                                        )}
+                                                        onChange={(e) =>
+                                                            setPaymentAmounts(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [debt.id]:
+                                                                        e.target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                        className="h-8 w-24"
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            paymentErrors[
+                                                                debt.id
+                                                            ]
+                                                        }
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    size="sm"
+                                                >
+                                                    {t('debts.pay')}
+                                                </Button>
+                                            </form>
                                         )}
                                         <Link
                                             href={edit(debt.id)}

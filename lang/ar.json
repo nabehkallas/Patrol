@@ -66,5 +66,7 @@
     "Sale recorded.": "تم تسجيل البيع.",
     "This exceeds the current stock (:stock).": "هذا يتجاوز المخزون الحالي (:stock).",
     "Station data reset.": "تمت إعادة تعيين بيانات المحطة.",
-    "An entry for this tank and date already exists.": "يوجد بالفعل قيد لهذا الخزان في هذا التاريخ."
+    "An entry for this tank and date already exists.": "يوجد بالفعل قيد لهذا الخزان في هذا التاريخ.",
+    "Payment recorded.": "تم تسجيل الدفعة.",
+    "This exceeds the remaining balance (:remaining).": "هذا يتجاوز الرصيد المتبقي (:remaining)."
 }

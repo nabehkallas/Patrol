@@ -8,6 +8,7 @@ use App\Enums\DebtStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'transaction_id',
@@ -62,17 +63,70 @@ class Debt extends Model
         return $this->belongsTo(Transaction::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(DebtPayment::class);
+    }
+
+    public function paidAmount(): float
+    {
+        return $this->relationLoaded('payments')
+            ? (float) $this->payments->sum('amount')
+            : (float) $this->payments()->sum('amount');
+    }
+
+    public function remainingAmount(): float
+    {
+        return max(0.0, round((float) $this->amount - $this->paidAmount(), 2));
+    }
+
+    /**
+     * Records a (possibly partial) payment against this debt. Once cumulative payments cover
+     * the full amount, the debt is marked settled — the same outcome a one-click "settle" now
+     * produces by simply recording a payment for the whole remaining balance.
+     */
+    public function recordPayment(float $amount, int $userId, ?string $notes = null): DebtPayment
+    {
+        $payment = $this->payments()->create([
+            'amount' => $amount,
+            'paid_at' => now(),
+            'recorded_by_id' => $userId,
+            'notes' => $notes,
+        ]);
+
+        if ($this->remainingAmount() <= 0.01) {
+            $this->update(['status' => DebtStatus::Settled, 'settled_at' => now()]);
+        }
+
+        return $payment;
+    }
+
     public function amountInUsd(): float
     {
-        $rate = $this->currency === Currency::USD
-            ? 1.0
-            : (float) $this->exchange_rate_to_usd;
-
-        return $rate > 0 ? (float) $this->amount / $rate : 0.0;
+        return $this->convertToUsd((float) $this->amount);
     }
 
     public function amountInSyp(float $sypRate): float
     {
         return $this->amountInUsd() * $sypRate;
+    }
+
+    public function remainingAmountInUsd(): float
+    {
+        return $this->convertToUsd($this->remainingAmount());
+    }
+
+    public function remainingAmountInSyp(float $sypRate): float
+    {
+        return $this->remainingAmountInUsd() * $sypRate;
+    }
+
+    private function convertToUsd(float $amount): float
+    {
+        $rate = $this->currency === Currency::USD
+            ? 1.0
+            : (float) $this->exchange_rate_to_usd;
+
+        return $rate > 0 ? $amount / $rate : 0.0;
     }
 }

@@ -161,6 +161,8 @@ export type Debt = {
     date: string;
     details: string | null;
     status: DebtStatus;
+    remaining_amount: number;
+    paid_amount: number;
     recorded_by?: UserSummary;
     debtor?: Debtor;
     fuel_type?: FuelType | null;
