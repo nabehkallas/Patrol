@@ -146,7 +146,7 @@ export type Debtor = {
 };
 
 export type DebtorSummary = Debtor & {
-    outstanding_syp: number;
+    outstanding: CurrencyBreakdown;
     parent_name?: string | null;
     children?: DebtorSummary[];
 };

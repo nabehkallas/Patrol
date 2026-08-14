@@ -16,6 +16,7 @@ use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\PdfTableExporter;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -116,7 +117,11 @@ class TransactionController extends Controller
     {
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
-        $data['occurred_at'] ??= now();
+        // A plain date picked in the form keeps today's time-of-day rather than collapsing to
+        // midnight, so same-day entries still sort in the order they were actually recorded.
+        $data['occurred_at'] = isset($data['occurred_at'])
+            ? Carbon::parse($data['occurred_at'])->setTimeFrom(now())
+            : now();
 
         if (! empty($data['tank_id'])) {
             $data['fuel_type_id'] = Tank::find($data['tank_id'])?->fuel_type_id;
@@ -184,6 +189,16 @@ class TransactionController extends Controller
         $this->authorize('update', $transaction);
 
         $data = $request->validated();
+
+        // Only re-time the transaction when the date actually changes to a different day —
+        // otherwise resubmitting the same date on every edit would keep bumping it to "now"
+        // and lose the original time-of-day.
+        if (isset($data['occurred_at'])) {
+            $newDate = Carbon::parse($data['occurred_at'])->toDateString();
+            $data['occurred_at'] = $newDate === $transaction->occurred_at->toDateString()
+                ? $transaction->occurred_at
+                : Carbon::parse($data['occurred_at'])->setTimeFrom(now());
+        }
 
         if (! empty($data['tank_id'])) {
             $data['fuel_type_id'] = Tank::find($data['tank_id'])?->fuel_type_id;

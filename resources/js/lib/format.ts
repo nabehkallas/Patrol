@@ -1,4 +1,4 @@
-import type { Currency } from '@/types';
+import type { Currency, CurrencyBreakdown } from '@/types';
 
 /**
  * Formats a number (or a Laravel decimal-cast numeric string) with a fixed
@@ -47,6 +47,20 @@ export function formatCurrencyAmount(
     }
 
     return formatMoney(amount, currency);
+}
+
+/**
+ * Joins every non-zero currency in a breakdown into one string (e.g. "1,000 SYP + 50.00 USD") —
+ * SYP is always included even at zero, matching CurrencyCard's convention of always showing a
+ * primary figure.
+ */
+export function formatBreakdown(breakdown: CurrencyBreakdown): string {
+    return Object.entries(breakdown)
+        .filter(([currency, amount]) => currency === 'SYP' || amount !== 0)
+        .map(([currency, amount]) =>
+            formatCurrencyAmount(amount as number, currency as Currency),
+        )
+        .join(' + ');
 }
 
 /**

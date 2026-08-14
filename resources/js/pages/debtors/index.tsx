@@ -5,7 +5,7 @@ import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatSyp } from '@/lib/format';
+import { formatBreakdown } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
@@ -66,6 +66,10 @@ export default function DebtorsIndex() {
         if (confirm(`${t('debtors.confirm_settle_all')} (${debtor.name})`)) {
             router.patch(settleAll.url(debtor.id));
         }
+    }
+
+    function hasOutstanding(debtor: DebtorSummary): boolean {
+        return Object.values(debtor.outstanding).some((amount) => amount > 0);
     }
 
     const rows: Row[] = filters.search
@@ -151,7 +155,7 @@ export default function DebtorsIndex() {
                                         {debtor.phone ?? '—'}
                                     </td>
                                     <td className="px-4 py-2">
-                                        {formatSyp(debtor.outstanding_syp)}
+                                        {formatBreakdown(debtor.outstanding)}
                                     </td>
                                     <td className="space-x-2 px-4 py-2 text-end">
                                         <Link
@@ -160,7 +164,7 @@ export default function DebtorsIndex() {
                                         >
                                             {t('debtors.view_debts')}
                                         </Link>
-                                        {debtor.outstanding_syp > 0 && (
+                                        {hasOutstanding(debtor) && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

@@ -36,6 +36,15 @@ type FuelTypeTotal = {
     liters_sold: number;
 };
 
+/**
+ * The reading's actual (possibly edited) date, combined with the time-of-day it was first
+ * logged — reading.date alone has no time component, and reading.created_at alone doesn't
+ * reflect a later date correction, so neither field on its own is right for this column.
+ */
+function loggedAt(reading: PumpCounterReading): string {
+    return `${reading.date.slice(0, 10)}T${reading.created_at.slice(11)}`;
+}
+
 type PageProps = {
     auth: Auth;
     pumps: PumpSummary[];
@@ -469,7 +478,7 @@ export default function PumpCountersIndex() {
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
                                         <td className="px-4 py-2 whitespace-nowrap">
-                                            {formatDateTime(reading.created_at)}
+                                            {formatDateTime(loggedAt(reading))}
                                         </td>
                                         <td className="px-4 py-2">
                                             {reading.pump?.name}

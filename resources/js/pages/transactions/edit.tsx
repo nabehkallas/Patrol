@@ -90,6 +90,7 @@ export default function TransactionEdit() {
         to_currency: (transaction.to_currency ?? 'USD') as Currency,
         to_amount: transaction.to_amount ?? '',
         exchange_rate_to_usd: transaction.exchange_rate_to_usd ?? '',
+        occurred_at: transaction.occurred_at.slice(0, 10),
         notes: transaction.notes ?? '',
         mark_as_debt: transaction.debt != null,
         debt_debtor_id: String(
@@ -330,6 +331,19 @@ export default function TransactionEdit() {
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.type} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="occurred_at">{t('common.date')}</Label>
+                        <Input
+                            id="occurred_at"
+                            type="date"
+                            value={form.data.occurred_at}
+                            onChange={(e) =>
+                                form.setData('occurred_at', e.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.occurred_at} />
                     </div>
 
                     {tankBased && (

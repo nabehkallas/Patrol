@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Currency;
+use App\Concerns\GroupsByCurrency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Http\Requests\StoreDebtorRequest;
 use App\Http\Requests\UpdateDebtorRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
-use App\Models\ExchangeRate;
 use App\Services\PdfTableExporter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -20,9 +19,10 @@ use Inertia\Response;
 
 class DebtorController extends Controller
 {
+    use GroupsByCurrency;
+
     public function index(Request $request): Response
     {
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
         $searching = $request->filled('search');
 
         // Searching flattens the hierarchy — a matching sub-debtor should surface even if its
@@ -38,25 +38,25 @@ class DebtorController extends Controller
 
         $debtors = $query->orderBy('name')->paginate(25)->withQueryString();
 
-        $debtors->getCollection()->transform(function (Debtor $debtor) use ($sypRate, $searching) {
-            $own = $this->outstandingTotal($debtor, $sypRate);
+        $debtors->getCollection()->transform(function (Debtor $debtor) use ($searching) {
+            $own = $this->outstandingTotal($debtor);
 
             if ($searching) {
                 return [
                     ...$debtor->only(['id', 'name', 'phone', 'parent_id']),
-                    'outstanding_syp' => $own,
+                    'outstanding' => $own,
                     'parent_name' => $debtor->parent?->name,
                 ];
             }
 
             $children = $debtor->children->map(fn (Debtor $child) => [
                 ...$child->only(['id', 'name', 'phone', 'parent_id']),
-                'outstanding_syp' => $this->outstandingTotal($child, $sypRate),
+                'outstanding' => $this->outstandingTotal($child),
             ]);
 
             return [
                 ...$debtor->only(['id', 'name', 'phone', 'parent_id']),
-                'outstanding_syp' => round($own + $children->sum('outstanding_syp'), 0),
+                'outstanding' => $this->combineBreakdowns($own, ...$children->pluck('outstanding')),
                 'children' => $children,
             ];
         });
@@ -65,6 +65,23 @@ class DebtorController extends Controller
             'debtors' => $debtors,
             'filters' => $request->only(['search']),
         ]);
+    }
+
+    /**
+     * @param  array<string, float>  $breakdowns
+     * @return array<string, float>
+     */
+    private function combineBreakdowns(array ...$breakdowns): array
+    {
+        $result = ['SYP' => 0.0];
+
+        foreach ($breakdowns as $breakdown) {
+            foreach ($breakdown as $currency => $amount) {
+                $result[$currency] = ($result[$currency] ?? 0.0) + $amount;
+            }
+        }
+
+        return $result;
     }
 
     private function filteredQuery(Request $request): Builder
@@ -90,7 +107,6 @@ class DebtorController extends Controller
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
         $debtors = $this->filteredQuery($request)->orderBy('name')->get();
 
@@ -106,10 +122,15 @@ class DebtorController extends Controller
             'outstanding' => 'Outstanding',
         ];
 
+        $formatBreakdown = fn (array $breakdown) => collect($breakdown)
+            ->reject(fn ($amount, $currency) => $currency !== 'SYP' && $amount == 0)
+            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->implode(' + ');
+
         $rows = $debtors->map(fn (Debtor $debtor) => [
             $debtor->name,
             $debtor->phone ?? '—',
-            number_format($this->outstandingTotal($debtor, $sypRate), 0).' SYP',
+            $formatBreakdown($this->outstandingTotal($debtor)),
         ])->all();
 
         return $exporter->download(
@@ -125,17 +146,18 @@ class DebtorController extends Controller
     /**
      * Money owed *to the station* by this party — payable debts (where the station owes
      * them instead) are tracked separately and excluded here, matching the Debts page.
+     *
+     * @return array<string, float>
      */
-    private function outstandingTotal(Debtor $debtor, float $sypRate): float
+    private function outstandingTotal(Debtor $debtor): array
     {
-        return round(
+        return $this->byCurrency(
             $debtor->debts()
                 ->where('status', DebtStatus::Outstanding)
                 ->where('direction', DebtDirection::Receivable)
                 ->with('payments')
-                ->get()
-                ->sum(fn (Debt $debt) => $debt->remainingAmountInSyp($sypRate)),
-            0
+                ->get(),
+            fn (Debt $debt) => $debt->remainingAmount(),
         );
     }
 

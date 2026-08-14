@@ -87,6 +87,7 @@ export default function TransactionCreate() {
         to_currency: 'USD' as Currency,
         to_amount: '',
         exchange_rate_to_usd: '',
+        occurred_at: new Date().toISOString().slice(0, 10),
         notes: '',
         mark_as_debt: false,
         debt_debtor_id: String(debtors[0]?.id ?? ''),
@@ -312,6 +313,19 @@ export default function TransactionCreate() {
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.type} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="occurred_at">{t('common.date')}</Label>
+                        <Input
+                            id="occurred_at"
+                            type="date"
+                            value={form.data.occurred_at}
+                            onChange={(e) =>
+                                form.setData('occurred_at', e.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.occurred_at} />
                     </div>
 
                     {tankBased && (
