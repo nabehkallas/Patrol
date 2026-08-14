@@ -68,7 +68,7 @@ class DebtController extends Controller
         }
 
         if ($request->filled('debtor_id')) {
-            $query->where('debtor_id', $request->integer('debtor_id'));
+            $query->whereIn('debtor_id', $this->debtorIdsFor($request->integer('debtor_id')));
         }
 
         if ($request->filled('status')) {
@@ -169,7 +169,7 @@ class DebtController extends Controller
         $query = Debt::where('status', DebtStatus::Outstanding)->where('direction', $direction);
 
         if ($request->filled('debtor_id')) {
-            $query->where('debtor_id', $request->integer('debtor_id'));
+            $query->whereIn('debtor_id', $this->debtorIdsFor($request->integer('debtor_id')));
         }
 
         return $this->byCurrency($query->with('payments')->get(), fn (Debt $debt) => $debt->remainingAmount());
@@ -180,10 +180,23 @@ class DebtController extends Controller
         $query = Debt::where('direction', $direction);
 
         if ($request->filled('debtor_id')) {
-            $query->where('debtor_id', $request->integer('debtor_id'));
+            $query->whereIn('debtor_id', $this->debtorIdsFor($request->integer('debtor_id')));
         }
 
         return $this->byCurrency($query->get());
+    }
+
+    /**
+     * A debtor filter should include its sub-debtors too — a parent's debts view is meant to
+     * roll up the whole family, matching the consolidated total already shown on the Debtors
+     * page. Filtering by a sub-debtor itself just returns its own id (a sub-debtor can't have
+     * children of its own).
+     *
+     * @return array<int, int>
+     */
+    private function debtorIdsFor(int $debtorId): array
+    {
+        return [$debtorId, ...Debtor::where('parent_id', $debtorId)->pluck('id')];
     }
 
     public function create(): Response
