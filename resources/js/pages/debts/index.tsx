@@ -1,13 +1,21 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CurrencyCard } from '@/components/currency-card';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -17,14 +25,23 @@ import {
 } from '@/components/ui/select';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { create, destroy, edit, exportPdf, index } from '@/routes/debts';
+import {
+    create,
+    destroy,
+    edit,
+    exportPdf,
+    index,
+    transfer,
+} from '@/routes/debts';
 import { store as storePayment } from '@/routes/debts/payments';
-import type { Debt, Debtor, DebtsSummary, Paginated } from '@/types';
+import type { Auth, Debt, Debtor, DebtsSummary, Paginated } from '@/types';
 
 type PageProps = {
+    auth: Auth;
     debts: Paginated<Debt>;
     debtors: Debtor[];
     filters: {
+        search?: string;
         status?: string;
         direction?: string;
         sort?: string;
@@ -35,8 +52,10 @@ type PageProps = {
 };
 
 export default function DebtsIndex() {
-    const { debts, debtors, filters, totals } = usePage<PageProps>().props;
+    const { auth, debts, debtors, filters, totals } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
+    const [search, setSearch] = useState(filters.search ?? '');
 
     function applyFilter(updates: Partial<PageProps['filters']>) {
         router.get(
@@ -45,6 +64,19 @@ export default function DebtsIndex() {
             { preserveState: true, replace: true },
         );
     }
+
+    useEffect(() => {
+        if (search === (filters.search ?? '')) {
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            applyFilter({ search: search || undefined });
+        }, 350);
+
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
     function toggleStatusSort() {
         const nextDir =
@@ -108,6 +140,27 @@ export default function DebtsIndex() {
         );
     }
 
+    const [transferDebt, setTransferDebt] = useState<Debt | null>(null);
+    const transferForm = useForm({ debtor_id: '' });
+
+    function openTransfer(debt: Debt) {
+        setTransferDebt(debt);
+        transferForm.setData('debtor_id', String(debt.debtor_id));
+    }
+
+    function submitTransfer(event: FormEvent) {
+        event.preventDefault();
+
+        if (!transferDebt) {
+            return;
+        }
+
+        transferForm.patch(transfer.url(transferDebt.id), {
+            preserveScroll: true,
+            onSuccess: () => setTransferDebt(null),
+        });
+    }
+
     return (
         <>
             <Head title={t('debts.title')} />
@@ -147,6 +200,13 @@ export default function DebtsIndex() {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
+                    <Input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder={t('common.search_by_name')}
+                        className="w-56"
+                    />
+
                     <Select
                         value={filters.direction ?? 'all'}
                         onValueChange={(value) =>
@@ -364,6 +424,17 @@ export default function DebtsIndex() {
                                                 </Button>
                                             </form>
                                         )}
+                                        {auth.isAdmin && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    openTransfer(debt)
+                                                }
+                                            >
+                                                {t('debts.transfer')}
+                                            </Button>
+                                        )}
                                         <Link
                                             href={edit(debt.id)}
                                             className="text-sm underline"
@@ -396,6 +467,63 @@ export default function DebtsIndex() {
 
                 <PaginationLinks links={debts.links} />
             </div>
+
+            <Dialog
+                open={transferDebt !== null}
+                onOpenChange={(open) => !open && setTransferDebt(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>{t('debts.transfer_title')}</DialogTitle>
+
+                    <form onSubmit={submitTransfer} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="transfer_debtor_id">
+                                {t('common.debtor')}
+                            </Label>
+                            <Select
+                                value={transferForm.data.debtor_id}
+                                onValueChange={(value) =>
+                                    transferForm.setData('debtor_id', value)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="transfer_debtor_id"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {debtors.map((debtor) => (
+                                        <SelectItem
+                                            key={debtor.id}
+                                            value={String(debtor.id)}
+                                        >
+                                            {debtor.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={transferForm.errors.debtor_id}
+                            />
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button variant="secondary" type="button">
+                                    {t('common.cancel')}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                disabled={transferForm.processing}
+                            >
+                                {t('debts.transfer')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

@@ -1,19 +1,33 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debtors';
+import type { Debtor } from '@/types';
+
+type PageProps = {
+    parents: Debtor[];
+};
 
 export default function DebtorCreate() {
+    const { parents } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const form = useForm({
         name: '',
         phone: '',
+        parent_id: '',
     });
 
     function submit(event: FormEvent) {
@@ -56,6 +70,37 @@ export default function DebtorCreate() {
                             }
                         />
                         <InputError message={form.errors.phone} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="parent_id">{t('debtors.parent')}</Label>
+                        <Select
+                            value={form.data.parent_id || 'none'}
+                            onValueChange={(value) =>
+                                form.setData(
+                                    'parent_id',
+                                    value === 'none' ? '' : value,
+                                )
+                            }
+                        >
+                            <SelectTrigger id="parent_id" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">
+                                    {t('debtors.no_parent')}
+                                </SelectItem>
+                                {parents.map((parent) => (
+                                    <SelectItem
+                                        key={parent.id}
+                                        value={String(parent.id)}
+                                    >
+                                        {parent.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.parent_id} />
                     </div>
 
                     <Button type="submit" disabled={form.processing}>

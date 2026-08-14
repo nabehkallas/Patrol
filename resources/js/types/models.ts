@@ -142,10 +142,13 @@ export type Debtor = {
     id: number;
     name: string;
     phone: string | null;
+    parent_id: number | null;
 };
 
 export type DebtorSummary = Debtor & {
     outstanding_syp: number;
+    parent_name?: string | null;
+    children?: DebtorSummary[];
 };
 
 export type Debt = {

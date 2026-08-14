@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import {
     create,
     destroy,
@@ -17,6 +18,12 @@ import {
 } from '@/routes/debtors';
 import { index as debtsIndex } from '@/routes/debts';
 import type { DebtorSummary, Paginated } from '@/types';
+
+type Row = {
+    debtor: DebtorSummary;
+    indent: boolean;
+    parentLabel?: string | null;
+};
 
 type PageProps = {
     debtors: Paginated<DebtorSummary>;
@@ -60,6 +67,20 @@ export default function DebtorsIndex() {
             router.patch(settleAll.url(debtor.id));
         }
     }
+
+    const rows: Row[] = filters.search
+        ? debtors.data.map((debtor) => ({
+              debtor,
+              indent: false,
+              parentLabel: debtor.parent_name,
+          }))
+        : debtors.data.flatMap((debtor) => [
+              { debtor, indent: false },
+              ...(debtor.children ?? []).map((child) => ({
+                  debtor: child,
+                  indent: true,
+              })),
+          ]);
 
     return (
         <>
@@ -110,9 +131,22 @@ export default function DebtorsIndex() {
                             </tr>
                         </thead>
                         <tbody>
-                            {debtors.data.map((debtor) => (
+                            {rows.map(({ debtor, indent, parentLabel }) => (
                                 <tr key={debtor.id} className="border-t">
-                                    <td className="px-4 py-2">{debtor.name}</td>
+                                    <td
+                                        className={cn(
+                                            'px-4 py-2',
+                                            indent && 'ps-8',
+                                        )}
+                                    >
+                                        {debtor.name}
+                                        {parentLabel && (
+                                            <span className="ms-2 text-xs text-muted-foreground">
+                                                ({t('debtors.part_of')}{' '}
+                                                {parentLabel})
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-2">
                                         {debtor.phone ?? '—'}
                                     </td>

@@ -9,6 +9,7 @@ use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Http\Requests\StoreDebtPaymentRequest;
 use App\Http\Requests\StoreDebtRequest;
+use App\Http\Requests\TransferDebtRequest;
 use App\Http\Requests\UpdateDebtRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
@@ -43,7 +44,7 @@ class DebtController extends Controller
 
         return Inertia::render('debts/index', [
             'debts' => $debts,
-            'filters' => $request->only(['status', 'direction', 'sort', 'sort_dir', 'debtor_id']),
+            'filters' => $request->only(['search', 'status', 'direction', 'sort', 'sort_dir', 'debtor_id']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'totals' => [
                 'outstanding' => $this->outstandingTotal($request, DebtDirection::Receivable),
@@ -57,6 +58,14 @@ class DebtController extends Controller
     private function filteredQuery(Request $request): Builder
     {
         $query = Debt::with(['recordedBy', 'debtor', 'fuelType', 'transaction.fuelType', 'payments']);
+
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function (Builder $query) use ($search) {
+                $query->whereHas('debtor', fn (Builder $q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhere('details', 'like', "%{$search}%");
+            });
+        }
 
         if ($request->filled('debtor_id')) {
             $query->where('debtor_id', $request->integer('debtor_id'));
@@ -325,6 +334,15 @@ class DebtController extends Controller
             : __('Payment recorded.');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('debts.index');
+    }
+
+    public function transfer(TransferDebtRequest $request, Debt $debt): RedirectResponse
+    {
+        $debt->update(['debtor_id' => $request->validated('debtor_id')]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt transferred.')]);
 
         return to_route('debts.index');
     }

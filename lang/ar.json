@@ -68,5 +68,10 @@
     "Station data reset.": "تمت إعادة تعيين بيانات المحطة.",
     "An entry for this tank and date already exists.": "يوجد بالفعل قيد لهذا الخزان في هذا التاريخ.",
     "Payment recorded.": "تم تسجيل الدفعة.",
-    "This exceeds the remaining balance (:remaining).": "هذا يتجاوز الرصيد المتبقي (:remaining)."
+    "This exceeds the remaining balance (:remaining).": "هذا يتجاوز الرصيد المتبقي (:remaining).",
+    "Debt transferred.": "تم نقل الدين.",
+    "A debtor cannot be its own parent.": "لا يمكن أن يكون المدين والداً لنفسه.",
+    "This debtor has sub-debtors and cannot itself become a sub-debtor.": "لهذا المدين مدينون فرعيون ولا يمكن أن يصبح هو نفسه مديناً فرعياً.",
+    "The selected debtor is itself a sub-debtor and cannot have sub-debtors of its own.": "المدين المختار هو نفسه مدين فرعي ولا يمكن أن يكون له مدينون فرعيون.",
+    "This debtor has sub-debtors and cannot be deleted.": "لهذا المدين مدينون فرعيون ولا يمكن حذفه."
 }

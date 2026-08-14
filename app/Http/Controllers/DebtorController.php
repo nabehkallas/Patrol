@@ -22,16 +22,44 @@ class DebtorController extends Controller
 {
     public function index(Request $request): Response
     {
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        $searching = $request->filled('search');
+
+        // Searching flattens the hierarchy — a matching sub-debtor should surface even if its
+        // parent's name doesn't match — so each row carries its own parent's name for context
+        // instead of being nested under it. Without a search, only top-level debtors paginate;
+        // each one's sub-debtors are eager-loaded alongside it (not counted against the page
+        // size) so a parent and its children always stay together on the same page.
         $query = $this->filteredQuery($request);
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        if (! $searching) {
+            $query->whereNull('parent_id')->with('children');
+        }
 
         $debtors = $query->orderBy('name')->paginate(25)->withQueryString();
 
-        $debtors->getCollection()->transform(fn (Debtor $debtor) => [
-            ...$debtor->only(['id', 'name', 'phone']),
-            'outstanding_syp' => $this->outstandingTotal($debtor, $sypRate),
-        ]);
+        $debtors->getCollection()->transform(function (Debtor $debtor) use ($sypRate, $searching) {
+            $own = $this->outstandingTotal($debtor, $sypRate);
+
+            if ($searching) {
+                return [
+                    ...$debtor->only(['id', 'name', 'phone', 'parent_id']),
+                    'outstanding_syp' => $own,
+                    'parent_name' => $debtor->parent?->name,
+                ];
+            }
+
+            $children = $debtor->children->map(fn (Debtor $child) => [
+                ...$child->only(['id', 'name', 'phone', 'parent_id']),
+                'outstanding_syp' => $this->outstandingTotal($child, $sypRate),
+            ]);
+
+            return [
+                ...$debtor->only(['id', 'name', 'phone', 'parent_id']),
+                'outstanding_syp' => round($own + $children->sum('outstanding_syp'), 0),
+                'children' => $children,
+            ];
+        });
 
         return Inertia::render('debtors/index', [
             'debtors' => $debtors,
@@ -44,10 +72,19 @@ class DebtorController extends Controller
         $query = Debtor::query();
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%'.$request->string('search').'%');
+            $query->where('name', 'like', '%'.$request->string('search').'%')
+                ->with('parent');
         }
 
         return $query;
+    }
+
+    private function parentOptions(?int $excludeId = null)
+    {
+        return Debtor::whereNull('parent_id')
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
@@ -104,7 +141,9 @@ class DebtorController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('debtors/create');
+        return Inertia::render('debtors/create', [
+            'parents' => $this->parentOptions(),
+        ]);
     }
 
     public function store(StoreDebtorRequest $request): RedirectResponse
@@ -119,7 +158,8 @@ class DebtorController extends Controller
     public function edit(Debtor $debtor): Response
     {
         return Inertia::render('debtors/edit', [
-            'debtor' => $debtor->only(['id', 'name', 'phone']),
+            'debtor' => $debtor->only(['id', 'name', 'phone', 'parent_id']),
+            'parents' => $this->parentOptions($debtor->id),
         ]);
     }
 
@@ -136,6 +176,10 @@ class DebtorController extends Controller
     {
         if ($debtor->debts()->exists()) {
             return back()->withErrors(['debtor' => __('This debtor has debt history and cannot be deleted.')]);
+        }
+
+        if ($debtor->children()->exists()) {
+            return back()->withErrors(['debtor' => __('This debtor has sub-debtors and cannot be deleted.')]);
         }
 
         $debtor->delete();
