@@ -36,6 +36,7 @@ export default function SadcopDeliveryCreate() {
         liters: '',
         price_per_liter: '',
         amount: '',
+        occurred_at: new Date().toISOString().slice(0, 10),
         notes: '',
     });
 
@@ -148,6 +149,19 @@ export default function SadcopDeliveryCreate() {
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="occurred_at">{t('common.date')}</Label>
+                        <Input
+                            id="occurred_at"
+                            type="date"
+                            value={form.data.occurred_at}
+                            onChange={(e) =>
+                                form.setData('occurred_at', e.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.occurred_at} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

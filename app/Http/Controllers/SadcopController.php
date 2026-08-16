@@ -10,10 +10,12 @@ use App\Http\Requests\StoreSadcopDepositRequest;
 use App\Http\Requests\StoreSadcopOpeningBalanceRequest;
 use App\Http\Requests\UpdateSadcopEntryRequest;
 use App\Models\ExchangeRate;
+use App\Models\FuelType;
 use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -37,10 +39,11 @@ class SadcopController extends Controller
         return Inertia::render('sadcop/index', [
             'entries' => $query->paginate(25)->withQueryString(),
             'filters' => [
-                ...$request->only(['type']),
+                ...$request->only(['type', 'fuel_type_id']),
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
+            'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name']),
             'balance' => round(SadcopLedgerEntry::currentBalanceSyp(), 0),
             'monthPayments' => $this->sadcopPaymentsTotal(now()->startOfMonth(), now()->endOfDay()),
             'needsOpeningBalance' => $needsOpeningBalance,
@@ -58,6 +61,10 @@ class SadcopController extends Controller
             $query->where('type', $request->string('type'));
         }
 
+        if ($request->filled('fuel_type_id')) {
+            $query->whereHas('transaction', fn (Builder $q) => $q->where('fuel_type_id', $request->integer('fuel_type_id')));
+        }
+
         return $query;
     }
 
@@ -73,6 +80,7 @@ class SadcopController extends Controller
             'title' => 'سجل سادكوب',
             'date' => 'التاريخ',
             'type' => 'النوع',
+            'fuel_type' => 'نوع الوقود',
             'liters' => 'اللترات',
             'price' => 'سعر تكلفة سادكوب / لتر',
             'amount' => 'المبلغ',
@@ -82,6 +90,7 @@ class SadcopController extends Controller
             'title' => 'Sadcop Ledger',
             'date' => 'Date',
             'type' => 'Type',
+            'fuel_type' => 'Fuel type',
             'liters' => 'Liters',
             'price' => 'Sadcop cost price / liter',
             'amount' => 'Amount',
@@ -92,6 +101,7 @@ class SadcopController extends Controller
         $rows = $entries->map(fn (SadcopLedgerEntry $entry) => [
             $entry->occurred_at->format('Y-m-d H:i'),
             $labels['types'][$entry->type->value] ?? $entry->type->value,
+            $entry->transaction?->tank?->fuelType?->name ?? '—',
             $entry->liters !== null ? number_format((float) $entry->liters, 3) : '—',
             $entry->price_per_liter !== null ? number_format((float) $entry->price_per_liter, 2) : '—',
             ($entry->type === SadcopLedgerEntryType::Delivery ? '-' : '+').number_format((float) $entry->amount, 1).' SYP',
@@ -102,7 +112,7 @@ class SadcopController extends Controller
             filename: 'sadcop-'.now()->format('Y-m-d').'.pdf',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['date'], $labels['type'], $labels['liters'], $labels['price'], $labels['amount'], $labels['recorded_by']],
+            headers: [$labels['date'], $labels['type'], $labels['fuel_type'], $labels['liters'], $labels['price'], $labels['amount'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
         );
@@ -206,7 +216,11 @@ class SadcopController extends Controller
     public function storeDelivery(StoreSadcopDeliveryRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['occurred_at'] ??= now();
+        // A plain date picked in the form keeps today's time-of-day rather than collapsing to
+        // midnight, so same-day entries still sort in the order they were actually recorded.
+        $data['occurred_at'] = isset($data['occurred_at'])
+            ? Carbon::parse($data['occurred_at'])->setTimeFrom(now())
+            : now();
 
         if ((float) $data['amount'] > SadcopLedgerEntry::currentBalanceSyp() + 0.01) {
             return back()->withErrors(['amount' => __('This exceeds the current Sadcop balance.')])->withInput();

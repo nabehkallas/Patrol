@@ -25,6 +25,7 @@ import { destroy, edit } from '@/routes/sadcop/entries';
 import { store as storeOpeningBalance } from '@/routes/sadcop/opening-balance';
 import type {
     Auth,
+    FuelType,
     Paginated,
     SadcopLedgerEntry,
     SadcopLedgerEntryType,
@@ -33,7 +34,8 @@ import type {
 type PageProps = {
     auth: Auth;
     entries: Paginated<SadcopLedgerEntry>;
-    filters: { type?: string; from: string; to: string };
+    filters: { type?: string; fuel_type_id?: string; from: string; to: string };
+    fuelTypes: FuelType[];
     balance: number;
     monthPayments: number;
     needsOpeningBalance: boolean;
@@ -44,6 +46,7 @@ export default function SadcopIndex() {
         auth,
         entries,
         filters,
+        fuelTypes,
         balance,
         monthPayments,
         needsOpeningBalance,
@@ -64,7 +67,12 @@ export default function SadcopIndex() {
     }
 
     function applyFilter(
-        updates: Partial<{ type: string; from: string; to: string }>,
+        updates: Partial<{
+            type: string;
+            fuel_type_id: string;
+            from: string;
+            to: string;
+        }>,
     ) {
         router.get(
             index.url(),
@@ -236,6 +244,33 @@ export default function SadcopIndex() {
                         </SelectContent>
                     </Select>
 
+                    <Select
+                        value={filters.fuel_type_id ?? 'all'}
+                        onValueChange={(value) =>
+                            applyFilter({
+                                fuel_type_id:
+                                    value === 'all' ? undefined : value,
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-48">
+                            <SelectValue placeholder={t('common.fuel_types')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">
+                                {t('common.fuel_types')}
+                            </SelectItem>
+                            {fuelTypes.map((fuelType) => (
+                                <SelectItem
+                                    key={fuelType.id}
+                                    value={String(fuelType.id)}
+                                >
+                                    {fuelType.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     <GeneratePdfButton
                         href={exportPdf.url({ query: filters })}
                     />
@@ -250,6 +285,9 @@ export default function SadcopIndex() {
                                 </th>
                                 <th className="px-4 py-2">
                                     {t('common.type')}
+                                </th>
+                                <th className="px-4 py-2">
+                                    {t('common.fuel_type')}
                                 </th>
                                 <th className="px-4 py-2">
                                     {t('common.liters')}
@@ -276,6 +314,10 @@ export default function SadcopIndex() {
                                     </td>
                                     <td className="px-4 py-2">
                                         {typeLabels[entry.type]}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {entry.transaction?.tank?.fuel_type
+                                            ?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-2">
                                         {entry.liters !== null
@@ -318,7 +360,7 @@ export default function SadcopIndex() {
                             {entries.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={auth.isAdmin ? 7 : 6}
+                                        colSpan={auth.isAdmin ? 8 : 7}
                                         className="px-4 py-6 text-center text-muted-foreground"
                                     >
                                         {t('common.no_results')}
