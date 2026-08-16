@@ -51,12 +51,20 @@ type PageProps = {
     tanks: TankOption[];
     readings: PumpCounterReading[];
     fuelTypeTotals: FuelTypeTotal[];
+    governmentalLitersTotal: number;
     date: string;
 };
 
 export default function PumpCountersIndex() {
-    const { auth, pumps, tanks, readings, fuelTypeTotals, date } =
-        usePage<PageProps>().props;
+    const {
+        auth,
+        pumps,
+        tanks,
+        readings,
+        fuelTypeTotals,
+        governmentalLitersTotal,
+        date,
+    } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const form = useForm({
@@ -153,80 +161,6 @@ export default function PumpCountersIndex() {
                     title={t('pump_counters.title')}
                     description={t('pump_counters.description')}
                 />
-
-                {fuelTypeTotals.length > 0 && (
-                    <div className="flex flex-wrap gap-4">
-                        {fuelTypeTotals.map((total) => (
-                            <div
-                                key={total.fuel_type_id}
-                                className="rounded-lg border px-4 py-2 text-sm"
-                            >
-                                <div className="text-muted-foreground">
-                                    {total.fuel_type_name}
-                                </div>
-                                <div
-                                    className={cn(
-                                        'font-medium',
-                                        total.liters_sold > 0 &&
-                                            'text-green-600 dark:text-green-400',
-                                    )}
-                                >
-                                    {formatNumber(total.liters_sold)} L
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <div className="grid gap-4 md:grid-cols-3">
-                    {pumps.map((pump) => (
-                        <Card key={pump.id}>
-                            <CardHeader>
-                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                                    {pump.name}
-                                    {pump.fuel_type_names.map((name) => (
-                                        <Badge key={name} variant="secondary">
-                                            {name}
-                                        </Badge>
-                                    ))}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-1 text-sm">
-                                <div className="flex justify-between font-medium">
-                                    <span className="text-muted-foreground">
-                                        {t('pump_counters.daily_total')}
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            pump.daily_liters_sold > 0 &&
-                                                'text-green-600 dark:text-green-400',
-                                        )}
-                                    >
-                                        {formatNumber(pump.daily_liters_sold)} L
-                                    </span>
-                                </div>
-                                {pump.latest_reading ? (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            {t('pump_counters.reading_value')}
-                                        </span>
-                                        <span>
-                                            {formatNumber(
-                                                pump.latest_reading
-                                                    .reading_value,
-                                                0,
-                                            )}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">
-                                        {t('pump_counters.no_previous')}
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
 
                 <Card>
                     <CardHeader>
@@ -421,6 +355,94 @@ export default function PumpCountersIndex() {
                         </form>
                     </CardContent>
                 </Card>
+
+                {(fuelTypeTotals.length > 0 || governmentalLitersTotal > 0) && (
+                    <div className="flex flex-wrap gap-4">
+                        {fuelTypeTotals.map((total) => (
+                            <div
+                                key={total.fuel_type_id}
+                                className="rounded-lg border px-4 py-2 text-sm"
+                            >
+                                <div className="text-muted-foreground">
+                                    {total.fuel_type_name}
+                                </div>
+                                <div
+                                    className={cn(
+                                        'font-medium',
+                                        total.liters_sold > 0 &&
+                                            'text-green-600 dark:text-green-400',
+                                    )}
+                                >
+                                    {formatNumber(total.liters_sold)} L
+                                </div>
+                            </div>
+                        ))}
+                        <div className="rounded-lg border px-4 py-2 text-sm">
+                            <div className="text-muted-foreground">
+                                {t('pump_counters.governmental_total')}
+                            </div>
+                            <div
+                                className={cn(
+                                    'font-medium',
+                                    governmentalLitersTotal > 0 &&
+                                        'text-green-600 dark:text-green-400',
+                                )}
+                            >
+                                {formatNumber(governmentalLitersTotal)} L
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    {pumps.map((pump) => (
+                        <Card key={pump.id}>
+                            <CardHeader>
+                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                                    {pump.name}
+                                    {pump.fuel_type_names.map((name) => (
+                                        <Badge key={name} variant="secondary">
+                                            {name}
+                                        </Badge>
+                                    ))}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-1 text-sm">
+                                <div className="flex justify-between font-medium">
+                                    <span className="text-muted-foreground">
+                                        {t('pump_counters.daily_total')}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            pump.daily_liters_sold > 0 &&
+                                                'text-green-600 dark:text-green-400',
+                                        )}
+                                    >
+                                        {formatNumber(pump.daily_liters_sold)} L
+                                    </span>
+                                </div>
+                                {pump.latest_reading ? (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            {t('pump_counters.reading_value')}
+                                        </span>
+                                        <span>
+                                            {formatNumber(
+                                                pump.latest_reading
+                                                    .reading_value,
+                                                0,
+                                            )}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground">
+                                        {t('pump_counters.no_previous')}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
 
                 <div className="space-y-3">
                     <div className="flex items-center gap-4">

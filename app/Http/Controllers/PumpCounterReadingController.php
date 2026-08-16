@@ -67,11 +67,14 @@ class PumpCounterReadingController extends Controller
             ->sortBy('fuel_type_name')
             ->values();
 
+        $governmentalLitersTotal = round((float) $readings->sum('governmental_liters'), 3);
+
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
             'tanks' => $this->tankOptions(),
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
+            'governmentalLitersTotal' => $governmentalLitersTotal,
             'date' => $date->toDateString(),
         ]);
     }

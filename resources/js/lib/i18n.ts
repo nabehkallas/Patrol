@@ -373,6 +373,7 @@ const dictionary = {
         'pump_counters.max': 'max',
         'pump_counters.return_liters': 'Return (L)',
         'pump_counters.fuel_type_daily_total': 'Liters sold today',
+        'pump_counters.governmental_total': 'Governmental (total)',
         'pump_counters.time': 'Time',
 
         'shop.title': 'Shop',
@@ -844,6 +845,7 @@ const dictionary = {
         'pump_counters.max': 'الحد الأقصى',
         'pump_counters.return_liters': 'مرتجع (لتر)',
         'pump_counters.fuel_type_daily_total': 'اللترات المباعة اليوم',
+        'pump_counters.governmental_total': 'حكومي (الإجمالي)',
         'pump_counters.time': 'الوقت',
 
         'shop.title': 'المتجر',
