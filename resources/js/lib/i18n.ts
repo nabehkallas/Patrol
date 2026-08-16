@@ -341,12 +341,20 @@ const dictionary = {
 
         'statistics.title': 'Statistics',
         'statistics.description':
-            'Income, expenses and fuel sales for a custom date range',
+            "The day's transactions, liters sold, debts and fuel deliveries — pick a wider range for a period summary instead",
         'statistics.from': 'From',
         'statistics.to': 'To',
         'statistics.apply': 'Apply',
+        'statistics.today': 'Today',
         'statistics.by_fuel_type': 'By fuel type',
         'statistics.by_employee': 'By employee',
+        'statistics.transactions': 'Transactions',
+        'statistics.deliveries': 'Fuel deliveries',
+        'statistics.debts_created': 'New debts',
+        'statistics.debts_settled': 'Debts settled',
+        'statistics.paid_by_sadcop': 'Sadcop',
+        'statistics.governmental': 'Governmental',
+        'statistics.pending_debt': 'Pending (debt)',
 
         'pump_counters.title': 'Pump counters',
         'pump_counters.description':
@@ -804,12 +812,20 @@ const dictionary = {
 
         'statistics.title': 'الإحصائيات',
         'statistics.description':
-            'الإيرادات والمصروفات ومبيعات الوقود لنطاق تاريخي مخصص',
+            'معاملات اليوم واللترات المباعة والديون وتوريدات الوقود — اختر نطاقًا أوسع لملخص فترة بدلاً من ذلك',
         'statistics.from': 'من',
         'statistics.to': 'إلى',
         'statistics.apply': 'تطبيق',
+        'statistics.today': 'اليوم',
         'statistics.by_fuel_type': 'حسب نوع الوقود',
         'statistics.by_employee': 'حسب الموظف',
+        'statistics.transactions': 'المعاملات',
+        'statistics.deliveries': 'توريدات الوقود',
+        'statistics.debts_created': 'ديون جديدة',
+        'statistics.debts_settled': 'ديون مسددة',
+        'statistics.paid_by_sadcop': 'سادكوب',
+        'statistics.governmental': 'حكومي',
+        'statistics.pending_debt': 'معلّق (دين)',
 
         'pump_counters.title': 'عدادات المضخات',
         'pump_counters.description':
