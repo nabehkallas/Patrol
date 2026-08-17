@@ -29,7 +29,7 @@ class DebtPolicy
 
     public function settle(User $user, Debt $debt): bool
     {
-        return true;
+        return $user->isAdmin();
     }
 
     public function delete(User $user, Debt $debt): bool

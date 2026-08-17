@@ -259,6 +259,10 @@ const dictionary = {
         'debts.payable_total': 'We owe (total)',
         'debts.mark_settled': 'Mark as settled',
         'debts.pay': 'Pay',
+        'debts.settle': 'Settle',
+        'debts.settle_confirm': 'Settle this debt in full?',
+        'debts.partial': 'Partial',
+        'debts.partial_title': 'Settle part of this debt',
         'debts.original_amount': 'Original',
         'debts.transfer': 'Transfer',
         'debts.transfer_title': 'Transfer debt to another debtor',
@@ -272,9 +276,9 @@ const dictionary = {
         'debts.direction.payable': 'We owe them',
         'debts.all_directions': 'All directions',
         'debts.take_from_cash_box':
-            'Take this amount out of the cash box now (returns when settled)',
+            'Take this amount out of the cash box on the debt date (returns when settled)',
         'debts.add_to_cash_box':
-            'Add this amount to the cash box now (leaves when settled)',
+            'Add this amount to the cash box on the debt date (leaves when settled)',
 
         'debtors.title': 'Debtors',
         'debtors.description':
@@ -382,8 +386,11 @@ const dictionary = {
         'shop.new_item': 'New item name',
         'shop.item_name_placeholder': 'e.g. Water bottle',
         'shop.add_item': 'Add item',
+        'shop.base_price': 'Base price',
+        'shop.sell_price': 'Sell price',
         'shop.stock': 'In stock',
         'shop.restock': 'Restock',
+        'shop.buy': 'Buy',
         'shop.sell': 'Sell',
         'shop.quantity': 'Quantity',
         'shop.record_purchase': 'Record purchase',
@@ -733,6 +740,10 @@ const dictionary = {
         'debts.payable_total': 'مستحق علينا (الإجمالي)',
         'debts.mark_settled': 'وضع علامة كمسدد',
         'debts.pay': 'تسديد',
+        'debts.settle': 'تسديد كامل',
+        'debts.settle_confirm': 'هل تريد تسديد هذا الدين بالكامل؟',
+        'debts.partial': 'تسديد جزئي',
+        'debts.partial_title': 'تسديد جزء من هذا الدين',
         'debts.original_amount': 'المبلغ الأصلي',
         'debts.transfer': 'نقل',
         'debts.transfer_title': 'نقل الدين إلى مدين آخر',
@@ -746,9 +757,9 @@ const dictionary = {
         'debts.direction.payable': 'مستحق علينا',
         'debts.all_directions': 'كل الاتجاهات',
         'debts.take_from_cash_box':
-            'سحب هذا المبلغ من صندوق النقد الآن (يعود عند التسديد)',
+            'سحب هذا المبلغ من صندوق النقد في تاريخ الدين (يعود عند التسديد)',
         'debts.add_to_cash_box':
-            'إضافة هذا المبلغ إلى صندوق النقد الآن (يخرج عند التسديد)',
+            'إضافة هذا المبلغ إلى صندوق النقد في تاريخ الدين (يخرج عند التسديد)',
 
         'debtors.title': 'المدينون',
         'debtors.description':
@@ -853,8 +864,11 @@ const dictionary = {
         'shop.new_item': 'اسم الصنف الجديد',
         'shop.item_name_placeholder': 'مثال: قنينة ماء',
         'shop.add_item': 'إضافة صنف',
+        'shop.base_price': 'سعر التكلفة',
+        'shop.sell_price': 'سعر البيع',
         'shop.stock': 'المخزون',
         'shop.restock': 'تعبئة المخزون',
+        'shop.buy': 'شراء',
         'shop.sell': 'بيع',
         'shop.quantity': 'الكمية',
         'shop.record_purchase': 'تسجيل شراء',

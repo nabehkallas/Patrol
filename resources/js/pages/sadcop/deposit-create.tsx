@@ -4,6 +4,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useTranslation } from '@/lib/i18n';
@@ -15,6 +16,7 @@ export default function SadcopDepositCreate() {
 
     const form = useForm({
         amount: '',
+        occurred_at: new Date().toISOString().slice(0, 10),
         notes: '',
     });
 
@@ -44,6 +46,19 @@ export default function SadcopDepositCreate() {
                             required
                         />
                         <InputError message={form.errors.amount} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="occurred_at">{t('common.date')}</Label>
+                        <Input
+                            id="occurred_at"
+                            type="date"
+                            value={form.data.occurred_at}
+                            onChange={(e) =>
+                                form.setData('occurred_at', e.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.occurred_at} />
                     </div>
 
                     <div className="grid gap-2">

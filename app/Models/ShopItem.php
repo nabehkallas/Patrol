@@ -2,14 +2,24 @@
 
 namespace App\Models;
 
+use App\Enums\Currency;
 use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name'])]
+#[Fillable(['name', 'base_price', 'sell_price', 'currency'])]
 class ShopItem extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'base_price' => 'decimal:2',
+            'sell_price' => 'decimal:2',
+            'currency' => Currency::class,
+        ];
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

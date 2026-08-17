@@ -25,7 +25,8 @@ class InventoryEntryController extends Controller
             ->orderBy('name')
             ->get();
 
-        $topUpDate = Carbon::parse($request->input('topup_date', today()->toDateString()));
+        $from = Carbon::parse($request->input('from', today()->toDateString()));
+        $to = Carbon::parse($request->input('to', today()->toDateString()));
 
         return Inertia::render('inventory/index', [
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
@@ -33,14 +34,17 @@ class InventoryEntryController extends Controller
                 ->latest('date')
                 ->paginate(25),
             'topUps' => TankTopUp::with(['tank.fuelType', 'recordedBy'])
-                ->whereDate('date', $topUpDate)
+                ->whereDate('date', '>=', $from)
+                ->whereDate('date', '<=', $to)
                 ->latest('id')
                 ->get(),
             'transfers' => TankTransfer::with(['fromTank.fuelType', 'toTank.fuelType', 'recordedBy'])
-                ->whereDate('date', $topUpDate)
+                ->whereDate('date', '>=', $from)
+                ->whereDate('date', '<=', $to)
                 ->latest('id')
                 ->get(),
-            'topUpDate' => $topUpDate->toDateString(),
+            'historyFrom' => $from->toDateString(),
+            'historyTo' => $to->toDateString(),
         ]);
     }
 
@@ -86,11 +90,13 @@ class InventoryEntryController extends Controller
 
     public function exportTopUpsPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $topUpDate = Carbon::parse($request->input('topup_date', today()->toDateString()));
+        $from = Carbon::parse($request->input('from', today()->toDateString()));
+        $to = Carbon::parse($request->input('to', today()->toDateString()));
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
         $topUps = TankTopUp::with(['tank.fuelType', 'recordedBy'])
-            ->whereDate('date', $topUpDate)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
             ->latest('id')
             ->get();
 
@@ -116,9 +122,9 @@ class InventoryEntryController extends Controller
         ])->all();
 
         return $exporter->download(
-            filename: 'tank-topups-'.$topUpDate->toDateString().'.pdf',
+            filename: 'tank-topups-'.$from->toDateString().'-to-'.$to->toDateString().'.pdf',
             title: $labels['title'],
-            subtitle: $topUpDate->toDateString(),
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
             headers: [$labels['tank'], $labels['liters'], $labels['recorded_by'], $labels['notes']],
             rows: $rows,
             direction: $direction,

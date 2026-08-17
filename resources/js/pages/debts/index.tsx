@@ -31,6 +31,7 @@ import {
     edit,
     exportPdf,
     index,
+    settle,
     transfer,
 } from '@/routes/debts';
 import { store as storePayment } from '@/routes/debts/payments';
@@ -104,40 +105,31 @@ export default function DebtsIndex() {
         return fuelTypeName ?? debt.details ?? '—';
     }
 
-    const [paymentAmounts, setPaymentAmounts] = useState<
-        Record<number, string>
-    >({});
-    const [paymentErrors, setPaymentErrors] = useState<Record<number, string>>(
-        {},
-    );
-
-    function paymentAmountFor(debt: Debt): string {
-        return paymentAmounts[debt.id] ?? String(debt.remaining_amount);
+    function settleDebt(debt: Debt) {
+        if (confirm(t('debts.settle_confirm'))) {
+            router.patch(settle.url(debt.id), {}, { preserveScroll: true });
+        }
     }
 
-    function submitPayment(event: FormEvent, debt: Debt) {
-        event.preventDefault();
-        router.post(
-            storePayment.url(debt.id),
-            { amount: paymentAmountFor(debt) },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setPaymentAmounts((prev) => {
-                        const next = { ...prev };
-                        delete next[debt.id];
+    const [partialDebt, setPartialDebt] = useState<Debt | null>(null);
+    const partialForm = useForm({ amount: '' });
 
-                        return next;
-                    });
-                    setPaymentErrors((prev) => ({ ...prev, [debt.id]: '' }));
-                },
-                onError: (errors) =>
-                    setPaymentErrors((prev) => ({
-                        ...prev,
-                        [debt.id]: errors.amount ?? '',
-                    })),
-            },
-        );
+    function openPartial(debt: Debt) {
+        setPartialDebt(debt);
+        partialForm.setData('amount', String(debt.remaining_amount));
+    }
+
+    function submitPartial(event: FormEvent) {
+        event.preventDefault();
+
+        if (!partialDebt) {
+            return;
+        }
+
+        partialForm.post(storePayment.url(partialDebt.id), {
+            preserveScroll: true,
+            onSuccess: () => setPartialDebt(null),
+        });
     }
 
     const [transferDebt, setTransferDebt] = useState<Debt | null>(null);
@@ -377,53 +369,29 @@ export default function DebtsIndex() {
                                         {debt.recorded_by?.name}
                                     </td>
                                     <td className="space-x-2 px-4 py-2 text-end">
-                                        {debt.status === 'outstanding' && (
-                                            <form
-                                                onSubmit={(event) =>
-                                                    submitPayment(event, debt)
-                                                }
-                                                className="mb-1 inline-flex items-start gap-1"
-                                            >
-                                                <div>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0.01"
-                                                        max={
-                                                            debt.remaining_amount
+                                        {debt.status === 'outstanding' &&
+                                            auth.isAdmin && (
+                                                <>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            settleDebt(debt)
                                                         }
-                                                        value={paymentAmountFor(
-                                                            debt,
-                                                        )}
-                                                        onChange={(e) =>
-                                                            setPaymentAmounts(
-                                                                (prev) => ({
-                                                                    ...prev,
-                                                                    [debt.id]:
-                                                                        e.target
-                                                                            .value,
-                                                                }),
-                                                            )
+                                                    >
+                                                        {t('debts.settle')}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            openPartial(debt)
                                                         }
-                                                        className="h-8 w-24"
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            paymentErrors[
-                                                                debt.id
-                                                            ]
-                                                        }
-                                                    />
-                                                </div>
-                                                <Button
-                                                    type="submit"
-                                                    variant="outline"
-                                                    size="sm"
-                                                >
-                                                    {t('debts.pay')}
-                                                </Button>
-                                            </form>
-                                        )}
+                                                    >
+                                                        {t('debts.partial')}
+                                                    </Button>
+                                                </>
+                                            )}
                                         {auth.isAdmin && (
                                             <Button
                                                 variant="outline"
@@ -519,6 +487,52 @@ export default function DebtsIndex() {
                                 disabled={transferForm.processing}
                             >
                                 {t('debts.transfer')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={partialDebt !== null}
+                onOpenChange={(open) => !open && setPartialDebt(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>{t('debts.partial_title')}</DialogTitle>
+
+                    <form onSubmit={submitPartial} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="partial_amount">
+                                {t('common.amount')}
+                            </Label>
+                            <Input
+                                id="partial_amount"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={partialDebt?.remaining_amount}
+                                value={partialForm.data.amount}
+                                onChange={(e) =>
+                                    partialForm.setData(
+                                        'amount',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError message={partialForm.errors.amount} />
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button variant="secondary" type="button">
+                                    {t('common.cancel')}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                disabled={partialForm.processing}
+                            >
+                                {t('debts.pay')}
                             </Button>
                         </DialogFooter>
                     </form>

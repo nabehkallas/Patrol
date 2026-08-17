@@ -17,6 +17,7 @@ use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -262,7 +263,7 @@ class DebtController extends Controller
             'amount' => $debt->amount,
             'currency' => $debt->currency,
             'exchange_rate_to_usd' => $debt->exchange_rate_to_usd,
-            'occurred_at' => now(),
+            'occurred_at' => Carbon::parse($debt->date)->setTimeFrom(now()),
             'notes' => $debt->details,
         ]);
     }

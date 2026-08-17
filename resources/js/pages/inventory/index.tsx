@@ -7,6 +7,13 @@ import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -44,18 +51,20 @@ type PageProps = {
     entries: Paginated<InventoryEntry>;
     topUps: TankTopUp[];
     transfers: TankTransfer[];
-    topUpDate: string;
+    historyFrom: string;
+    historyTo: string;
 };
 
 type Tab = 'amounts' | 'actual';
 
 export default function InventoryIndex() {
-    const { auth, tanks, entries, topUps, transfers, topUpDate } =
+    const { auth, tanks, entries, topUps, transfers, historyFrom, historyTo } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<Tab>('amounts');
     const [topUpLiters, setTopUpLiters] = useState<Record<number, string>>({});
     const [topUpErrors, setTopUpErrors] = useState<Record<number, string>>({});
+    const [showTransferForm, setShowTransferForm] = useState(false);
 
     const form = useForm({
         tank_id: String(tanks[0]?.id ?? ''),
@@ -100,7 +109,10 @@ export default function InventoryIndex() {
         event.preventDefault();
         transferForm.post(storeTransfer.url(), {
             preserveScroll: true,
-            onSuccess: () => transferForm.reset('liters', 'notes'),
+            onSuccess: () => {
+                transferForm.reset('liters', 'notes');
+                setShowTransferForm(false);
+            },
         });
     }
 
@@ -143,10 +155,10 @@ export default function InventoryIndex() {
         }
     }
 
-    function handleTopUpDateChange(newDate: string) {
+    function handleHistoryRangeChange(updates: { from?: string; to?: string }) {
         router.get(
             index(),
-            { topup_date: newDate },
+            { from: historyFrom, to: historyTo, ...updates },
             { preserveScroll: true, preserveState: true },
         );
     }
@@ -265,151 +277,50 @@ export default function InventoryIndex() {
                             ))}
                         </div>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>
-                                    {t('inventory.transfer_fuel')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form
-                                    onSubmit={submitTransfer}
-                                    className="grid gap-4 md:grid-cols-4"
-                                >
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="from_tank_id">
-                                            {t('inventory.from_tank')}
-                                        </Label>
-                                        <Select
-                                            value={
-                                                transferForm.data.from_tank_id
-                                            }
-                                            onValueChange={
-                                                handleTransferFromChange
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="from_tank_id"
-                                                className="w-full"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {tanks.map((tank) => (
-                                                    <SelectItem
-                                                        key={tank.id}
-                                                        value={String(tank.id)}
-                                                    >
-                                                        {tank.fuel_type.name} —{' '}
-                                                        {tank.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError
-                                            message={
-                                                transferForm.errors.from_tank_id
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="to_tank_id">
-                                            {t('inventory.to_tank')}
-                                        </Label>
-                                        <Select
-                                            value={transferForm.data.to_tank_id}
-                                            onValueChange={(value) =>
-                                                transferForm.setData(
-                                                    'to_tank_id',
-                                                    value,
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="to_tank_id"
-                                                className="w-full"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {transferDestinationOptions.map(
-                                                    (tank) => (
-                                                        <SelectItem
-                                                            key={tank.id}
-                                                            value={String(
-                                                                tank.id,
-                                                            )}
-                                                        >
-                                                            {
-                                                                tank.fuel_type
-                                                                    .name
-                                                            }{' '}
-                                                            — {tank.name}
-                                                        </SelectItem>
-                                                    ),
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError
-                                            message={
-                                                transferForm.errors.to_tank_id
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="transfer_liters">
-                                            {t('common.liters')}
-                                        </Label>
-                                        <Input
-                                            id="transfer_liters"
-                                            type="number"
-                                            step="0.001"
-                                            min="0"
-                                            value={transferForm.data.liters}
-                                            onChange={(e) =>
-                                                transferForm.setData(
-                                                    'liters',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={transferForm.errors.liters}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="transfer_date">
-                                            {t('common.date')}
-                                        </Label>
-                                        <Input
-                                            id="transfer_date"
-                                            type="date"
-                                            value={transferForm.data.date}
-                                            onChange={(e) =>
-                                                transferForm.setData(
-                                                    'date',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={transferForm.errors.date}
-                                        />
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            transferForm.processing ||
-                                            transferDestinationOptions.length ===
-                                                0
-                                        }
-                                        className="md:col-span-4 md:w-fit"
-                                    >
-                                        {t('inventory.transfer')}
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
+                        <div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowTransferForm(true)}
+                            >
+                                {t('inventory.transfer_fuel')}
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-wrap items-end gap-4">
+                            <div className="grid gap-1">
+                                <Label htmlFor="history_from">
+                                    {t('statistics.from')}
+                                </Label>
+                                <Input
+                                    id="history_from"
+                                    type="date"
+                                    value={historyFrom}
+                                    onChange={(e) =>
+                                        handleHistoryRangeChange({
+                                            from: e.target.value,
+                                        })
+                                    }
+                                    className="w-44"
+                                />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label htmlFor="history_to">
+                                    {t('statistics.to')}
+                                </Label>
+                                <Input
+                                    id="history_to"
+                                    type="date"
+                                    value={historyTo}
+                                    onChange={(e) =>
+                                        handleHistoryRangeChange({
+                                            to: e.target.value,
+                                        })
+                                    }
+                                    className="w-44"
+                                />
+                            </div>
+                        </div>
 
                         <div className="space-y-3">
                             <h3 className="font-semibold">
@@ -490,17 +401,12 @@ export default function InventoryIndex() {
                                 <h3 className="font-semibold">
                                     {t('inventory.top_up_history')}
                                 </h3>
-                                <Input
-                                    type="date"
-                                    value={topUpDate}
-                                    onChange={(e) =>
-                                        handleTopUpDateChange(e.target.value)
-                                    }
-                                    className="w-auto"
-                                />
                                 <GeneratePdfButton
                                     href={exportTopupsPdf.url({
-                                        query: { topup_date: topUpDate },
+                                        query: {
+                                            from: historyFrom,
+                                            to: historyTo,
+                                        },
                                     })}
                                 />
                             </div>
@@ -832,6 +738,125 @@ export default function InventoryIndex() {
                     </div>
                 )}
             </div>
+
+            <Dialog open={showTransferForm} onOpenChange={setShowTransferForm}>
+                <DialogContent>
+                    <DialogTitle>{t('inventory.transfer_fuel')}</DialogTitle>
+
+                    <form onSubmit={submitTransfer} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="from_tank_id">
+                                {t('inventory.from_tank')}
+                            </Label>
+                            <Select
+                                value={transferForm.data.from_tank_id}
+                                onValueChange={handleTransferFromChange}
+                            >
+                                <SelectTrigger
+                                    id="from_tank_id"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tanks.map((tank) => (
+                                        <SelectItem
+                                            key={tank.id}
+                                            value={String(tank.id)}
+                                        >
+                                            {tank.fuel_type.name} — {tank.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={transferForm.errors.from_tank_id}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="to_tank_id">
+                                {t('inventory.to_tank')}
+                            </Label>
+                            <Select
+                                value={transferForm.data.to_tank_id}
+                                onValueChange={(value) =>
+                                    transferForm.setData('to_tank_id', value)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="to_tank_id"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {transferDestinationOptions.map((tank) => (
+                                        <SelectItem
+                                            key={tank.id}
+                                            value={String(tank.id)}
+                                        >
+                                            {tank.fuel_type.name} — {tank.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={transferForm.errors.to_tank_id}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="transfer_liters">
+                                {t('common.liters')}
+                            </Label>
+                            <Input
+                                id="transfer_liters"
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={transferForm.data.liters}
+                                onChange={(e) =>
+                                    transferForm.setData(
+                                        'liters',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError message={transferForm.errors.liters} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="transfer_date">
+                                {t('common.date')}
+                            </Label>
+                            <Input
+                                id="transfer_date"
+                                type="date"
+                                value={transferForm.data.date}
+                                onChange={(e) =>
+                                    transferForm.setData('date', e.target.value)
+                                }
+                            />
+                            <InputError message={transferForm.errors.date} />
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button variant="secondary" type="button">
+                                    {t('common.cancel')}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    transferForm.processing ||
+                                    transferDestinationOptions.length === 0
+                                }
+                            >
+                                {t('inventory.transfer')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

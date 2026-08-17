@@ -162,7 +162,11 @@ class SadcopController extends Controller
     public function storeDeposit(StoreSadcopDepositRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['occurred_at'] ??= now();
+        // A plain date picked in the form keeps today's time-of-day rather than collapsing to
+        // midnight, so same-day entries still sort in the order they were actually recorded.
+        $data['occurred_at'] = isset($data['occurred_at'])
+            ? Carbon::parse($data['occurred_at'])->setTimeFrom(now())
+            : now();
 
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 

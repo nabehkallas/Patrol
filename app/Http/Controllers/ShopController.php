@@ -87,6 +87,9 @@ class ShopController extends Controller
             'id' => $item->id,
             'name' => $item->name,
             'stock' => $item->currentStock(),
+            'base_price' => $item->base_price,
+            'sell_price' => $item->sell_price,
+            'currency' => $item->currency->value,
         ]);
     }
 
@@ -114,6 +117,9 @@ class ShopController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:shop_items,name'],
+            'base_price' => ['required', 'numeric', 'min:0'],
+            'sell_price' => ['required', 'numeric', 'min:0'],
+            'currency' => ['required', 'in:SYP,TRY,USD'],
         ]);
 
         ShopItem::create($data);
