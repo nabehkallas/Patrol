@@ -131,13 +131,25 @@ export default function PumpCountersIndex() {
     function submit(event: FormEvent) {
         event.preventDefault();
         form.post(store.url(), {
-            onSuccess: () =>
+            onSuccess: () => {
                 form.reset(
                     'reading_value',
                     'governmental_liters',
                     'return_liters',
                     'notes',
-                ),
+                );
+
+                // Move on to the next pump so an attendant can enter readings for every pump
+                // in sequence without re-selecting one each time.
+                const currentIndex = pumps.findIndex(
+                    (p) => String(p.id) === form.data.pump_id,
+                );
+                const nextPump = pumps[(currentIndex + 1) % pumps.length];
+
+                if (nextPump) {
+                    handlePumpChange(String(nextPump.id));
+                }
+            },
         });
     }
 

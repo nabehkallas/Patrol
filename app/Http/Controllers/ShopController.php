@@ -129,6 +129,22 @@ class ShopController extends Controller
         return to_route('shop.index');
     }
 
+    public function updateItem(Request $request, ShopItem $shopItem): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:shop_items,name,'.$shopItem->id],
+            'base_price' => ['required', 'numeric', 'min:0'],
+            'sell_price' => ['required', 'numeric', 'min:0'],
+            'currency' => ['required', 'in:SYP,TRY,USD'],
+        ]);
+
+        $shopItem->update($data);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Shop item updated.')]);
+
+        return to_route('shop.index');
+    }
+
     public function destroyItem(ShopItem $shopItem): RedirectResponse
     {
         if ($shopItem->transactions()->exists()) {

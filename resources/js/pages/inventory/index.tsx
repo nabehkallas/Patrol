@@ -173,11 +173,19 @@ export default function InventoryIndex() {
             <Head title={t('inventory.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title={t('inventory.title')}
-                    description={t('inventory.description')}
-                />
+                <div className="flex items-center justify-between">
+                    <Heading
+                        variant="small"
+                        title={t('inventory.title')}
+                        description={t('inventory.description')}
+                    />
+                    <Button
+                        type="button"
+                        onClick={() => setShowTransferForm(true)}
+                    >
+                        {t('inventory.transfer_fuel')}
+                    </Button>
+                </div>
 
                 <div className="inline-flex gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
                     {tabs.map(({ value, label }) => (
@@ -277,16 +285,6 @@ export default function InventoryIndex() {
                             ))}
                         </div>
 
-                        <div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setShowTransferForm(true)}
-                            >
-                                {t('inventory.transfer_fuel')}
-                            </Button>
-                        </div>
-
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="grid gap-1">
                                 <Label htmlFor="history_from">
@@ -319,6 +317,79 @@ export default function InventoryIndex() {
                                     }
                                     className="w-44"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-4">
+                                <h3 className="font-semibold">
+                                    {t('inventory.top_up_history')}
+                                </h3>
+                                <GeneratePdfButton
+                                    href={exportTopupsPdf.url({
+                                        query: {
+                                            from: historyFrom,
+                                            to: historyTo,
+                                        },
+                                    })}
+                                />
+                            </div>
+
+                            <div className="overflow-x-auto rounded-xl border">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-muted/50 text-start">
+                                            <th className="px-4 py-2">
+                                                {t('common.tank')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.liters')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.recorded_by')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.notes')}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topUps.map((topUp) => (
+                                            <tr
+                                                key={topUp.id}
+                                                className="border-t"
+                                            >
+                                                <td className="px-4 py-2">
+                                                    {
+                                                        topUp.tank?.fuel_type
+                                                            ?.name
+                                                    }{' '}
+                                                    — {topUp.tank?.name}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {formatNumber(topUp.liters)}{' '}
+                                                    L
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {topUp.recorded_by?.name}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {topUp.notes}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {topUps.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={4}
+                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                >
+                                                    {t('common.no_results')}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
@@ -385,79 +456,6 @@ export default function InventoryIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={5}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
-                                                >
-                                                    {t('common.no_results')}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-4">
-                                <h3 className="font-semibold">
-                                    {t('inventory.top_up_history')}
-                                </h3>
-                                <GeneratePdfButton
-                                    href={exportTopupsPdf.url({
-                                        query: {
-                                            from: historyFrom,
-                                            to: historyTo,
-                                        },
-                                    })}
-                                />
-                            </div>
-
-                            <div className="overflow-x-auto rounded-xl border">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
-                                                {t('common.tank')}
-                                            </th>
-                                            <th className="px-4 py-2">
-                                                {t('common.liters')}
-                                            </th>
-                                            <th className="px-4 py-2">
-                                                {t('common.recorded_by')}
-                                            </th>
-                                            <th className="px-4 py-2">
-                                                {t('common.notes')}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {topUps.map((topUp) => (
-                                            <tr
-                                                key={topUp.id}
-                                                className="border-t"
-                                            >
-                                                <td className="px-4 py-2">
-                                                    {
-                                                        topUp.tank?.fuel_type
-                                                            ?.name
-                                                    }{' '}
-                                                    — {topUp.tank?.name}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {formatNumber(topUp.liters)}{' '}
-                                                    L
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {topUp.recorded_by?.name}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {topUp.notes}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {topUps.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={4}
                                                     className="px-4 py-6 text-center text-muted-foreground"
                                                 >
                                                     {t('common.no_results')}
