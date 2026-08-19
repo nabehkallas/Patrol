@@ -55,6 +55,29 @@ type PageProps = {
     date: string;
 };
 
+// Defaults to whichever tank was used for this pump's last reading — attendants almost
+// always feed the same pump from the same tank, so this saves a re-selection every time.
+// Falls back to the first tank that actually matches the pump's fuel type(s), never to an
+// arbitrary tank that might belong to a different fuel type.
+function defaultTankFor(pump: PumpSummary | undefined, options: TankOption[]) {
+    const lastTankId = pump?.latest_reading?.tank_id;
+    const lastTankStillValid =
+        lastTankId !== null &&
+        lastTankId !== undefined &&
+        options.some((tank) => tank.id === lastTankId);
+
+    return lastTankStillValid ? lastTankId : (options[0]?.id ?? '');
+}
+
+function tanksFor(
+    pump: PumpSummary | undefined,
+    tanks: TankOption[],
+): TankOption[] {
+    return pump && pump.fuel_type_ids.length > 0
+        ? tanks.filter((tank) => pump.fuel_type_ids.includes(tank.fuel_type_id))
+        : tanks;
+}
+
 export default function PumpCountersIndex() {
     const {
         auth,
@@ -67,11 +90,12 @@ export default function PumpCountersIndex() {
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
+    const initialPump = pumps[0];
+    const initialTanks = tanksFor(initialPump, tanks);
+
     const form = useForm({
-        pump_id: String(pumps[0]?.id ?? ''),
-        tank_id: String(
-            pumps[0]?.latest_reading?.tank_id ?? tanks[0]?.id ?? '',
-        ),
+        pump_id: String(initialPump?.id ?? ''),
+        tank_id: String(defaultTankFor(initialPump, initialTanks)),
         date: new Date().toISOString().slice(0, 10),
         reading_value: '',
         governmental_liters: '',
@@ -82,38 +106,13 @@ export default function PumpCountersIndex() {
     const selectedPump = pumps.find((p) => String(p.id) === form.data.pump_id);
 
     const availableTanks = useMemo(
-        () =>
-            selectedPump && selectedPump.fuel_type_ids.length > 0
-                ? tanks.filter((tank) =>
-                      selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
-                  )
-                : tanks,
+        () => tanksFor(selectedPump, tanks),
         [tanks, selectedPump],
     );
 
-    // Defaults to whichever tank was used for this pump's last reading — attendants almost
-    // always feed the same pump from the same tank, so this saves a re-selection every time.
-    function defaultTankFor(
-        pump: PumpSummary | undefined,
-        options: TankOption[],
-    ) {
-        const lastTankId = pump?.latest_reading?.tank_id;
-        const lastTankStillValid =
-            lastTankId !== null &&
-            lastTankId !== undefined &&
-            options.some((tank) => tank.id === lastTankId);
-
-        return lastTankStillValid ? lastTankId : (options[0]?.id ?? '');
-    }
-
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
-        const nextTanks =
-            pump && pump.fuel_type_ids.length > 0
-                ? tanks.filter((tank) =>
-                      pump.fuel_type_ids.includes(tank.fuel_type_id),
-                  )
-                : tanks;
+        const nextTanks = tanksFor(pump, tanks);
 
         form.setData((data) => ({
             ...data,

@@ -120,12 +120,50 @@ function ItemCard({
     );
     const [saleErrors, setSaleErrors] = useState<Record<string, string>>({});
 
+    const [buyQuantity, setBuyQuantity] = useState('');
+    const [buyAmount, setBuyAmount] = useState('');
+    const [buyErrors, setBuyErrors] = useState<Record<string, string>>({});
+
     const editForm = useForm({
         name: item.name,
         base_price: item.base_price ?? '',
         sell_price: item.sell_price ?? '',
         currency: item.currency,
     });
+
+    function handleBuyQuantityChange(quantity: string) {
+        const qty = parseFloat(quantity);
+        const basePrice = item.base_price ? parseFloat(item.base_price) : null;
+        const computed =
+            basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
+
+        setBuyQuantity(quantity);
+        setBuyAmount(computed !== null ? computed.toFixed(2) : buyAmount);
+    }
+
+    function submitBuy(event: FormEvent) {
+        event.preventDefault();
+        router.post(
+            storePurchase.url(),
+            {
+                shop_item_id: item.id,
+                quantity: buyQuantity,
+                amount: buyAmount,
+                currency: item.currency,
+                date: new Date().toISOString().slice(0, 10),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setBuyQuantity('');
+                    setBuyAmount('');
+                    setBuyErrors({});
+                },
+                onError: (errors) =>
+                    setBuyErrors(errors as Record<string, string>),
+            },
+        );
+    }
 
     function openSell() {
         const qty = parseFloat(sellQuantity);
@@ -228,7 +266,37 @@ function ItemCard({
                     </span>
                 </div>
 
-                <div className="flex gap-2 border-t pt-3">
+                <form onSubmit={submitBuy} className="space-y-1 border-t pt-3">
+                    <div className="flex gap-2">
+                        <Input
+                            type="number"
+                            step="1"
+                            min="1"
+                            placeholder={t('shop.quantity')}
+                            value={buyQuantity}
+                            onChange={(e) =>
+                                handleBuyQuantityChange(e.target.value)
+                            }
+                            className="flex-1"
+                        />
+                        <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder={t('common.amount')}
+                            value={buyAmount}
+                            onChange={(e) => setBuyAmount(e.target.value)}
+                            className="flex-1"
+                        />
+                        <Button type="submit" variant="outline" size="sm">
+                            {t('shop.buy')}
+                        </Button>
+                    </div>
+                    <InputError message={buyErrors.quantity} />
+                    <InputError message={buyErrors.amount} />
+                </form>
+
+                <div className="flex gap-2 pt-1">
                     <Input
                         type="number"
                         step="1"
@@ -453,64 +521,6 @@ export default function ShopIndex() {
         });
     }
 
-    const [showBuy, setShowBuy] = useState(false);
-    const [purchase, setPurchase] = useState<
-        MovementFormState & { shop_item_id: string }
-    >(() => ({
-        shop_item_id: String(items[0]?.id ?? ''),
-        ...movementDefaults('SYP'),
-    }));
-    const [purchaseErrors, setPurchaseErrors] = useState<
-        Record<string, string>
-    >({});
-
-    function openBuy() {
-        const first = items[0];
-        setPurchase({
-            shop_item_id: String(first?.id ?? ''),
-            ...movementDefaults(first?.currency ?? 'SYP'),
-        });
-        setPurchaseErrors({});
-        setShowBuy(true);
-    }
-
-    function handleBuyItemChange(itemId: string) {
-        const nextItem = items.find((i) => String(i.id) === itemId);
-
-        setPurchase((data) => ({
-            ...data,
-            shop_item_id: itemId,
-            currency: nextItem?.currency ?? data.currency,
-        }));
-    }
-
-    function handlePurchaseQuantityChange(quantity: string) {
-        const item = items.find((i) => String(i.id) === purchase.shop_item_id);
-        const qty = parseFloat(quantity);
-        const basePrice = item?.base_price ? parseFloat(item.base_price) : null;
-        const computed =
-            basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
-
-        setPurchase((data) => ({
-            ...data,
-            quantity,
-            amount: computed !== null ? computed.toFixed(2) : data.amount,
-        }));
-    }
-
-    function submitPurchase(event: FormEvent) {
-        event.preventDefault();
-        router.post(storePurchase.url(), purchase, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setShowBuy(false);
-                setPurchaseErrors({});
-            },
-            onError: (errors) =>
-                setPurchaseErrors(errors as Record<string, string>),
-        });
-    }
-
     function handleDateChange(newDate: string) {
         router.get(
             index.url(),
@@ -538,21 +548,9 @@ export default function ShopIndex() {
                         title={t('shop.title')}
                         description={t('shop.description')}
                     />
-                    <div className="flex items-center gap-2">
-                        <Button
-                            type="button"
-                            onClick={openBuy}
-                            disabled={items.length === 0}
-                        >
-                            {t('shop.buy')}
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => setShowAddItem(true)}
-                        >
-                            {t('shop.add_item')}
-                        </Button>
-                    </div>
+                    <Button type="button" onClick={() => setShowAddItem(true)}>
+                        {t('shop.add_item')}
+                    </Button>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
@@ -673,116 +671,6 @@ export default function ShopIndex() {
                     </div>
                 </div>
             </div>
-
-            <Dialog open={showBuy} onOpenChange={setShowBuy}>
-                <DialogContent>
-                    <DialogTitle>{t('shop.buy')}</DialogTitle>
-
-                    <form onSubmit={submitPurchase} className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="purchase_item">
-                                {t('shop.item')}
-                            </Label>
-                            <Select
-                                value={purchase.shop_item_id}
-                                onValueChange={handleBuyItemChange}
-                            >
-                                <SelectTrigger id="purchase_item">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {items.map((item) => (
-                                        <SelectItem
-                                            key={item.id}
-                                            value={String(item.id)}
-                                        >
-                                            {item.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={purchaseErrors.shop_item_id} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="purchase_quantity">
-                                {t('shop.quantity')}
-                            </Label>
-                            <Input
-                                id="purchase_quantity"
-                                type="number"
-                                step="1"
-                                min="1"
-                                value={purchase.quantity}
-                                onChange={(e) =>
-                                    handlePurchaseQuantityChange(e.target.value)
-                                }
-                            />
-                            <InputError message={purchaseErrors.quantity} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="purchase_amount">
-                                    {t('common.amount')}
-                                </Label>
-                                <MoneyInput
-                                    id="purchase_amount"
-                                    value={purchase.amount}
-                                    onChange={(value) =>
-                                        setPurchase((data) => ({
-                                            ...data,
-                                            amount: value,
-                                        }))
-                                    }
-                                />
-                                <InputError message={purchaseErrors.amount} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="purchase_currency">
-                                    {t('common.currency')}
-                                </Label>
-                                <CurrencySelect
-                                    id="purchase_currency"
-                                    value={purchase.currency}
-                                    onChange={(value) =>
-                                        setPurchase((data) => ({
-                                            ...data,
-                                            currency: value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="purchase_date">
-                                {t('common.date')}
-                            </Label>
-                            <Input
-                                id="purchase_date"
-                                type="date"
-                                value={purchase.date}
-                                onChange={(e) =>
-                                    setPurchase((data) => ({
-                                        ...data,
-                                        date: e.target.value,
-                                    }))
-                                }
-                            />
-                            <InputError message={purchaseErrors.date} />
-                        </div>
-
-                        <DialogFooter className="gap-2">
-                            <DialogClose asChild>
-                                <Button variant="secondary" type="button">
-                                    {t('common.cancel')}
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit">
-                                {t('shop.record_purchase')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
 
             <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
                 <DialogContent>
