@@ -32,6 +32,7 @@ import {
     exportPdf,
     index,
     settle,
+    settleFiltered,
     transfer,
 } from '@/routes/debts';
 import { store as storePayment } from '@/routes/debts/payments';
@@ -129,6 +130,19 @@ export default function DebtsIndex() {
         partialForm.post(storePayment.url(partialDebt.id), {
             preserveScroll: true,
             onSuccess: () => setPartialDebt(null),
+        });
+    }
+
+    const [showSettleFiltered, setShowSettleFiltered] = useState(false);
+    const settleFilteredForm = useForm({
+        date: new Date().toISOString().slice(0, 10),
+    });
+
+    function submitSettleFiltered(event: FormEvent) {
+        event.preventDefault();
+        settleFilteredForm.patch(settleFiltered.url({ query: filters }), {
+            preserveScroll: true,
+            onSuccess: () => setShowSettleFiltered(false),
         });
     }
 
@@ -276,6 +290,16 @@ export default function DebtsIndex() {
                     <GeneratePdfButton
                         href={exportPdf.url({ query: filters })}
                     />
+
+                    {auth.isAdmin && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowSettleFiltered(true)}
+                        >
+                            {t('debts.settle_filtered')}
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border">
@@ -533,6 +557,54 @@ export default function DebtsIndex() {
                                 disabled={partialForm.processing}
                             >
                                 {t('debts.pay')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={showSettleFiltered}
+                onOpenChange={setShowSettleFiltered}
+            >
+                <DialogContent>
+                    <DialogTitle>{t('debts.settle_filtered')}</DialogTitle>
+                    <p className="text-sm text-muted-foreground">
+                        {t('debts.settle_filtered_description')}
+                    </p>
+
+                    <form onSubmit={submitSettleFiltered} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="settle_filtered_date">
+                                {t('common.date')}
+                            </Label>
+                            <Input
+                                id="settle_filtered_date"
+                                type="date"
+                                value={settleFilteredForm.data.date}
+                                onChange={(e) =>
+                                    settleFilteredForm.setData(
+                                        'date',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={settleFilteredForm.errors.date}
+                            />
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button variant="secondary" type="button">
+                                    {t('common.cancel')}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                disabled={settleFilteredForm.processing}
+                            >
+                                {t('debts.settle_filtered')}
                             </Button>
                         </DialogFooter>
                     </form>

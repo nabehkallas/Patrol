@@ -85,17 +85,19 @@ class Debt extends Model
      * the full amount, the debt is marked settled — the same outcome a one-click "settle" now
      * produces by simply recording a payment for the whole remaining balance.
      */
-    public function recordPayment(float $amount, int $userId, ?string $notes = null): DebtPayment
+    public function recordPayment(float $amount, int $userId, ?string $notes = null, ?\DateTimeInterface $paidAt = null): DebtPayment
     {
+        $paidAt ??= now();
+
         $payment = $this->payments()->create([
             'amount' => $amount,
-            'paid_at' => now(),
+            'paid_at' => $paidAt,
             'recorded_by_id' => $userId,
             'notes' => $notes,
         ]);
 
         if ($this->remainingAmount() <= 0.01) {
-            $this->update(['status' => DebtStatus::Settled, 'settled_at' => now()]);
+            $this->update(['status' => DebtStatus::Settled, 'settled_at' => $paidAt]);
         }
 
         return $payment;

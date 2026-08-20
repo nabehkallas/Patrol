@@ -25,12 +25,14 @@ import {
 } from '@/routes/admin/fuel-prices';
 import type { Currency, FuelPrice, FuelType, Paginated } from '@/types';
 
+type FuelTypeOption = FuelType & { current_price_syp: number | null };
+
 type PageProps = {
-    fuelTypes: FuelType[];
+    fuelTypes: FuelTypeOption[];
     prices: Paginated<FuelPrice>;
 };
 
-function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
+function ProfitMarginRow({ fuelType }: { fuelType: FuelTypeOption }) {
     const { t } = useTranslation();
 
     const form = useForm({
@@ -42,6 +44,12 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
         form.patch(profitMargin.url(fuelType.id));
     }
 
+    const percent = parseFloat(form.data.profit_margin_percent as string);
+    const costPrice =
+        fuelType.current_price_syp !== null && Number.isFinite(percent)
+            ? fuelType.current_price_syp * (1 - percent / 100)
+            : null;
+
     return (
         <form onSubmit={submit} className="flex items-end gap-2">
             <div className="grid gap-1">
@@ -52,7 +60,7 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
                     <Input
                         id={`profit_margin_${fuelType.id}`}
                         type="number"
-                        step="0.0001"
+                        step="0.000001"
                         min="0"
                         max="100"
                         className="pe-7"
@@ -68,6 +76,12 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelType }) {
                         %
                     </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                    {t('fuel_prices.cost_price')}:{' '}
+                    {costPrice !== null
+                        ? `${formatNumber(costPrice, 3)} SYP`
+                        : '—'}
+                </p>
                 <InputError message={form.errors.profit_margin_percent} />
             </div>
             <Button type="submit" size="sm" disabled={form.processing}>

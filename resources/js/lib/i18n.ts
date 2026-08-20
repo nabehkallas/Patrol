@@ -172,6 +172,7 @@ const dictionary = {
         'fuel_prices.update_price': 'Update price',
         'fuel_prices.save_price': 'Save price',
         'fuel_prices.profit_margin': 'Profit margin (% of sale price)',
+        'fuel_prices.cost_price': 'Cost price',
 
         'currency.syp': 'Syrian Pound',
         'currency.try': 'Turkish Lira',
@@ -263,6 +264,9 @@ const dictionary = {
         'debts.settle_confirm': 'Settle this debt in full?',
         'debts.partial': 'Partial',
         'debts.partial_title': 'Settle part of this debt',
+        'debts.settle_filtered': 'Settle filtered debts',
+        'debts.settle_filtered_description':
+            'Settles every outstanding debt matching the current filters in full, dated as of the day you choose below.',
         'debts.original_amount': 'Original',
         'debts.transfer': 'Transfer',
         'debts.transfer_title': 'Transfer debt to another debtor',
@@ -654,6 +658,7 @@ const dictionary = {
         'fuel_prices.update_price': 'تحديث السعر',
         'fuel_prices.save_price': 'حفظ السعر',
         'fuel_prices.profit_margin': 'هامش الربح (% من سعر البيع)',
+        'fuel_prices.cost_price': 'سعر التكلفة',
 
         'currency.syp': 'الليرة السورية',
         'currency.try': 'الليرة التركية',
@@ -744,6 +749,9 @@ const dictionary = {
         'debts.settle_confirm': 'هل تريد تسديد هذا الدين بالكامل؟',
         'debts.partial': 'تسديد جزئي',
         'debts.partial_title': 'تسديد جزء من هذا الدين',
+        'debts.settle_filtered': 'تسديد الديون المفلترة',
+        'debts.settle_filtered_description':
+            'يقوم بتسديد كل دين غير مسدد مطابق للفلاتر الحالية بالكامل، بتاريخ اليوم الذي تحدده أدناه.',
         'debts.original_amount': 'المبلغ الأصلي',
         'debts.transfer': 'نقل',
         'debts.transfer_title': 'نقل الدين إلى مدين آخر',

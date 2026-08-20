@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -121,6 +121,30 @@ export default function PumpCountersIndex() {
         }));
     }
 
+    // After a successful submit, the server sends back a fresh `pumps` prop (with this
+    // pump's new latest_reading applied). Waiting for that prop to actually land — rather
+    // than advancing off the pumps array captured in the submit-time closure — guarantees
+    // the "move to the next pump" step always computes its default tank from up-to-date data.
+    const pendingAdvanceRef = useRef(false);
+
+    useEffect(() => {
+        if (!pendingAdvanceRef.current) {
+            return;
+        }
+
+        pendingAdvanceRef.current = false;
+
+        const currentIndex = pumps.findIndex(
+            (p) => String(p.id) === form.data.pump_id,
+        );
+        const nextPump = pumps[(currentIndex + 1) % pumps.length];
+
+        if (nextPump) {
+            handlePumpChange(String(nextPump.id));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pumps]);
+
     const maxLitersSold =
         selectedPump?.latest_reading && form.data.reading_value !== ''
             ? Number(form.data.reading_value) -
@@ -129,6 +153,7 @@ export default function PumpCountersIndex() {
 
     function submit(event: FormEvent) {
         event.preventDefault();
+        pendingAdvanceRef.current = true;
         form.post(store.url(), {
             onSuccess: () => {
                 form.reset(
@@ -137,23 +162,22 @@ export default function PumpCountersIndex() {
                     'return_liters',
                     'notes',
                 );
-
-                // Move on to the next pump so an attendant can enter readings for every pump
-                // in sequence without re-selecting one each time.
-                const currentIndex = pumps.findIndex(
-                    (p) => String(p.id) === form.data.pump_id,
-                );
-                const nextPump = pumps[(currentIndex + 1) % pumps.length];
-
-                if (nextPump) {
-                    handlePumpChange(String(nextPump.id));
-                }
+            },
+            onError: () => {
+                pendingAdvanceRef.current = false;
             },
         });
     }
 
     function handleDateChange(newDate: string) {
-        router.get(index(), { date: newDate }, { preserveScroll: false });
+        // preserveState keeps the in-progress reading form (selected pump/tank, any values
+        // already typed) intact — without it, Inertia remounts the page and the form quietly
+        // resets to the very first pump's default, which looks like "the tank isn't defaulting".
+        router.get(
+            index(),
+            { date: newDate },
+            { preserveScroll: false, preserveState: true },
+        );
     }
 
     function removeReading(reading: PumpCounterReading) {

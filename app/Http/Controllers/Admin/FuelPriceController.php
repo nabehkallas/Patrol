@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Currency;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFuelPriceRequest;
 use App\Http\Requests\Admin\UpdateFuelTypeProfitMarginRequest;
+use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
 use Illuminate\Http\RedirectResponse;
@@ -17,8 +19,21 @@ class FuelPriceController extends Controller
     {
         $this->authorize('viewAny', FuelPrice::class);
 
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+
         return Inertia::render('admin/fuel-prices/index', [
-            'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name', 'slug', 'profit_margin_percent']),
+            'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name', 'slug', 'profit_margin_percent'])
+                ->map(function (FuelType $fuelType) use ($sypRate) {
+                    $currentPrice = $fuelType->currentPrice();
+
+                    return [
+                        'id' => $fuelType->id,
+                        'name' => $fuelType->name,
+                        'slug' => $fuelType->slug,
+                        'profit_margin_percent' => $fuelType->profit_margin_percent,
+                        'current_price_syp' => $currentPrice ? round($currentPrice->amountInSyp($sypRate), 3) : null,
+                    ];
+                }),
             'prices' => FuelPrice::with(['fuelType', 'setBy'])
                 ->latest('effective_at')
                 ->paginate(25),

@@ -105,24 +105,26 @@ function CurrencySelect({
 
 function ItemCard({
     item,
-    sellQuantity,
-    onSellQuantityChange,
+    buyQuantity,
+    onBuyQuantityChange,
 }: {
     item: ShopItem;
-    sellQuantity: string;
-    onSellQuantityChange: (value: string) => void;
+    buyQuantity: string;
+    onBuyQuantityChange: (value: string) => void;
 }) {
     const { t } = useTranslation();
-    const [sellOpen, setSellOpen] = useState(false);
+    const [buyOpen, setBuyOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
-    const [sale, setSale] = useState<MovementFormState>(() =>
+    const [purchase, setPurchase] = useState<MovementFormState>(() =>
         movementDefaults(item.currency),
     );
-    const [saleErrors, setSaleErrors] = useState<Record<string, string>>({});
+    const [purchaseErrors, setPurchaseErrors] = useState<
+        Record<string, string>
+    >({});
 
-    const [buyQuantity, setBuyQuantity] = useState('');
-    const [buyAmount, setBuyAmount] = useState('');
-    const [buyErrors, setBuyErrors] = useState<Record<string, string>>({});
+    const [sellQuantity, setSellQuantity] = useState('');
+    const [sellAmount, setSellAmount] = useState('');
+    const [sellErrors, setSellErrors] = useState<Record<string, string>>({});
 
     const editForm = useForm({
         name: item.name,
@@ -131,54 +133,54 @@ function ItemCard({
         currency: item.currency,
     });
 
-    function handleBuyQuantityChange(quantity: string) {
+    function handleSellQuantityChange(quantity: string) {
         const qty = parseFloat(quantity);
-        const basePrice = item.base_price ? parseFloat(item.base_price) : null;
+        const sellPrice = item.sell_price ? parseFloat(item.sell_price) : null;
         const computed =
-            basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
+            sellPrice !== null && Number.isFinite(qty) ? qty * sellPrice : null;
 
-        setBuyQuantity(quantity);
-        setBuyAmount(computed !== null ? computed.toFixed(2) : buyAmount);
+        setSellQuantity(quantity);
+        setSellAmount(computed !== null ? computed.toFixed(2) : sellAmount);
     }
 
-    function submitBuy(event: FormEvent) {
+    function submitSell(event: FormEvent) {
         event.preventDefault();
         router.post(
-            storePurchase.url(),
+            storeSale.url(),
             {
                 shop_item_id: item.id,
-                quantity: buyQuantity,
-                amount: buyAmount,
+                quantity: sellQuantity,
+                amount: sellAmount,
                 currency: item.currency,
                 date: new Date().toISOString().slice(0, 10),
             },
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    setBuyQuantity('');
-                    setBuyAmount('');
-                    setBuyErrors({});
+                    setSellQuantity('');
+                    setSellAmount('');
+                    setSellErrors({});
                 },
                 onError: (errors) =>
-                    setBuyErrors(errors as Record<string, string>),
+                    setSellErrors(errors as Record<string, string>),
             },
         );
     }
 
-    function openSell() {
-        const qty = parseFloat(sellQuantity);
-        const sellPrice = item.sell_price ? parseFloat(item.sell_price) : null;
+    function openBuy() {
+        const qty = parseFloat(buyQuantity);
+        const basePrice = item.base_price ? parseFloat(item.base_price) : null;
         const computed =
-            sellPrice !== null && Number.isFinite(qty) ? qty * sellPrice : null;
+            basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
 
-        setSale({
-            quantity: sellQuantity,
+        setPurchase({
+            quantity: buyQuantity,
             amount: computed !== null ? computed.toFixed(2) : '',
             currency: item.currency,
             date: new Date().toISOString().slice(0, 10),
         });
-        setSaleErrors({});
-        setSellOpen(true);
+        setPurchaseErrors({});
+        setBuyOpen(true);
     }
 
     function openEdit() {
@@ -199,20 +201,20 @@ function ItemCard({
         });
     }
 
-    function submitSale(event: FormEvent) {
+    function submitPurchase(event: FormEvent) {
         event.preventDefault();
         router.post(
-            storeSale.url(),
-            { shop_item_id: item.id, ...sale },
+            storePurchase.url(),
+            { shop_item_id: item.id, ...purchase },
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    setSellOpen(false);
-                    setSaleErrors({});
-                    onSellQuantityChange('');
+                    setBuyOpen(false);
+                    setPurchaseErrors({});
+                    onBuyQuantityChange('');
                 },
                 onError: (errors) =>
-                    setSaleErrors(errors as Record<string, string>),
+                    setPurchaseErrors(errors as Record<string, string>),
             },
         );
     }
@@ -266,16 +268,17 @@ function ItemCard({
                     </span>
                 </div>
 
-                <form onSubmit={submitBuy} className="space-y-1 border-t pt-3">
+                <form onSubmit={submitSell} className="space-y-1 border-t pt-3">
                     <div className="flex gap-2">
                         <Input
                             type="number"
                             step="1"
                             min="1"
+                            max={item.stock}
                             placeholder={t('shop.quantity')}
-                            value={buyQuantity}
+                            value={sellQuantity}
                             onChange={(e) =>
-                                handleBuyQuantityChange(e.target.value)
+                                handleSellQuantityChange(e.target.value)
                             }
                             className="flex-1"
                         />
@@ -284,16 +287,16 @@ function ItemCard({
                             step="0.01"
                             min="0"
                             placeholder={t('common.amount')}
-                            value={buyAmount}
-                            onChange={(e) => setBuyAmount(e.target.value)}
+                            value={sellAmount}
+                            onChange={(e) => setSellAmount(e.target.value)}
                             className="flex-1"
                         />
-                        <Button type="submit" variant="outline" size="sm">
-                            {t('shop.buy')}
+                        <Button type="submit" size="sm">
+                            {t('shop.sell')}
                         </Button>
                     </div>
-                    <InputError message={buyErrors.quantity} />
-                    <InputError message={buyErrors.amount} />
+                    <InputError message={sellErrors.quantity} />
+                    <InputError message={sellErrors.amount} />
                 </form>
 
                 <div className="flex gap-2 pt-1">
@@ -301,74 +304,74 @@ function ItemCard({
                         type="number"
                         step="1"
                         min="1"
-                        max={item.stock}
                         placeholder={t('shop.quantity')}
-                        value={sellQuantity}
-                        onChange={(e) => onSellQuantityChange(e.target.value)}
+                        value={buyQuantity}
+                        onChange={(e) => onBuyQuantityChange(e.target.value)}
                         className="flex-1"
                     />
-                    <Button type="button" size="sm" onClick={openSell}>
-                        {t('shop.sell')}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={openBuy}
+                    >
+                        {t('shop.buy')}
                     </Button>
                 </div>
             </CardContent>
 
-            <Dialog open={sellOpen} onOpenChange={setSellOpen}>
+            <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
                 <DialogContent>
                     <DialogTitle>
-                        {t('shop.sell')} — {item.name}
+                        {t('shop.buy')} — {item.name}
                     </DialogTitle>
 
-                    <form onSubmit={submitSale} className="space-y-4">
+                    <form onSubmit={submitPurchase} className="space-y-4">
                         <div className="grid gap-2">
-                            <Label htmlFor={`sale_quantity_${item.id}`}>
+                            <Label htmlFor={`purchase_quantity_${item.id}`}>
                                 {t('shop.quantity')}
-                                <span className="ms-2 text-xs font-normal text-muted-foreground">
-                                    ({t('common.max')}: {item.stock})
-                                </span>
                             </Label>
                             <Input
-                                id={`sale_quantity_${item.id}`}
+                                id={`purchase_quantity_${item.id}`}
                                 type="number"
                                 step="1"
                                 min="1"
-                                max={item.stock}
-                                value={sale.quantity}
+                                value={purchase.quantity}
                                 onChange={(e) =>
-                                    setSale((data) => ({
+                                    setPurchase((data) => ({
                                         ...data,
                                         quantity: e.target.value,
                                     }))
                                 }
                             />
-                            <InputError message={saleErrors.quantity} />
+                            <InputError message={purchaseErrors.quantity} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor={`sale_amount_${item.id}`}>
+                                <Label htmlFor={`purchase_amount_${item.id}`}>
                                     {t('common.amount')}
                                 </Label>
                                 <MoneyInput
-                                    id={`sale_amount_${item.id}`}
-                                    value={sale.amount}
+                                    id={`purchase_amount_${item.id}`}
+                                    value={purchase.amount}
                                     onChange={(value) =>
-                                        setSale((data) => ({
+                                        setPurchase((data) => ({
                                             ...data,
                                             amount: value,
                                         }))
                                     }
                                 />
-                                <InputError message={saleErrors.amount} />
+                                <InputError message={purchaseErrors.amount} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor={`sale_currency_${item.id}`}>
+                                <Label htmlFor={`purchase_currency_${item.id}`}>
                                     {t('common.currency')}
                                 </Label>
                                 <CurrencySelect
-                                    id={`sale_currency_${item.id}`}
-                                    value={sale.currency}
+                                    id={`purchase_currency_${item.id}`}
+                                    value={purchase.currency}
                                     onChange={(value) =>
-                                        setSale((data) => ({
+                                        setPurchase((data) => ({
                                             ...data,
                                             currency: value,
                                         }))
@@ -377,21 +380,21 @@ function ItemCard({
                             </div>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor={`sale_date_${item.id}`}>
+                            <Label htmlFor={`purchase_date_${item.id}`}>
                                 {t('common.date')}
                             </Label>
                             <Input
-                                id={`sale_date_${item.id}`}
+                                id={`purchase_date_${item.id}`}
                                 type="date"
-                                value={sale.date}
+                                value={purchase.date}
                                 onChange={(e) =>
-                                    setSale((data) => ({
+                                    setPurchase((data) => ({
                                         ...data,
                                         date: e.target.value,
                                     }))
                                 }
                             />
-                            <InputError message={saleErrors.date} />
+                            <InputError message={purchaseErrors.date} />
                         </div>
 
                         <DialogFooter className="gap-2">
@@ -401,7 +404,7 @@ function ItemCard({
                                 </Button>
                             </DialogClose>
                             <Button type="submit">
-                                {t('shop.record_sale')}
+                                {t('shop.record_purchase')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -498,9 +501,9 @@ export default function ShopIndex() {
     const { auth, items, history, date } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
-    const [sellQuantities, setSellQuantities] = useState<
-        Record<number, string>
-    >({});
+    const [buyQuantities, setBuyQuantities] = useState<Record<number, string>>(
+        {},
+    );
 
     const [showAddItem, setShowAddItem] = useState(false);
     const newItemForm = useForm({
@@ -558,9 +561,9 @@ export default function ShopIndex() {
                         <ItemCard
                             key={item.id}
                             item={item}
-                            sellQuantity={sellQuantities[item.id] ?? ''}
-                            onSellQuantityChange={(value) =>
-                                setSellQuantities((prev) => ({
+                            buyQuantity={buyQuantities[item.id] ?? ''}
+                            onBuyQuantityChange={(value) =>
+                                setBuyQuantities((prev) => ({
                                     ...prev,
                                     [item.id]: value,
                                 }))

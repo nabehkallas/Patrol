@@ -328,6 +328,43 @@ class DebtController extends Controller
         return to_route('debts.index');
     }
 
+    /**
+     * Bulk-settles every outstanding debt matching the current filters (debtor, search,
+     * direction) in full, booking each payment on the given date rather than today — e.g.
+     * "settle everything owed by this debtor as of the 10th" in one action instead of
+     * clicking Settle on each row.
+     */
+    public function settleFiltered(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $paidAt = Carbon::parse($data['date'])->setTimeFrom(now());
+
+        $debts = $this->filteredQuery($request)
+            ->where('status', DebtStatus::Outstanding)
+            ->get();
+
+        DB::transaction(function () use ($debts, $paidAt, $request) {
+            foreach ($debts as $debt) {
+                // filteredQuery() eager-loads `payments` for the index totals — remainingAmount()
+                // would otherwise sum that now-stale cached collection instead of re-querying
+                // after recordPayment() inserts the new row, and never see the debt as settled.
+                $debt->unsetRelation('payments');
+                $debt->recordPayment($debt->remainingAmount(), $request->user()->id, null, $paidAt);
+            }
+        });
+
+        $message = $debts->isEmpty()
+            ? __('No outstanding debts matched these filters.')
+            : __('Debts settled.');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('debts.index', $request->only(['search', 'status', 'direction', 'sort', 'sort_dir', 'debtor_id']));
+    }
+
     public function storePayment(StoreDebtPaymentRequest $request, Debt $debt): RedirectResponse
     {
         $this->authorize('settle', $debt);

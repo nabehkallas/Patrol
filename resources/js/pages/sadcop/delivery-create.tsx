@@ -25,14 +25,21 @@ import type { SadcopTankOption } from '@/types';
 type PageProps = {
     tanks: SadcopTankOption[];
     balance: number;
+    lastUsedTankId: number | null;
 };
 
 export default function SadcopDeliveryCreate() {
-    const { tanks, balance } = usePage<PageProps>().props;
+    const { tanks, balance, lastUsedTankId } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
+    const defaultTankId =
+        lastUsedTankId !== null &&
+        tanks.some((tank) => tank.id === lastUsedTankId)
+            ? lastUsedTankId
+            : (tanks[0]?.id ?? '');
+
     const form = useForm({
-        tank_id: String(tanks[0]?.id ?? ''),
+        tank_id: String(defaultTankId),
         liters: '',
         price_per_liter: '',
         amount: '',

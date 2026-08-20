@@ -44,6 +44,8 @@
     "Debt updated.": "تم تحديث الدين.",
     "Debt deleted.": "تم حذف الدين.",
     "Debt settled.": "تم تسديد الدين.",
+    "Debts settled.": "تم تسديد الديون.",
+    "No outstanding debts matched these filters.": "لا توجد ديون غير مسددة مطابقة لهذه الفلاتر.",
     "Transaction recorded.": "تم تسجيل المعاملة.",
     "Transaction updated.": "تم تحديث المعاملة.",
     "Transaction deleted.": "تم حذف المعاملة.",

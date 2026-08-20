@@ -69,6 +69,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
 
+        Route::patch('debts/settle-filtered', [DebtController::class, 'settleFiltered'])->name('debts.settle-filtered')->middleware('role:admin');
         Route::resource('debts', DebtController::class)->except('show');
         Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
         Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');

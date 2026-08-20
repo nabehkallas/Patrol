@@ -103,7 +103,7 @@ class SadcopController extends Controller
             $labels['types'][$entry->type->value] ?? $entry->type->value,
             $entry->transaction?->tank?->fuelType?->name ?? '—',
             $entry->liters !== null ? number_format((float) $entry->liters, 3) : '—',
-            $entry->price_per_liter !== null ? number_format((float) $entry->price_per_liter, 2) : '—',
+            $entry->price_per_liter !== null ? number_format((float) $entry->price_per_liter, 3) : '—',
             ($entry->type === SadcopLedgerEntryType::Delivery ? '-' : '+').number_format((float) $entry->amount, 1).' SYP',
             $entry->recordedBy?->name ?? '—',
         ])->all();
@@ -198,9 +198,15 @@ class SadcopController extends Controller
 
     public function createDelivery(): Response
     {
+        $lastDelivery = SadcopLedgerEntry::where('type', SadcopLedgerEntryType::Delivery)
+            ->with('transaction')
+            ->latest('occurred_at')
+            ->first();
+
         return Inertia::render('sadcop/delivery-create', [
             'tanks' => $this->tankOptions(),
             'balance' => round(SadcopLedgerEntry::currentBalanceSyp(), 0),
+            'lastUsedTankId' => $lastDelivery?->transaction?->tank_id,
         ]);
     }
 
@@ -214,7 +220,7 @@ class SadcopController extends Controller
         $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
         $marginPercent = (float) ($tank->fuelType->profit_margin_percent ?? 0);
 
-        return round($priceSyp * (1 - $marginPercent / 100), 2);
+        return round($priceSyp * (1 - $marginPercent / 100), 3);
     }
 
     public function storeDelivery(StoreSadcopDeliveryRequest $request): RedirectResponse
