@@ -37,6 +37,13 @@ function formatDateOnly(date: Date): string {
 /**
  * One popover calendar for picking a from/to date range — click a day to start, click
  * another to extend it, or just click once and stop for a single-day range.
+ *
+ * The calendar always sees the committed from/to as an already-complete range, so without
+ * tracking the in-progress pick separately, every click would be read as "extend this
+ * existing range" (react-day-picker's own range logic) — which turns a single click into an
+ * immediately-complete two-endpoint range and closes right away. `pending` holds the
+ * selection while it's still being made, reset to nothing each time the popover opens, so the
+ * first click always starts a fresh range instead of extending the old one.
  */
 export function DateRangePicker({
     from,
@@ -45,13 +52,19 @@ export function DateRangePicker({
     className,
 }: DateRangePickerProps) {
     const [open, setOpen] = useState(false);
+    const [pending, setPending] = useState<DateRange | undefined>(undefined);
 
-    const selected: DateRange = {
-        from: parseDateOnly(from),
-        to: parseDateOnly(to),
-    };
+    function handleOpenChange(nextOpen: boolean) {
+        if (nextOpen) {
+            setPending(undefined);
+        }
+
+        setOpen(nextOpen);
+    }
 
     function handleSelect(range: DateRange | undefined) {
+        setPending(range);
+
         if (!range?.from) {
             return;
         }
@@ -66,8 +79,13 @@ export function DateRangePicker({
         }
     }
 
+    const displayed: DateRange = pending ?? {
+        from: parseDateOnly(from),
+        to: parseDateOnly(to),
+    };
+
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button
                     type="button"
@@ -81,8 +99,9 @@ export function DateRangePicker({
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                     mode="range"
-                    defaultMonth={selected.from}
-                    selected={selected}
+                    resetOnSelect
+                    defaultMonth={displayed.from}
+                    selected={displayed}
                     onSelect={handleSelect}
                 />
             </PopoverContent>
