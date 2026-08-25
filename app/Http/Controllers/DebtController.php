@@ -330,20 +330,23 @@ class DebtController extends Controller
 
     /**
      * Bulk-settles every outstanding debt matching the current filters (debtor, search,
-     * direction) in full, booking each payment on the given date rather than today — e.g.
-     * "settle everything owed by this debtor as of the 10th" in one action instead of
-     * clicking Settle on each row.
+     * direction) whose own `date` falls within the given range, in full — e.g. "settle
+     * everything owed by this debtor from the 1st through the 10th" in one action instead of
+     * clicking Settle on each row. The payment is booked on the range's end date.
      */
     public function settleFiltered(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'date' => ['required', 'date'],
+            'from' => ['required', 'date'],
+            'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
-        $paidAt = Carbon::parse($data['date'])->setTimeFrom(now());
+        $paidAt = Carbon::parse($data['to'])->setTimeFrom(now());
 
         $debts = $this->filteredQuery($request)
             ->where('status', DebtStatus::Outstanding)
+            ->whereDate('date', '>=', $data['from'])
+            ->whereDate('date', '<=', $data['to'])
             ->get();
 
         DB::transaction(function () use ($debts, $paidAt, $request) {

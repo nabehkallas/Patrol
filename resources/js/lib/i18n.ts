@@ -264,9 +264,10 @@ const dictionary = {
         'debts.settle_confirm': 'Settle this debt in full?',
         'debts.partial': 'Partial',
         'debts.partial_title': 'Settle part of this debt',
+        'debts.history': 'History',
         'debts.settle_filtered': 'Settle filtered debts',
         'debts.settle_filtered_description':
-            'Settles every outstanding debt matching the current filters in full, dated as of the day you choose below.',
+            'Settles every outstanding debt matching the current filters in full, whose own date falls within the range you choose below.',
         'debts.original_amount': 'Original',
         'debts.transfer': 'Transfer',
         'debts.transfer_title': 'Transfer debt to another debtor',
@@ -749,9 +750,10 @@ const dictionary = {
         'debts.settle_confirm': 'هل تريد تسديد هذا الدين بالكامل؟',
         'debts.partial': 'تسديد جزئي',
         'debts.partial_title': 'تسديد جزء من هذا الدين',
+        'debts.history': 'السجل',
         'debts.settle_filtered': 'تسديد الديون المفلترة',
         'debts.settle_filtered_description':
-            'يقوم بتسديد كل دين غير مسدد مطابق للفلاتر الحالية بالكامل، بتاريخ اليوم الذي تحدده أدناه.',
+            'يقوم بتسديد كل دين غير مسدد مطابق للفلاتر الحالية بالكامل، يقع تاريخه ضمن النطاق الذي تحدده أدناه.',
         'debts.original_amount': 'المبلغ الأصلي',
         'debts.transfer': 'نقل',
         'debts.transfer_title': 'نقل الدين إلى مدين آخر',

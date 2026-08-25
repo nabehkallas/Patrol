@@ -134,8 +134,10 @@ export default function DebtsIndex() {
     }
 
     const [showSettleFiltered, setShowSettleFiltered] = useState(false);
+    const today = new Date().toISOString().slice(0, 10);
     const settleFilteredForm = useForm({
-        date: new Date().toISOString().slice(0, 10),
+        from: today,
+        to: today,
     });
 
     function submitSettleFiltered(event: FormEvent) {
@@ -290,8 +292,10 @@ export default function DebtsIndex() {
                     <GeneratePdfButton
                         href={exportPdf.url({ query: filters })}
                     />
+                </div>
 
-                    {auth.isAdmin && (
+                <div className="flex items-center justify-between">
+                    {auth.isAdmin ? (
                         <Button
                             type="button"
                             variant="outline"
@@ -299,7 +303,10 @@ export default function DebtsIndex() {
                         >
                             {t('debts.settle_filtered')}
                         </Button>
+                    ) : (
+                        <span />
                     )}
+                    <h3 className="font-semibold">{t('debts.history')}</h3>
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border">
@@ -574,24 +581,45 @@ export default function DebtsIndex() {
                     </p>
 
                     <form onSubmit={submitSettleFiltered} className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="settle_filtered_date">
-                                {t('common.date')}
-                            </Label>
-                            <Input
-                                id="settle_filtered_date"
-                                type="date"
-                                value={settleFilteredForm.data.date}
-                                onChange={(e) =>
-                                    settleFilteredForm.setData(
-                                        'date',
-                                        e.target.value,
-                                    )
-                                }
-                            />
-                            <InputError
-                                message={settleFilteredForm.errors.date}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="settle_filtered_from">
+                                    {t('statistics.from')}
+                                </Label>
+                                <Input
+                                    id="settle_filtered_from"
+                                    type="date"
+                                    value={settleFilteredForm.data.from}
+                                    onChange={(e) =>
+                                        settleFilteredForm.setData(
+                                            'from',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={settleFilteredForm.errors.from}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="settle_filtered_to">
+                                    {t('statistics.to')}
+                                </Label>
+                                <Input
+                                    id="settle_filtered_to"
+                                    type="date"
+                                    value={settleFilteredForm.data.to}
+                                    onChange={(e) =>
+                                        settleFilteredForm.setData(
+                                            'to',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={settleFilteredForm.errors.to}
+                                />
+                            </div>
                         </div>
 
                         <DialogFooter className="gap-2">

@@ -103,15 +103,7 @@ function CurrencySelect({
     );
 }
 
-function ItemCard({
-    item,
-    buyQuantity,
-    onBuyQuantityChange,
-}: {
-    item: ShopItem;
-    buyQuantity: string;
-    onBuyQuantityChange: (value: string) => void;
-}) {
+function ItemCard({ item }: { item: ShopItem }) {
     const { t } = useTranslation();
     const [buyOpen, setBuyOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -168,19 +160,22 @@ function ItemCard({
     }
 
     function openBuy() {
-        const qty = parseFloat(buyQuantity);
+        setPurchase(movementDefaults(item.currency));
+        setPurchaseErrors({});
+        setBuyOpen(true);
+    }
+
+    function handlePurchaseQuantityChange(quantity: string) {
+        const qty = parseFloat(quantity);
         const basePrice = item.base_price ? parseFloat(item.base_price) : null;
         const computed =
             basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
 
-        setPurchase({
-            quantity: buyQuantity,
-            amount: computed !== null ? computed.toFixed(2) : '',
-            currency: item.currency,
-            date: new Date().toISOString().slice(0, 10),
-        });
-        setPurchaseErrors({});
-        setBuyOpen(true);
+        setPurchase((data) => ({
+            ...data,
+            quantity,
+            amount: computed !== null ? computed.toFixed(2) : data.amount,
+        }));
     }
 
     function openEdit() {
@@ -211,7 +206,6 @@ function ItemCard({
                 onSuccess: () => {
                     setBuyOpen(false);
                     setPurchaseErrors({});
-                    onBuyQuantityChange('');
                 },
                 onError: (errors) =>
                     setPurchaseErrors(errors as Record<string, string>),
@@ -299,25 +293,15 @@ function ItemCard({
                     <InputError message={sellErrors.amount} />
                 </form>
 
-                <div className="flex gap-2 pt-1">
-                    <Input
-                        type="number"
-                        step="1"
-                        min="1"
-                        placeholder={t('shop.quantity')}
-                        value={buyQuantity}
-                        onChange={(e) => onBuyQuantityChange(e.target.value)}
-                        className="flex-1"
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={openBuy}
-                    >
-                        {t('shop.buy')}
-                    </Button>
-                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={openBuy}
+                >
+                    {t('shop.buy')}
+                </Button>
             </CardContent>
 
             <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
@@ -338,10 +322,7 @@ function ItemCard({
                                 min="1"
                                 value={purchase.quantity}
                                 onChange={(e) =>
-                                    setPurchase((data) => ({
-                                        ...data,
-                                        quantity: e.target.value,
-                                    }))
+                                    handlePurchaseQuantityChange(e.target.value)
                                 }
                             />
                             <InputError message={purchaseErrors.quantity} />
@@ -501,10 +482,6 @@ export default function ShopIndex() {
     const { auth, items, history, date } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
-    const [buyQuantities, setBuyQuantities] = useState<Record<number, string>>(
-        {},
-    );
-
     const [showAddItem, setShowAddItem] = useState(false);
     const newItemForm = useForm({
         name: '',
@@ -558,17 +535,7 @@ export default function ShopIndex() {
 
                 <div className="grid gap-4 md:grid-cols-3">
                     {items.map((item) => (
-                        <ItemCard
-                            key={item.id}
-                            item={item}
-                            buyQuantity={buyQuantities[item.id] ?? ''}
-                            onBuyQuantityChange={(value) =>
-                                setBuyQuantities((prev) => ({
-                                    ...prev,
-                                    [item.id]: value,
-                                }))
-                            }
-                        />
+                        <ItemCard key={item.id} item={item} />
                     ))}
                     {items.length === 0 && (
                         <p className="text-sm text-muted-foreground">

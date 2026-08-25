@@ -69,13 +69,22 @@ function defaultTankFor(pump: PumpSummary | undefined, options: TankOption[]) {
     return lastTankStillValid ? lastTankId : (options[0]?.id ?? '');
 }
 
+// Tanks matching the pump's configured fuel type(s). If none match (e.g. the pump's fuel
+// type has no tank yet, a configuration gap), falls back to every tank rather than leaving
+// the select with nothing to choose from at all.
 function tanksFor(
     pump: PumpSummary | undefined,
     tanks: TankOption[],
 ): TankOption[] {
-    return pump && pump.fuel_type_ids.length > 0
-        ? tanks.filter((tank) => pump.fuel_type_ids.includes(tank.fuel_type_id))
-        : tanks;
+    if (!pump || pump.fuel_type_ids.length === 0) {
+        return tanks;
+    }
+
+    const matching = tanks.filter((tank) =>
+        pump.fuel_type_ids.includes(tank.fuel_type_id),
+    );
+
+    return matching.length > 0 ? matching : tanks;
 }
 
 export default function PumpCountersIndex() {
