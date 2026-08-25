@@ -130,6 +130,23 @@ export default function PumpCountersIndex() {
         }));
     }
 
+    // Safety net: if tank_id ever ends up not matching any currently-available tank (a stray
+    // edge case in the Select's own controlled-value sync when both the value and its option
+    // list change together), correct it immediately rather than leaving the field blank.
+    useEffect(() => {
+        const isValid = availableTanks.some(
+            (tank) => String(tank.id) === form.data.tank_id,
+        );
+
+        if (!isValid) {
+            form.setData(
+                'tank_id',
+                String(defaultTankFor(selectedPump, availableTanks)),
+            );
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [availableTanks, form.data.tank_id]);
+
     // After a successful submit, the server sends back a fresh `pumps` prop (with this
     // pump's new latest_reading applied). Waiting for that prop to actually land — rather
     // than advancing off the pumps array captured in the submit-time closure — guarantees
@@ -248,6 +265,7 @@ export default function PumpCountersIndex() {
                                     {t('common.tank')}
                                 </Label>
                                 <Select
+                                    key={form.data.pump_id}
                                     value={form.data.tank_id}
                                     onValueChange={(value) =>
                                         form.setData('tank_id', value)

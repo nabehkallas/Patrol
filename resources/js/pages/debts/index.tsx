@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDate, formatNumber } from '@/lib/format';
+import { formatBreakdown, formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     create,
@@ -36,7 +36,15 @@ import {
     transfer,
 } from '@/routes/debts';
 import { store as storePayment } from '@/routes/debts/payments';
-import type { Auth, Debt, Debtor, DebtsSummary, Paginated } from '@/types';
+import { preview as settleFilteredPreview } from '@/routes/debts/settle-filtered';
+import type {
+    Auth,
+    CurrencyBreakdown,
+    Debt,
+    Debtor,
+    DebtsSummary,
+    Paginated,
+} from '@/types';
 
 type PageProps = {
     auth: Auth;
@@ -139,6 +147,42 @@ export default function DebtsIndex() {
         from: today,
         to: today,
     });
+
+    const [settlePreview, setSettlePreview] = useState<{
+        count: number;
+        breakdown: CurrencyBreakdown;
+    } | null>(null);
+    const [settlePreviewLoading, setSettlePreviewLoading] = useState(false);
+
+    useEffect(() => {
+        if (!showSettleFiltered) {
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            setSettlePreviewLoading(true);
+            fetch(
+                settleFilteredPreview.url({
+                    query: {
+                        ...filters,
+                        from: settleFilteredForm.data.from,
+                        to: settleFilteredForm.data.to,
+                    },
+                }),
+                { headers: { Accept: 'application/json' } },
+            )
+                .then((response) => response.json())
+                .then(setSettlePreview)
+                .finally(() => setSettlePreviewLoading(false));
+        }, 300);
+
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        showSettleFiltered,
+        settleFilteredForm.data.from,
+        settleFilteredForm.data.to,
+    ]);
 
     function submitSettleFiltered(event: FormEvent) {
         event.preventDefault();
@@ -294,20 +338,20 @@ export default function DebtsIndex() {
                     />
                 </div>
 
-                <div className="flex items-center justify-between">
-                    {auth.isAdmin ? (
+                {auth.isAdmin && (
+                    <div>
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setShowSettleFiltered(true)}
+                            onClick={() => {
+                                setSettlePreview(null);
+                                setShowSettleFiltered(true);
+                            }}
                         >
                             {t('debts.settle_filtered')}
                         </Button>
-                    ) : (
-                        <span />
-                    )}
-                    <h3 className="font-semibold">{t('debts.history')}</h3>
-                </div>
+                    </div>
+                )}
 
                 <div className="overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">
@@ -619,6 +663,19 @@ export default function DebtsIndex() {
                                 <InputError
                                     message={settleFilteredForm.errors.to}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg border px-4 py-3 text-sm">
+                            <div className="text-muted-foreground">
+                                {t('debts.settle_filtered_total')}
+                            </div>
+                            <div className="font-medium">
+                                {settlePreviewLoading
+                                    ? t('common.loading')
+                                    : settlePreview
+                                      ? `${formatBreakdown(settlePreview.breakdown)} (${settlePreview.count})`
+                                      : '—'}
                             </div>
                         </div>
 

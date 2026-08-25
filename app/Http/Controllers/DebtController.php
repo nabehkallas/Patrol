@@ -19,6 +19,7 @@ use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -326,6 +327,31 @@ class DebtController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt settled.')]);
 
         return to_route('debts.index');
+    }
+
+    /**
+     * The total (by currency) and count of outstanding debts that a "settle filtered debts"
+     * submission with these exact filters and date range would settle — lets the confirmation
+     * modal show what's about to happen before it happens.
+     */
+    public function settleFilteredPreview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'from' => ['required', 'date'],
+            'to' => ['required', 'date', 'after_or_equal:from'],
+        ]);
+
+        $debts = $this->filteredQuery($request)
+            ->where('status', DebtStatus::Outstanding)
+            ->whereDate('date', '>=', $data['from'])
+            ->whereDate('date', '<=', $data['to'])
+            ->with('payments')
+            ->get();
+
+        return response()->json([
+            'count' => $debts->count(),
+            'breakdown' => $this->byCurrency($debts, fn (Debt $debt) => $debt->remainingAmount()),
+        ]);
     }
 
     /**
