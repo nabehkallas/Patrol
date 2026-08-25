@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -285,40 +286,11 @@ export default function InventoryIndex() {
                             ))}
                         </div>
 
-                        <div className="flex flex-wrap items-end gap-4">
-                            <div className="grid gap-1">
-                                <Label htmlFor="history_from">
-                                    {t('statistics.from')}
-                                </Label>
-                                <Input
-                                    id="history_from"
-                                    type="date"
-                                    value={historyFrom}
-                                    onChange={(e) =>
-                                        handleHistoryRangeChange({
-                                            from: e.target.value,
-                                        })
-                                    }
-                                    className="w-44"
-                                />
-                            </div>
-                            <div className="grid gap-1">
-                                <Label htmlFor="history_to">
-                                    {t('statistics.to')}
-                                </Label>
-                                <Input
-                                    id="history_to"
-                                    type="date"
-                                    value={historyTo}
-                                    onChange={(e) =>
-                                        handleHistoryRangeChange({
-                                            to: e.target.value,
-                                        })
-                                    }
-                                    className="w-44"
-                                />
-                            </div>
-                        </div>
+                        <DateRangePicker
+                            from={historyFrom}
+                            to={historyTo}
+                            onChange={handleHistoryRangeChange}
+                        />
 
                         <div className="space-y-3">
                             <div className="flex items-center gap-4">

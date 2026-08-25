@@ -2,6 +2,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { CurrencyCard } from '@/components/currency-card';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -625,45 +626,20 @@ export default function DebtsIndex() {
                     </p>
 
                     <form onSubmit={submitSettleFiltered} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="settle_filtered_from">
-                                    {t('statistics.from')}
-                                </Label>
-                                <Input
-                                    id="settle_filtered_from"
-                                    type="date"
-                                    value={settleFilteredForm.data.from}
-                                    onChange={(e) =>
-                                        settleFilteredForm.setData(
-                                            'from',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={settleFilteredForm.errors.from}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="settle_filtered_to">
-                                    {t('statistics.to')}
-                                </Label>
-                                <Input
-                                    id="settle_filtered_to"
-                                    type="date"
-                                    value={settleFilteredForm.data.to}
-                                    onChange={(e) =>
-                                        settleFilteredForm.setData(
-                                            'to',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={settleFilteredForm.errors.to}
-                                />
-                            </div>
+                        <div className="grid gap-2">
+                            <DateRangePicker
+                                from={settleFilteredForm.data.from}
+                                to={settleFilteredForm.data.to}
+                                onChange={(range) =>
+                                    settleFilteredForm.setData(range)
+                                }
+                            />
+                            <InputError
+                                message={
+                                    settleFilteredForm.errors.from ??
+                                    settleFilteredForm.errors.to
+                                }
+                            />
                         </div>
 
                         <div className="rounded-lg border px-4 py-3 text-sm">

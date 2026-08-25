@@ -1,5 +1,6 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -7,7 +8,6 @@ import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -191,31 +191,11 @@ export default function SadcopIndex() {
                 </div>
 
                 <div className="flex flex-wrap items-end gap-4">
-                    <div className="grid gap-1">
-                        <Label htmlFor="from">{t('statistics.from')}</Label>
-                        <Input
-                            id="from"
-                            type="date"
-                            value={filters.from}
-                            onChange={(e) =>
-                                applyFilter({ from: e.target.value })
-                            }
-                            className="w-44"
-                        />
-                    </div>
-
-                    <div className="grid gap-1">
-                        <Label htmlFor="to">{t('statistics.to')}</Label>
-                        <Input
-                            id="to"
-                            type="date"
-                            value={filters.to}
-                            onChange={(e) =>
-                                applyFilter({ to: e.target.value })
-                            }
-                            className="w-44"
-                        />
-                    </div>
+                    <DateRangePicker
+                        from={filters.from}
+                        to={filters.to}
+                        onChange={(range) => applyFilter(range)}
+                    />
 
                     <Select
                         value={filters.type ?? 'all'}
