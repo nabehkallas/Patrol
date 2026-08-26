@@ -51,7 +51,7 @@ type PageProps = {
     tanks: TankOption[];
     readings: PumpCounterReading[];
     fuelTypeTotals: FuelTypeTotal[];
-    governmentalLitersTotal: number;
+    governmentalTotals: FuelTypeTotal[];
     date: string;
 };
 
@@ -94,7 +94,7 @@ export default function PumpCountersIndex() {
         tanks,
         readings,
         fuelTypeTotals,
-        governmentalLitersTotal,
+        governmentalTotals,
         date,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
@@ -418,7 +418,8 @@ export default function PumpCountersIndex() {
                     </CardContent>
                 </Card>
 
-                {(fuelTypeTotals.length > 0 || governmentalLitersTotal > 0) && (
+                {(fuelTypeTotals.length > 0 ||
+                    governmentalTotals.length > 0) && (
                     <div className="flex flex-wrap gap-4">
                         {fuelTypeTotals.map((total) => (
                             <div
@@ -439,20 +440,26 @@ export default function PumpCountersIndex() {
                                 </div>
                             </div>
                         ))}
-                        <div className="rounded-lg border px-4 py-2 text-sm">
-                            <div className="text-muted-foreground">
-                                {t('pump_counters.governmental_total')}
-                            </div>
+                        {governmentalTotals.map((total) => (
                             <div
-                                className={cn(
-                                    'font-medium',
-                                    governmentalLitersTotal > 0 &&
-                                        'text-green-600 dark:text-green-400',
-                                )}
+                                key={`governmental-${total.fuel_type_id}`}
+                                className="rounded-lg border px-4 py-2 text-sm"
                             >
-                                {formatNumber(governmentalLitersTotal)} L
+                                <div className="text-muted-foreground">
+                                    {t('pump_counters.governmental_total')} —{' '}
+                                    {total.fuel_type_name}
+                                </div>
+                                <div
+                                    className={cn(
+                                        'font-medium',
+                                        total.liters_sold > 0 &&
+                                            'text-green-600 dark:text-green-400',
+                                    )}
+                                >
+                                    {formatNumber(total.liters_sold)} L
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </div>
                 )}
 
