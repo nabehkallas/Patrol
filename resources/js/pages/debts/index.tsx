@@ -619,7 +619,22 @@ export default function DebtsIndex() {
                 open={showSettleFiltered}
                 onOpenChange={setShowSettleFiltered}
             >
-                <DialogContent>
+                <DialogContent
+                    onPointerDownOutside={(event) => {
+                        // The date range picker's calendar renders in its own portal (it's a
+                        // Popover, so it can escape this dialog's overflow/clipping) — without
+                        // this, Radix reads a click inside it as "outside" this dialog and
+                        // closes the whole thing instead of just registering the date pick.
+                        if (
+                            event.target instanceof Element &&
+                            event.target.closest(
+                                '[data-radix-popper-content-wrapper]',
+                            )
+                        ) {
+                            event.preventDefault();
+                        }
+                    }}
+                >
                     <DialogTitle>{t('debts.settle_filtered')}</DialogTitle>
                     <p className="text-sm text-muted-foreground">
                         {t('debts.settle_filtered_description')}
