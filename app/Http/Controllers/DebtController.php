@@ -57,11 +57,20 @@ class DebtController extends Controller
         ]);
     }
 
-    private function filteredQuery(Request $request): Builder
+    /**
+     * @param  array<int, string>  $except  Filter keys to ignore even if present on the
+     *                                      request — used by the settle-filtered actions,
+     *                                      which impose their own hardcoded status and would
+     *                                      otherwise silently conflict with whatever status
+     *                                      the debts list itself currently happens to be
+     *                                      filtered to (e.g. always matching zero debts if the
+     *                                      list is filtered to "settled").
+     */
+    private function filteredQuery(Request $request, array $except = []): Builder
     {
         $query = Debt::with(['recordedBy', 'debtor', 'fuelType', 'transaction.fuelType', 'payments']);
 
-        if ($request->filled('search')) {
+        if ($request->filled('search') && ! in_array('search', $except, true)) {
             $search = $request->string('search')->toString();
             $query->where(function (Builder $query) use ($search) {
                 $query->whereHas('debtor', fn (Builder $q) => $q->where('name', 'like', "%{$search}%"))
@@ -69,15 +78,15 @@ class DebtController extends Controller
             });
         }
 
-        if ($request->filled('debtor_id')) {
+        if ($request->filled('debtor_id') && ! in_array('debtor_id', $except, true)) {
             $query->whereIn('debtor_id', $this->debtorIdsFor($request->integer('debtor_id')));
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && ! in_array('status', $except, true)) {
             $query->where('status', $request->string('status'));
         }
 
-        if ($request->filled('direction')) {
+        if ($request->filled('direction') && ! in_array('direction', $except, true)) {
             $query->where('direction', $request->string('direction'));
         }
 
@@ -341,7 +350,7 @@ class DebtController extends Controller
             'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
-        $debts = $this->filteredQuery($request)
+        $debts = $this->filteredQuery($request, except: ['status'])
             ->where('status', DebtStatus::Outstanding)
             ->whereDate('date', '>=', $data['from'])
             ->whereDate('date', '<=', $data['to'])
@@ -369,7 +378,7 @@ class DebtController extends Controller
 
         $paidAt = Carbon::parse($data['to'])->setTimeFrom(now());
 
-        $debts = $this->filteredQuery($request)
+        $debts = $this->filteredQuery($request, except: ['status'])
             ->where('status', DebtStatus::Outstanding)
             ->whereDate('date', '>=', $data['from'])
             ->whereDate('date', '<=', $data['to'])
