@@ -25,6 +25,11 @@ class PdfTableExporter
             'margin_bottom' => 15,
             'autoScriptToLang' => true,
             'autoLangToFont' => true,
+            // Without this, mPDF defaults to a tempDir inside vendor/mpdf/mpdf/tmp — but
+            // vendor/ isn't writable at runtime (only storage/ and bootstrap/cache are
+            // chown'd to www-data in the Dockerfile), so every PDF export 500s with
+            // "mkdir(): Permission denied" in production.
+            'tempDir' => storage_path('app/mpdf'),
         ]);
 
         $mpdf->SetDirectionality($direction);
