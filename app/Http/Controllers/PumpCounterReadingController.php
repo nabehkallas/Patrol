@@ -244,36 +244,49 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        if ($pumpCounterReading->transaction_id) {
-            Transaction::find($pumpCounterReading->transaction_id)?->delete();
-        }
+        DB::transaction(function () use ($request, $data, $pump, $tank, $pumpCounterReading) {
+            if ($pumpCounterReading->transaction_id) {
+                Transaction::find($pumpCounterReading->transaction_id)?->delete();
+            }
 
-        if ($pumpCounterReading->governmental_transaction_id) {
-            Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
-        }
+            if ($pumpCounterReading->governmental_transaction_id) {
+                Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
+            }
 
-        $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-            ->where('id', '<', $pumpCounterReading->id)
-            ->latest('id')
-            ->first();
+            $prevReading = PumpCounterReading::where('pump_id', $pump->id)
+                ->where('id', '<', $pumpCounterReading->id)
+                ->latest('id')
+                ->first();
 
-        [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
-            $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
-            $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
-        );
+            [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
+                $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
+                $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
+            );
 
-        $pumpCounterReading->update([
-            'pump_id' => $pump->id,
-            'tank_id' => $tank->id,
-            'date' => $data['date'],
-            'reading_value' => $data['reading_value'],
-            'liters_sold' => $litersSold,
-            'governmental_liters' => $governmentalLiters,
-            'return_liters' => $returnLiters,
-            'transaction_id' => $transactionId,
-            'governmental_transaction_id' => $governmentalTransactionId,
-            'notes' => $data['notes'] ?? null,
-        ]);
+            $pumpCounterReading->update([
+                'pump_id' => $pump->id,
+                'tank_id' => $tank->id,
+                'date' => $data['date'],
+                'reading_value' => $data['reading_value'],
+                'liters_sold' => $litersSold,
+                'governmental_liters' => $governmentalLiters,
+                'return_liters' => $returnLiters,
+                'transaction_id' => $transactionId,
+                'governmental_transaction_id' => $governmentalTransactionId,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            // This reading's value just changed — the very next reading for this pump (if any)
+            // had its own liters sold computed against the *old* value, so it's now stale and
+            // needs recomputing against the new one. Nothing further out is affected: a reading
+            // two or more steps ahead derives its liters sold from its immediate predecessor's
+            // reading_value, which hasn't changed.
+            $nextReading = $this->nextReadingFor($pumpCounterReading);
+
+            if ($nextReading !== null) {
+                $this->recomputeReading($nextReading, $pumpCounterReading);
+            }
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading updated.')]);
 
@@ -299,6 +312,57 @@ class PumpCounterReadingController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading deleted.')]);
 
         return to_route('pump-counters.index', ['date' => $date]);
+    }
+
+    /**
+     * The reading immediately after the given one, for the same pump (ordered by id, not
+     * date) — the only reading whose own liters sold is derived directly from this one's
+     * reading_value.
+     */
+    private function nextReadingFor(PumpCounterReading $reading): ?PumpCounterReading
+    {
+        return PumpCounterReading::where('pump_id', $reading->pump_id)
+            ->where('id', '>', $reading->id)
+            ->oldest('id')
+            ->first();
+    }
+
+    /**
+     * Recomputes $reading's liters sold against $prevReading and regenerates its
+     * transaction/debt to match, replacing whatever was there before — used to keep a
+     * reading's derived figures in sync after the reading that precedes it changes.
+     */
+    private function recomputeReading(PumpCounterReading $reading, ?PumpCounterReading $prevReading): void
+    {
+        if ($reading->transaction_id) {
+            Transaction::find($reading->transaction_id)?->delete();
+        }
+
+        if ($reading->governmental_transaction_id) {
+            Transaction::find($reading->governmental_transaction_id)?->delete();
+        }
+
+        $pump = FuelPump::findOrFail($reading->pump_id);
+        $tank = Tank::with('fuelType')->findOrFail($reading->tank_id);
+
+        try {
+            [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
+                $pump, $tank, $prevReading, (string) $reading->reading_value, $reading->date->toDateString(), $reading->notes,
+                $reading->recorded_by_id, (float) ($reading->governmental_liters ?? 0), (float) ($reading->return_liters ?? 0)
+            );
+        } catch (ValidationException) {
+            throw ValidationException::withMessages([
+                'reading_value' => __('This change leaves too little liters sold on the next reading (:date) for its recorded governmental/return liters — adjust that reading first.', ['date' => $reading->date->toDateString()]),
+            ]);
+        }
+
+        $reading->update([
+            'liters_sold' => $litersSold,
+            'governmental_liters' => $governmentalLiters,
+            'return_liters' => $returnLiters,
+            'transaction_id' => $transactionId,
+            'governmental_transaction_id' => $governmentalTransactionId,
+        ]);
     }
 
     /**
