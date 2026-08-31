@@ -9,6 +9,7 @@ use App\Models\ShopItem;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -20,23 +21,30 @@ class ShopController extends Controller
 {
     public function index(Request $request): Response
     {
-        $date = Carbon::parse($request->input('date', today()->toDateString()));
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
 
         return Inertia::render('shop/index', [
             'items' => $this->itemOptions(),
-            'history' => $this->historyFor($date),
-            'date' => $date->toDateString(),
+            'history' => $this->historyFor($from, $to),
+            'quantitiesSold' => $this->quantitiesSoldFor($from, $to),
+            'filters' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
         ]);
     }
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $date = Carbon::parse($request->input('date', today()->toDateString()));
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
         $entries = Transaction::whereNotNull('shop_item_id')
             ->with(['shopItem', 'user'])
-            ->whereDate('occurred_at', $date)
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->latest('id')
             ->get();
 
@@ -64,7 +72,7 @@ class ShopController extends Controller
 
         $rows = $entries->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('H:i'),
-            $transaction->type === TransactionType::Expense ? $labels['purchase'] : $labels['sale'],
+            $transaction->type === TransactionType::Purchase ? $labels['purchase'] : $labels['sale'],
             $transaction->shopItem?->name ?? '—',
             (string) $transaction->quantity,
             number_format((float) $transaction->amount, 2).' '.$transaction->currency->value,
@@ -72,9 +80,9 @@ class ShopController extends Controller
         ])->all();
 
         return $exporter->download(
-            filename: 'shop-'.$date->toDateString().'.pdf',
+            filename: 'shop-'.$from->toDateString().'-to-'.$to->toDateString().'.pdf',
             title: $labels['title'],
-            subtitle: $date->toDateString(),
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
             headers: [$labels['time'], $labels['type'], $labels['item'], $labels['quantity'], $labels['amount'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
@@ -93,11 +101,12 @@ class ShopController extends Controller
         ]);
     }
 
-    private function historyFor(Carbon $date)
+    private function historyFor(CarbonInterface $from, CarbonInterface $to)
     {
         return Transaction::whereNotNull('shop_item_id')
             ->with(['shopItem', 'user'])
-            ->whereDate('occurred_at', $date)
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->latest('id')
             ->get()
             ->map(fn (Transaction $transaction) => [
@@ -111,6 +120,28 @@ class ShopController extends Controller
                 'recorded_by' => $transaction->user?->name,
                 'notes' => $transaction->notes,
             ]);
+    }
+
+    /**
+     * Quantity sold of each item within the given range — sales only (type OtherIncome),
+     * purchases/restocking don't count as "sold".
+     */
+    private function quantitiesSoldFor(CarbonInterface $from, CarbonInterface $to)
+    {
+        return Transaction::whereNotNull('shop_item_id')
+            ->where('type', TransactionType::OtherIncome)
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->with('shopItem')
+            ->get()
+            ->groupBy('shop_item_id')
+            ->map(fn ($group) => [
+                'id' => $group->first()->shop_item_id,
+                'name' => $group->first()->shopItem?->name ?? '—',
+                'quantity' => (int) $group->sum('quantity'),
+            ])
+            ->sortBy('name')
+            ->values();
     }
 
     public function storeItem(Request $request): RedirectResponse
@@ -162,11 +193,11 @@ class ShopController extends Controller
     {
         $data = $this->validateMovement($request);
 
-        $this->recordMovement($request, $data, TransactionType::Expense);
+        $this->recordMovement($request, $data, TransactionType::Purchase);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase recorded.')]);
 
-        return to_route('shop.index', ['date' => $data['date']]);
+        return to_route('shop.index');
     }
 
     public function storeSale(Request $request): RedirectResponse
@@ -186,7 +217,7 @@ class ShopController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Sale recorded.')]);
 
-        return to_route('shop.index', ['date' => $data['date']]);
+        return to_route('shop.index');
     }
 
     private function validateMovement(Request $request): array

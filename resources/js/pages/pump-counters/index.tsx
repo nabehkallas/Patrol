@@ -543,6 +543,9 @@ export default function PumpCountersIndex() {
                                         {t('common.tank')}
                                     </th>
                                     <th className="px-4 py-2">
+                                        {t('pump_counters.previous')}
+                                    </th>
+                                    <th className="px-4 py-2">
                                         {t('pump_counters.reading_value')}
                                     </th>
                                     <th className="px-4 py-2">
@@ -577,6 +580,15 @@ export default function PumpCountersIndex() {
                                         <td className="px-4 py-2">
                                             {reading.tank
                                                 ? `${reading.tank.fuel_type?.name} — ${reading.tank.name}`
+                                                : '—'}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {reading.previous_reading_value !==
+                                            null
+                                                ? formatNumber(
+                                                      reading.previous_reading_value,
+                                                      0,
+                                                  )
                                                 : '—'}
                                         </td>
                                         <td className="px-4 py-2">
@@ -631,7 +643,7 @@ export default function PumpCountersIndex() {
                                 {readings.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={auth.isAdmin ? 10 : 9}
+                                            colSpan={auth.isAdmin ? 11 : 10}
                                             className="px-4 py-6 text-center text-muted-foreground"
                                         >
                                             {t('common.no_results')}

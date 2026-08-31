@@ -120,6 +120,23 @@ function SypGrid({
                         {formatNumber(totals.liters_sold)} L
                     </CardTitle>
                 </CardHeader>
+                {totals.liters_sold_by_fuel_type.length > 0 && (
+                    <CardContent className="space-y-1">
+                        {totals.liters_sold_by_fuel_type.map((row) => (
+                            <div
+                                key={row.name}
+                                className="flex items-center justify-between text-sm"
+                            >
+                                <span className="text-muted-foreground">
+                                    {row.name}
+                                </span>
+                                <span className="font-medium">
+                                    {formatNumber(row.liters)} L
+                                </span>
+                            </div>
+                        ))}
+                    </CardContent>
+                )}
             </Card>
             <Card>
                 <CardHeader>
@@ -253,6 +270,7 @@ function CashBoxHistory({
     const typeLabels: Record<CashBoxHistoryEntry['type'], string> = {
         income: t('cash_box.history_type.income'),
         expense: t('cash_box.history_type.expense'),
+        purchase: t('cash_box.history_type.purchase'),
         sadcop: t('cash_box.history_type.sadcop'),
         exchange: t('cash_box.history_type.exchange'),
     };
@@ -294,6 +312,7 @@ function CashBoxHistory({
                                 </td>
                                 <td className="px-4 py-2">
                                     {entry.type === 'expense' ||
+                                    entry.type === 'purchase' ||
                                     entry.type === 'sadcop'
                                         ? '-'
                                         : entry.type === 'income'

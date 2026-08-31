@@ -51,7 +51,13 @@ class PumpCounterReadingController extends Controller
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
             ->whereDate('date', $date)
             ->latest('id')
-            ->get();
+            ->get()
+            ->each(function (PumpCounterReading $reading) {
+                $reading->previous_reading_value = PumpCounterReading::where('pump_id', $reading->pump_id)
+                    ->where('id', '<', $reading->id)
+                    ->latest('id')
+                    ->value('reading_value');
+            });
 
         // Since a pump's meter can now be shared across several fuel types, "liters sold today
         // per fuel type" can no longer be read off the pump — it's derived from each reading's

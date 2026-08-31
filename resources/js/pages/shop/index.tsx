@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -47,7 +48,7 @@ type ShopItem = {
 
 type HistoryEntry = {
     id: number;
-    type: 'expense' | 'other_income';
+    type: 'purchase' | 'other_income';
     item_name: string;
     quantity: number;
     amount: string;
@@ -57,11 +58,18 @@ type HistoryEntry = {
     notes: string | null;
 };
 
+type QuantitySold = {
+    id: number;
+    name: string;
+    quantity: number;
+};
+
 type PageProps = {
     auth: Auth;
     items: ShopItem[];
     history: HistoryEntry[];
-    date: string;
+    quantitiesSold: QuantitySold[];
+    filters: { from: string; to: string };
 };
 
 type MovementFormState = {
@@ -479,7 +487,8 @@ function ItemCard({ item }: { item: ShopItem }) {
 }
 
 export default function ShopIndex() {
-    const { auth, items, history, date } = usePage<PageProps>().props;
+    const { auth, items, history, quantitiesSold, filters } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const [showAddItem, setShowAddItem] = useState(false);
@@ -501,12 +510,11 @@ export default function ShopIndex() {
         });
     }
 
-    function handleDateChange(newDate: string) {
-        router.get(
-            index.url(),
-            { date: newDate },
-            { preserveScroll: true, preserveState: true },
-        );
+    function applyFilter(range: { from: string; to: string }) {
+        router.get(index.url(), range, {
+            preserveScroll: true,
+            preserveState: true,
+        });
     }
 
     function removeHistoryEntry(entry: HistoryEntry) {
@@ -545,16 +553,47 @@ export default function ShopIndex() {
                 </div>
 
                 <div className="space-y-3">
+                    <div>
+                        <h3 className="font-semibold">
+                            {t('shop.quantity_sold')}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                            {t('shop.quantity_sold_description')}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4">
+                        {quantitiesSold.map((row) => (
+                            <div
+                                key={row.id}
+                                className="rounded-lg border px-4 py-2 text-sm"
+                            >
+                                <div className="text-muted-foreground">
+                                    {row.name}
+                                </div>
+                                <div className="font-medium">
+                                    {formatNumber(row.quantity, 0)}
+                                </div>
+                            </div>
+                        ))}
+                        {quantitiesSold.length === 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                {t('common.no_results')}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-3">
                     <div className="flex items-center gap-4">
                         <h3 className="font-semibold">{t('shop.history')}</h3>
-                        <Input
-                            type="date"
-                            value={date}
-                            onChange={(e) => handleDateChange(e.target.value)}
-                            className="w-auto"
+                        <DateRangePicker
+                            from={filters.from}
+                            to={filters.to}
+                            onChange={applyFilter}
                         />
                         <GeneratePdfButton
-                            href={exportPdf.url({ query: { date } })}
+                            href={exportPdf.url({ query: filters })}
                         />
                     </div>
 
@@ -592,7 +631,7 @@ export default function ShopIndex() {
                                             {formatDateTime(entry.occurred_at)}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {entry.type === 'expense'
+                                            {entry.type === 'purchase'
                                                 ? t('shop.type.purchase')
                                                 : t('shop.type.sale')}
                                         </td>

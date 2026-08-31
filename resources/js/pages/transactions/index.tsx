@@ -37,6 +37,7 @@ export default function TransactionsIndex() {
         fuel_delivery: t('transactions.type.fuel_delivery'),
         other_income: t('transactions.type.other_income'),
         expense: t('transactions.type.expense'),
+        purchase: t('transactions.type.purchase'),
         currency_exchange: t('transactions.type.currency_exchange'),
     };
 

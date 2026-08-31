@@ -32,7 +32,7 @@ class ShopItem extends Model
      */
     public function currentStock(): int
     {
-        $purchased = (int) $this->transactions()->where('type', TransactionType::Expense)->sum('quantity');
+        $purchased = (int) $this->transactions()->where('type', TransactionType::Purchase)->sum('quantity');
         $sold = (int) $this->transactions()->where('type', TransactionType::OtherIncome)->sum('quantity');
 
         return $purchased - $sold;

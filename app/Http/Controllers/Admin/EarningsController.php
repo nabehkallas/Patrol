@@ -185,13 +185,14 @@ class EarningsController extends Controller
     }
 
     /**
-     * Station-wide "other expenses" (plain Expense transactions, excluding Sadcop transfers and
-     * anything still tied to an outstanding debt) — same definition used on the Cash Box page.
+     * Station-wide "other expenses" (Expense and Purchase transactions, excluding Sadcop
+     * transfers and anything still tied to an outstanding debt) — same definition used on the
+     * Cash Box page.
      */
     private function otherExpensesSyp(CarbonInterface $from, CarbonInterface $to, float $sypRate): float
     {
         return Transaction::query()
-            ->where('type', TransactionType::Expense)
+            ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->with(['debt', 'sadcopLedgerEntry'])

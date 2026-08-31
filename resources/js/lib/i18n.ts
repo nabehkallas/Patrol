@@ -202,6 +202,7 @@ const dictionary = {
         'transactions.type.fuel_delivery': 'Fuel delivery',
         'transactions.type.other_income': 'Other income',
         'transactions.type.expense': 'Expense',
+        'transactions.type.purchase': 'Purchase',
         'transactions.type.currency_exchange': 'Currency exchange',
         'transactions.price_per_liter': 'Price / liter',
         'transactions.description': 'Description',
@@ -342,6 +343,7 @@ const dictionary = {
             'Every transaction that affected the cash box in the selected period',
         'cash_box.history_type.income': 'Income',
         'cash_box.history_type.expense': 'Expense',
+        'cash_box.history_type.purchase': 'Purchase',
         'cash_box.history_type.sadcop': 'Sadcop transfer',
         'cash_box.history_type.exchange': 'Currency exchange',
 
@@ -405,6 +407,9 @@ const dictionary = {
         'shop.item': 'Item',
         'shop.type.purchase': 'Purchase',
         'shop.type.sale': 'Sale',
+        'shop.quantity_sold': 'Quantity sold',
+        'shop.quantity_sold_description':
+            'Quantity sold per item in the selected period',
 
         'fuel_pumps.title': 'Fuel pumps',
         'fuel_pumps.description': 'Define the dispensing pumps at this station',
@@ -691,6 +696,7 @@ const dictionary = {
         'transactions.type.fuel_delivery': 'توريد وقود',
         'transactions.type.other_income': 'إيراد آخر',
         'transactions.type.expense': 'مصروف',
+        'transactions.type.purchase': 'شراء',
         'transactions.type.currency_exchange': 'تحويل عملة',
         'transactions.price_per_liter': 'السعر / لتر',
         'transactions.description': 'الوصف',
@@ -827,6 +833,7 @@ const dictionary = {
             'كل معاملة أثّرت على صندوق النقد خلال الفترة المحددة',
         'cash_box.history_type.income': 'دخل',
         'cash_box.history_type.expense': 'مصروف',
+        'cash_box.history_type.purchase': 'شراء',
         'cash_box.history_type.sadcop': 'تحويل سادكوب',
         'cash_box.history_type.exchange': 'تحويل عملة',
 
@@ -889,6 +896,9 @@ const dictionary = {
         'shop.item': 'الصنف',
         'shop.type.purchase': 'شراء',
         'shop.type.sale': 'بيع',
+        'shop.quantity_sold': 'الكمية المباعة',
+        'shop.quantity_sold_description':
+            'الكمية المباعة لكل صنف خلال الفترة المحددة',
 
         'fuel_pumps.title': 'مضخات الوقود',
         'fuel_pumps.description': 'تعريف مضخات التوزيع في المحطة',

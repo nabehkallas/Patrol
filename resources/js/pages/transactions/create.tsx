@@ -72,6 +72,7 @@ export default function TransactionCreate() {
         fuel_delivery: t('transactions.type.fuel_delivery'),
         other_income: t('transactions.type.other_income'),
         expense: t('transactions.type.expense'),
+        purchase: t('transactions.type.purchase'),
         currency_exchange: t('transactions.type.currency_exchange'),
     };
 
@@ -476,7 +477,8 @@ export default function TransactionCreate() {
                                     form.setData('description', e.target.value)
                                 }
                                 placeholder={
-                                    form.data.type === 'expense'
+                                    form.data.type === 'expense' ||
+                                    form.data.type === 'purchase'
                                         ? 'e.g. Maintenance, salaries'
                                         : 'e.g. Car wash, shop sales'
                                 }

@@ -5,6 +5,7 @@ export type TransactionType =
     | 'fuel_delivery'
     | 'other_income'
     | 'expense'
+    | 'purchase'
     | 'currency_exchange';
 
 export type UserRole = 'admin' | 'attendant';
@@ -233,6 +234,7 @@ export type CashBoxSummary = {
     exchanged: Partial<Record<Currency, number>>;
     net: CurrencyBreakdown;
     liters_sold: number;
+    liters_sold_by_fuel_type: FuelTypeLiters[];
     debts: CurrencyBreakdown;
     debts_liters_sold: number;
 };
@@ -245,6 +247,7 @@ export type CashBox = {
 export type CashBoxHistoryEntryType =
     | 'income'
     | 'expense'
+    | 'purchase'
     | 'sadcop'
     | 'exchange';
 
@@ -306,6 +309,7 @@ export type PumpCounterReading = {
     date: string;
     created_at: string;
     reading_value: number;
+    previous_reading_value: number | null;
     liters_sold: string | null;
     governmental_liters: string | null;
     return_liters: string | null;

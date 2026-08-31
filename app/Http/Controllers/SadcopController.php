@@ -173,7 +173,7 @@ class SadcopController extends Controller
         DB::transaction(function () use ($request, $data, $sypRate) {
             $transaction = Transaction::create([
                 'user_id' => $request->user()->id,
-                'type' => TransactionType::Expense,
+                'type' => TransactionType::Purchase,
                 'description' => 'Sadcop balance transfer',
                 'amount' => $data['amount'],
                 'currency' => Currency::SYP,

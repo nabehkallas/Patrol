@@ -161,8 +161,10 @@ class CashBoxController extends Controller
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
             ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
 
+        // Purchases (Sadcop deposits, Shop restocking) still count as money out for these
+        // totals — they only differ from a plain Expense by label/category, not by cash effect.
         $expenseTransactions = $transactions
-            ->where('type', TransactionType::Expense)
+            ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
             ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
 
         $isSadcopPayment = fn (Transaction $transaction) => $transaction->sadcopLedgerEntry !== null;
@@ -192,6 +194,11 @@ class CashBoxController extends Controller
             ->sum(fn (Transaction $transaction) => (float) $transaction->liters)
             + $standaloneDebtLiters->sum(fn (Debt $debt) => (float) $debt->liters);
 
+        $litersSoldByFuelType = $this->litersByFuelType(
+            $transactions->where('type', TransactionType::FuelSale),
+            $standaloneDebtLiters,
+        );
+
         // Liters behind an unsettled debt (governmental sales, or any other fuel sold on
         // credit), whether recorded via a linked transaction or a standalone liters-based debt.
         $litersSoldInDebt = $outstandingDebts
@@ -204,9 +211,48 @@ class CashBoxController extends Controller
             'exchanged' => $exchangedBreakdown,
             'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp, $exchangedBreakdown),
             'liters_sold' => round($litersSold, 3),
+            'liters_sold_by_fuel_type' => $litersSoldByFuelType,
             'debts' => $this->byCurrency($outstandingDebts, fn (Debt $debt) => $debt->remainingAmount()),
             'debts_liters_sold' => round($litersSoldInDebt, 3),
         ];
+    }
+
+    /**
+     * Liters sold per fuel type, combining fuel-sale transactions and standalone liters-based
+     * debts (credit/governmental sales that never got a Transaction row) — the same two sources
+     * $litersSold above adds together, just split out by fuel type instead of combined.
+     *
+     * @param  Collection<int, Transaction>  $fuelSaleTransactions
+     * @param  Collection<int, Debt>  $standaloneDebtLiters
+     * @return array<int, array{name: string, liters: float}>
+     */
+    private function litersByFuelType(Collection $fuelSaleTransactions, Collection $standaloneDebtLiters): array
+    {
+        $fromTransactions = $fuelSaleTransactions
+            ->filter(fn (Transaction $transaction) => $transaction->fuel_type_id !== null)
+            ->groupBy('fuel_type_id')
+            ->map(fn ($group) => [
+                'name' => $group->first()->fuelType?->name,
+                'liters' => (float) $group->sum('liters'),
+            ]);
+
+        $fromDebts = $standaloneDebtLiters
+            ->filter(fn (Debt $debt) => $debt->fuel_type_id !== null)
+            ->groupBy('fuel_type_id')
+            ->map(fn ($group) => [
+                'name' => $group->first()->fuelType?->name,
+                'liters' => (float) $group->sum('liters'),
+            ]);
+
+        return $fromTransactions->keys()->concat($fromDebts->keys())->unique()
+            ->map(fn ($fuelTypeId) => [
+                'name' => $fromTransactions[$fuelTypeId]['name'] ?? $fromDebts[$fuelTypeId]['name'] ?? null,
+                'liters' => round(($fromTransactions[$fuelTypeId]['liters'] ?? 0.0) + ($fromDebts[$fuelTypeId]['liters'] ?? 0.0), 3),
+            ])
+            ->filter(fn (array $row) => $row['name'] !== null)
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 
     /**
@@ -255,6 +301,7 @@ class CashBoxController extends Controller
                 TransactionType::FuelSale,
                 TransactionType::OtherIncome,
                 TransactionType::Expense,
+                TransactionType::Purchase,
                 TransactionType::CurrencyExchange,
             ])
             ->where('occurred_at', '>=', $from)
@@ -272,6 +319,7 @@ class CashBoxController extends Controller
                 'type' => match (true) {
                     $transaction->type === TransactionType::CurrencyExchange => 'exchange',
                     $transaction->sadcopLedgerEntry !== null => 'sadcop',
+                    $transaction->type === TransactionType::Purchase => 'purchase',
                     $transaction->type === TransactionType::Expense => 'expense',
                     default => 'income',
                 },

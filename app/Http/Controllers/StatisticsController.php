@@ -344,7 +344,7 @@ class StatisticsController extends Controller
             ->sum(fn (Transaction $t) => $t->amountInSyp($sypRate));
 
         $expenseSyp = $transactions
-            ->where('type', TransactionType::Expense)
+            ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
             ->reject(fn (Transaction $t) => $t->isPendingDebt())
             ->sum(fn (Transaction $t) => $t->amountInSyp($sypRate));
 
