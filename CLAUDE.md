@@ -34,6 +34,13 @@ Other quirks:
 - Node.js path resolution is unreliable for `/tmp/...`-style paths from the Bash tool. Copy files into `storage/app/` (a real path under the project) before running Node parsing scripts, then delete them afterward.
 - Port 8000 is occupied by an unrelated local project — use another port (8001+) for `php artisan serve` during manual/smoke testing.
 - Fetching an Inertia page via `curl` with `X-Inertia: true` but no matching `X-Inertia-Version` header gets a `409` conflict. Simplest fix: do a plain full-page GET (no `X-Inertia` header) and regex out the `<script data-page="app" type="application/json">...</script>` payload instead of trying to hit the partial-reload endpoint directly.
+- `fly ssh sftp put <local> <remote>` mangles `/tmp/...`-style paths through Git-Bash's MSYS path conversion on **both** sides — prefix the command with `MSYS2_ARG_CONV_EXCL="*"` and use a real Windows path (e.g. `storage/app/<file>`) for the local side; the remote `/tmp/...` side is fine as-is once conversion is disabled.
+
+## Debugging on the production container
+
+- `fly ssh console` runs as **root**, not `www-data` (confirmed via `id`) — the actual web server (PHP-FPM) always runs as `www-data` (uid/gid 33, per the Dockerfile's `chown -R www-data:www-data storage bootstrap/cache`). **Never run a PHP script via `fly ssh console` that touches `storage/app/**` (or anything else the app writes to at runtime) without first dropping privileges** (`posix_setgid(33)` then `posix_setuid(33)`, while still uid 0) — a root-owned file/directory created this way blocks the real `www-data` process from writing there afterward with a confusing "not writable" error, indistinguishable at first glance from a real permissions bug in the app. (This exact mistake happened once: a debugging script created `storage/app/mpdf` as root, which then broke every real PDF export on the site until the directory was `rm -rf`'d and recreated by a privilege-dropped script.)
+- To pull the real exception (not just the access-log line) for a 500 in production: `fly ssh console -a patrol-station -C "grep -a 'production.ERROR' /var/www/html/storage/logs/laravel.log"` — `fly logs` only shows the access-log line (`"GET /index.php" 500`) with no exception detail.
+- A `fly ssh console` command's *own* stdout/stderr is genuine even though the process often ends with a spurious `Error: The handle is invalid.` on this Windows client — that trailing line is a PTY-cleanup artifact, not a sign the command itself failed.
 
 ## Established verification workflow
 
