@@ -99,7 +99,7 @@ export default function FuelPricesIndex() {
         fuel_type_id: String(fuelTypes[0]?.id ?? ''),
         price_per_liter: '',
         currency: 'SYP' as Currency,
-        effective_at: '',
+        effective_at: new Date().toISOString().slice(0, 10),
     });
 
     function submit(event: FormEvent) {
@@ -133,7 +133,7 @@ export default function FuelPricesIndex() {
                     <CardContent>
                         <form
                             onSubmit={submit}
-                            className="grid gap-4 md:grid-cols-4"
+                            className="grid gap-4 md:grid-cols-5"
                         >
                             <div className="grid gap-2">
                                 <Label htmlFor="fuel_type_id">
@@ -213,6 +213,25 @@ export default function FuelPricesIndex() {
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.currency} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="effective_at">
+                                    {t('common.date')}
+                                </Label>
+                                <Input
+                                    id="effective_at"
+                                    type="date"
+                                    value={form.data.effective_at}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'effective_at',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={form.errors.effective_at}
+                                />
                             </div>
                             <Button
                                 type="submit"

@@ -429,10 +429,12 @@ class PumpCounterReadingController extends Controller
         $normalLiters = round($litersSold - $governmentalLiters - $returnLiters, 3);
 
         $fuelType = $tank->fuelType;
-        $currentPrice = $fuelType->currentPrice();
-        $currency = $currentPrice ? $currentPrice->currency : Currency::SYP;
-        $pricePerLiter = $currentPrice ? (float) $currentPrice->price_per_liter : 0.0;
         $occurredAt = Carbon::parse($date)->midDay();
+        // The price that actually applied on the reading's own date, not whatever's current
+        // right now — matters once a reading is backdated to before a later price change.
+        $priceAtDate = $fuelType->priceAt($occurredAt);
+        $currency = $priceAtDate ? $priceAtDate->currency : Currency::SYP;
+        $pricePerLiter = $priceAtDate ? (float) $priceAtDate->price_per_liter : 0.0;
         $exchangeRate = ExchangeRate::currentRateFor($currency);
 
         return DB::transaction(function () use (

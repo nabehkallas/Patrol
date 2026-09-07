@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 #[Fillable(['fuel_type_id', 'price_per_liter', 'currency', 'set_by_id', 'effective_at'])]
 class FuelPrice extends Model
@@ -30,7 +30,7 @@ class FuelPrice extends Model
         return $this->belongsTo(User::class, 'set_by_id');
     }
 
-    public function scopeEffectiveAsOf($query, Carbon $at)
+    public function scopeEffectiveAsOf($query, CarbonInterface $at)
     {
         return $query->where('effective_at', '<=', $at);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +41,18 @@ class FuelType extends Model
     {
         return $this->prices()
             ->where('effective_at', '<=', now())
+            ->latest('effective_at')
+            ->first();
+    }
+
+    /**
+     * The price in effect on a given date — e.g. so a pump reading dated in the past is charged
+     * at the price that actually applied then, not whatever's current right now.
+     */
+    public function priceAt(CarbonInterface $date): ?FuelPrice
+    {
+        return $this->prices()
+            ->effectiveAsOf($date)
             ->latest('effective_at')
             ->first();
     }
