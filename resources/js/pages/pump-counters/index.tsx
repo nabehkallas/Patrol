@@ -1,7 +1,9 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +22,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { destroy, edit, exportPdf, index, store } from '@/routes/pump-counters';
+import {
+    destroy,
+    edit,
+    exportPdf,
+    exportXlsx,
+    index,
+    store,
+} from '@/routes/pump-counters';
 import type { Auth, PumpCounterReading, PumpSummary } from '@/types';
 
 type TankOption = {
@@ -118,6 +127,32 @@ export default function PumpCountersIndex() {
         () => tanksFor(selectedPump, tanks),
         [tanks, selectedPump],
     );
+
+    // The monthly ledger export is deliberately a separate control from the single-day filter
+    // above — the export covers a whole range, one row per day, while the rest of this page
+    // stays focused on one day at a time.
+    const [exportRange, setExportRange] = useState(() => {
+        const now = new Date();
+
+        return {
+            from: new Date(now.getFullYear(), now.getMonth(), 1)
+                .toISOString()
+                .slice(0, 10),
+            to: now.toISOString().slice(0, 10),
+        };
+    });
+
+    const exportFuelTypes = useMemo(() => {
+        const seen = new Map<number, string>();
+
+        for (const tank of tanks) {
+            if (!seen.has(tank.fuel_type_id)) {
+                seen.set(tank.fuel_type_id, tank.fuel_type_name);
+            }
+        }
+
+        return Array.from(seen, ([id, name]) => ({ id, name }));
+    }, [tanks]);
 
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
@@ -528,6 +563,31 @@ export default function PumpCountersIndex() {
                             href={exportPdf.url({ query: { date } })}
                         />
                     </div>
+
+                    {exportFuelTypes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
+                            <span className="text-sm font-medium text-muted-foreground">
+                                {t('pump_counters.monthly_export')}
+                            </span>
+                            <DateRangePicker
+                                from={exportRange.from}
+                                to={exportRange.to}
+                                onChange={setExportRange}
+                            />
+                            {exportFuelTypes.map((fuelType) => (
+                                <GenerateXlsxButton
+                                    key={fuelType.id}
+                                    label={fuelType.name}
+                                    href={exportXlsx.url({
+                                        query: {
+                                            fuel_type_id: fuelType.id,
+                                            ...exportRange,
+                                        },
+                                    })}
+                                />
+                            ))}
+                        </div>
+                    )}
 
                     <div className="overflow-x-auto rounded-xl border">
                         <table className="w-full text-sm">

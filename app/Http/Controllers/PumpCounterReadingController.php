@@ -8,11 +8,14 @@ use App\Enums\TransactionType;
 use App\Models\Debtor;
 use App\Models\ExchangeRate;
 use App\Models\FuelPump;
+use App\Models\FuelType;
 use App\Models\PumpCounterReading;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -141,6 +144,99 @@ class PumpCounterReadingController extends Controller
             title: $labels['title'],
             subtitle: $date->toDateString(),
             headers: [$labels['pump'], $labels['tank'], $labels['reading'], $labels['liters_sold'], $labels['governmental'], $labels['return'], $labels['recorded_by']],
+            rows: $rows,
+            direction: $direction,
+        );
+    }
+
+    /**
+     * One monthly ledger per fuel type — mirrors the old manual spreadsheet's per-fuel-type
+     * daily tabs (one row per calendar day, days with no activity still appear rather than
+     * disappearing). Parameterized by fuel type rather than hardcoded to two, since fuel types
+     * aren't hardcoded anywhere else in this app.
+     */
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        $fuelType = FuelType::findOrFail($request->integer('fuel_type_id'));
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
+        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+
+        $tankIds = Tank::where('fuel_type_id', $fuelType->id)->pluck('id');
+
+        $readingsByDay = PumpCounterReading::with('pump')
+            ->whereIn('tank_id', $tankIds)
+            ->where('date', '>=', $from->toDateString())
+            ->where('date', '<=', $to->toDateString())
+            ->orderBy('date')
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn (PumpCounterReading $reading) => $reading->date->toDateString());
+
+        $salesByDay = Transaction::where('fuel_type_id', $fuelType->id)
+            ->where('type', TransactionType::FuelSale)
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->get()
+            ->groupBy(fn (Transaction $transaction) => $transaction->occurred_at->toDateString());
+
+        $labels = app()->getLocale() === 'ar' ? [
+            'date' => 'التاريخ',
+            'readings' => 'قيمة العداد',
+            'liters_sold' => 'المباع (لتر)',
+            'governmental' => 'حكومي (لتر)',
+            'return' => 'مرتجع (لتر)',
+            'net_liters' => 'الصافي (لتر)',
+            'price_per_liter' => 'سعر الليتر (ل.س)',
+            'amount' => 'المبلغ (ل.س)',
+        ] : [
+            'date' => 'Date',
+            'readings' => 'Closing reading(s)',
+            'liters_sold' => 'Liters Sold (gross)',
+            'governmental' => 'Governmental (L)',
+            'return' => 'Return (L)',
+            'net_liters' => 'Net Liters',
+            'price_per_liter' => 'Price/Liter (SYP)',
+            'amount' => 'Amount (SYP)',
+        ];
+
+        $rows = [];
+
+        foreach (CarbonPeriod::create($from, $to) as $day) {
+            $dayKey = $day->toDateString();
+            $dayReadings = $readingsByDay->get($dayKey, collect());
+            $daySales = $salesByDay->get($dayKey, collect());
+
+            $readingText = $dayReadings
+                ->map(fn (PumpCounterReading $reading) => ($reading->pump?->name ?? '—').': '.$reading->reading_value)
+                ->implode(', ');
+
+            $litersSold = (float) $dayReadings->sum('liters_sold');
+            $governmentalLiters = (float) $dayReadings->sum('governmental_liters');
+            $returnLiters = (float) $dayReadings->sum('return_liters');
+            $netLiters = round($litersSold - $governmentalLiters - $returnLiters, 3);
+
+            $priceAtDay = $fuelType->priceAt($day->copy()->midDay());
+            $amountSyp = $daySales->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+
+            $rows[] = [
+                $dayKey,
+                $readingText !== '' ? $readingText : null,
+                $litersSold > 0 ? round($litersSold, 3) : null,
+                $governmentalLiters > 0 ? round($governmentalLiters, 3) : null,
+                $returnLiters > 0 ? round($returnLiters, 3) : null,
+                $litersSold > 0 ? $netLiters : null,
+                $priceAtDay ? round((float) $priceAtDay->price_per_liter, 2) : null,
+                $amountSyp > 0 ? round($amountSyp, 0) : null,
+            ];
+        }
+
+        return $exporter->download(
+            filename: 'pump-counters-'.$fuelType->slug.'-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
+            title: $fuelType->name,
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
+            headers: [$labels['date'], $labels['readings'], $labels['liters_sold'], $labels['governmental'], $labels['return'], $labels['net_liters'], $labels['price_per_liter'], $labels['amount']],
             rows: $rows,
             direction: $direction,
         );
