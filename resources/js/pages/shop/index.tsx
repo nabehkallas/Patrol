@@ -124,6 +124,9 @@ function ItemCard({ item }: { item: ShopItem }) {
 
     const [sellQuantity, setSellQuantity] = useState('');
     const [sellAmount, setSellAmount] = useState('');
+    const [sellDate, setSellDate] = useState(() =>
+        new Date().toISOString().slice(0, 10),
+    );
     const [sellErrors, setSellErrors] = useState<Record<string, string>>({});
 
     const editForm = useForm({
@@ -152,13 +155,14 @@ function ItemCard({ item }: { item: ShopItem }) {
                 quantity: sellQuantity,
                 amount: sellAmount,
                 currency: item.currency,
-                date: new Date().toISOString().slice(0, 10),
+                date: sellDate,
             },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setSellQuantity('');
                     setSellAmount('');
+                    setSellDate(new Date().toISOString().slice(0, 10));
                     setSellErrors({});
                 },
                 onError: (errors) =>
@@ -297,8 +301,15 @@ function ItemCard({ item }: { item: ShopItem }) {
                             {t('shop.sell')}
                         </Button>
                     </div>
+                    <Input
+                        type="date"
+                        value={sellDate}
+                        onChange={(e) => setSellDate(e.target.value)}
+                        className="w-full"
+                    />
                     <InputError message={sellErrors.quantity} />
                     <InputError message={sellErrors.amount} />
+                    <InputError message={sellErrors.date} />
                 </form>
 
                 <Button
