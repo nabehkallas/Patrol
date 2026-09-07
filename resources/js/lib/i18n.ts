@@ -65,6 +65,7 @@ const dictionary = {
         'common.remember_me': 'Remember me',
         'common.warning': 'Warning',
         'common.generate_pdf': 'Generate PDF',
+        'common.generate_xlsx': 'Download Excel',
 
         'auth.login.title': 'Log in to your account',
         'auth.login.description':
@@ -562,6 +563,7 @@ const dictionary = {
         'common.remember_me': 'تذكرني',
         'common.warning': 'تحذير',
         'common.generate_pdf': 'إنشاء PDF',
+        'common.generate_xlsx': 'تحميل إكسل',
 
         'auth.login.title': 'تسجيل الدخول إلى حسابك',
         'auth.login.description':

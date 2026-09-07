@@ -17,6 +17,7 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "mpdf/mpdf": "^8.3",
+        "phpoffice/phpspreadsheet": "^5.9",
         "spatie/laravel-permission": "^8.0",
         "stancl/tenancy": "^3.10"
     },
