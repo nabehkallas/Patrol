@@ -54,8 +54,10 @@ class PumpCounterReadingController extends Controller
             ->get()
             ->each(function (PumpCounterReading $reading) {
                 $reading->previous_reading_value = PumpCounterReading::where('pump_id', $reading->pump_id)
-                    ->where('id', '<', $reading->id)
-                    ->latest('id')
+                    ->where(fn ($q) => $q->where('date', '<', $reading->date)
+                        ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '<', $reading->id)))
+                    ->orderByDesc('date')
+                    ->orderByDesc('id')
                     ->value('reading_value');
             });
 
@@ -165,28 +167,43 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-            ->latest('id')
-            ->first();
+        $litersSold = DB::transaction(function () use ($request, $data, $pump, $tank) {
+            $prevReading = PumpCounterReading::where('pump_id', $pump->id)
+                ->where('date', '<=', $data['date'])
+                ->orderByDesc('date')
+                ->orderByDesc('id')
+                ->first();
 
-        [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
-            $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
-            $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
-        );
+            [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
+                $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
+                $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
+            );
 
-        PumpCounterReading::create([
-            'pump_id' => $pump->id,
-            'tank_id' => $tank->id,
-            'date' => $data['date'],
-            'reading_value' => $data['reading_value'],
-            'liters_sold' => $litersSold,
-            'governmental_liters' => $governmentalLiters,
-            'return_liters' => $returnLiters,
-            'transaction_id' => $transactionId,
-            'governmental_transaction_id' => $governmentalTransactionId,
-            'recorded_by_id' => $request->user()->id,
-            'notes' => $data['notes'] ?? null,
-        ]);
+            $reading = PumpCounterReading::create([
+                'pump_id' => $pump->id,
+                'tank_id' => $tank->id,
+                'date' => $data['date'],
+                'reading_value' => $data['reading_value'],
+                'liters_sold' => $litersSold,
+                'governmental_liters' => $governmentalLiters,
+                'return_liters' => $returnLiters,
+                'transaction_id' => $transactionId,
+                'governmental_transaction_id' => $governmentalTransactionId,
+                'recorded_by_id' => $request->user()->id,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            // A backdated entry can land before a reading that already exists — that later
+            // reading's own liters sold was computed against whatever used to be its immediate
+            // predecessor, which is now stale (its true predecessor is this new reading instead).
+            $nextReading = $this->nextReadingFor($reading);
+
+            if ($nextReading !== null) {
+                $this->recomputeReading($nextReading, $reading);
+            }
+
+            return $litersSold;
+        });
 
         $message = $litersSold !== null
             ? __(':liters L recorded as a fuel sale.', ['liters' => $litersSold])
@@ -253,9 +270,16 @@ class PumpCounterReadingController extends Controller
                 Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
             }
 
+            // This query runs before the row below is saved, so the reading's own still-old DB
+            // state could otherwise match itself here if the date is changing (e.g. moving it
+            // later would make its own pre-update date satisfy "< new date") — excluded by id
+            // explicitly rather than relying on the date/id comparison alone.
             $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-                ->where('id', '<', $pumpCounterReading->id)
-                ->latest('id')
+                ->where('id', '!=', $pumpCounterReading->id)
+                ->where(fn ($q) => $q->where('date', '<', $data['date'])
+                    ->orWhere(fn ($q2) => $q2->where('date', $data['date'])->where('id', '<', $pumpCounterReading->id)))
+                ->orderByDesc('date')
+                ->orderByDesc('id')
                 ->first();
 
             [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
@@ -315,15 +339,18 @@ class PumpCounterReadingController extends Controller
     }
 
     /**
-     * The reading immediately after the given one, for the same pump (ordered by id, not
-     * date) — the only reading whose own liters sold is derived directly from this one's
-     * reading_value.
+     * The reading immediately after the given one chronologically, for the same pump (id only
+     * breaks ties between same-day readings — a pump's meter can log more than one reading a
+     * day when it's shared across tanks) — the only reading whose own liters sold is derived
+     * directly from this one's reading_value.
      */
     private function nextReadingFor(PumpCounterReading $reading): ?PumpCounterReading
     {
         return PumpCounterReading::where('pump_id', $reading->pump_id)
-            ->where('id', '>', $reading->id)
-            ->oldest('id')
+            ->where(fn ($q) => $q->where('date', '>', $reading->date)
+                ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '>', $reading->id)))
+            ->orderBy('date')
+            ->orderBy('id')
             ->first();
     }
 
