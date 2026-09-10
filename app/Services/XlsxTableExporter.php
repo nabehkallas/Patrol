@@ -14,10 +14,17 @@ class XlsxTableExporter
      * real scalar values (int/float/string), not pre-formatted strings — a real spreadsheet
      * needs numeric columns the user can actually sum/sort in Excel, not "1,234.56 L" text.
      *
+     * Sheet direction defaults to (and, for exports built for entry/calculation rather than
+     * reading, should stay) 'ltr' regardless of the app's locale — only the header/label text
+     * follows the locale, not the column layout.
+     *
      * @param  string[]  $headers
      * @param  list<array<int, string|int|float|null>>  $rows
+     * @param  array<int, string>  $columnFormats  0-indexed column => Excel number format code
+     *                                             (e.g. '#,##0.00'), applied to that column's data rows only. Columns left out keep
+     *                                             Excel's default General format.
      */
-    public function download(string $filename, string $title, ?string $subtitle, array $headers, array $rows, string $direction = 'ltr'): Response
+    public function download(string $filename, string $title, ?string $subtitle, array $headers, array $rows, string $direction = 'ltr', array $columnFormats = []): Response
     {
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getDefaultStyle()->getFont()->setSize(14);
@@ -49,11 +56,22 @@ class XlsxTableExporter
             ->getStartColor()->setRGB('E5E7EB');
         $row++;
 
+        $firstDataRow = $row;
+
         foreach ($rows as $rowData) {
             foreach ($rowData as $col => $value) {
                 $sheet->setCellValue([$col + 1, $row], $value);
             }
             $row++;
+        }
+
+        $lastDataRow = $row - 1;
+
+        if ($lastDataRow >= $firstDataRow) {
+            foreach ($columnFormats as $col => $format) {
+                $sheet->getStyle([$col + 1, $firstDataRow, $col + 1, $lastDataRow])
+                    ->getNumberFormat()->setFormatCode($format);
+            }
         }
 
         foreach (range(1, count($headers)) as $col) {

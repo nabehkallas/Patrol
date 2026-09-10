@@ -247,6 +247,25 @@ class SadcopController extends Controller
             $rows[] = $row;
         }
 
+        // Column indexes here are 0-based (matching $row's array indexes), unlike the 1-based
+        // ones tracked above for building cell-reference formulas.
+        $columnFormats = [
+            $balanceColumn - 1 => '#,##0.00',
+            $depositsColumn - 1 => '#,##0.00',
+        ];
+
+        foreach ($volumeColumns as $col) {
+            $columnFormats[$col - 1] = '#,##0.000';
+        }
+
+        foreach ($priceColumns as $col) {
+            $columnFormats[$col - 1] = '#,##0.000';
+        }
+
+        foreach ($purchaseColumns as $col) {
+            $columnFormats[$col - 1] = '#,##0.00';
+        }
+
         return $exporter->download(
             filename: 'sadcop-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
@@ -254,6 +273,7 @@ class SadcopController extends Controller
             headers: $headerRow,
             rows: $rows,
             direction: 'ltr',
+            columnFormats: $columnFormats,
         );
     }
 

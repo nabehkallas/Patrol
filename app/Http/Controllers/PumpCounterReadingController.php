@@ -160,7 +160,6 @@ class PumpCounterReadingController extends Controller
         $fuelType = FuelType::findOrFail($request->integer('fuel_type_id'));
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
         $tankIds = Tank::where('fuel_type_id', $fuelType->id)->pluck('id');
@@ -260,7 +259,16 @@ class PumpCounterReadingController extends Controller
                 $labels['amount'],
             ],
             rows: $rows,
-            direction: $direction,
+            direction: 'ltr',
+            // array union (+), not spread (...), since spread silently renumbers integer keys.
+            columnFormats: array_fill_keys(range(1, $pumps->count()), '#,##0') + [
+                $pumps->count() + 1 => '#,##0.000',
+                $pumps->count() + 2 => '#,##0.000',
+                $pumps->count() + 3 => '#,##0.000',
+                $pumps->count() + 4 => '#,##0.000',
+                $pumps->count() + 5 => '#,##0.00',
+                $pumps->count() + 6 => '#,##0.00',
+            ],
         );
     }
 

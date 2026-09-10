@@ -158,7 +158,6 @@ class CashBoxController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
         $transactions = Transaction::query()
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
@@ -355,7 +354,17 @@ class CashBoxController extends Controller
             subtitle: $from->toDateString().' — '.$to->toDateString(),
             headers: $headerRow,
             rows: $rows,
-            direction: $direction,
+            direction: 'ltr',
+            columnFormats: [
+                1 => '#,##0.00', // cash box (SYP)
+                2 => '#,##0.00', // sold (SYP)
+                3 => '#,##0.00', // sadcop payments
+                4 => '#,##0.00', // government
+                5 => '#,##0.00', // other income
+                6 => '#,##0.00', // cash box (USD)
+                7 => '#,##0.00', // expense (SYP)
+                8 => '#,##0.00', // expense (USD)
+            ],
         );
     }
 
