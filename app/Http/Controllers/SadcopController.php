@@ -133,7 +133,6 @@ class SadcopController extends Controller
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
         $fuelTypes = FuelType::orderBy('name')->get();
 
@@ -169,9 +168,8 @@ class SadcopController extends Controller
             'purchase_price' => 'Purchase Price',
         ];
 
-        // Built in natural reading order (date/balance block, then one block per fuel type) and
-        // reversed as a whole at the end -- an RTL sheet renders column A on the right, so the
-        // block that should appear rightmost (the last fuel type) needs to be first in the row.
+        // Sheet always reads left-to-right (date/balance block, then one block per fuel type),
+        // regardless of language -- only the header/label text follows the locale.
         $headerRow = [$labels['date'], $labels['balance'], $labels['deposits']];
 
         foreach ($fuelTypes as $fuelType) {
@@ -211,16 +209,16 @@ class SadcopController extends Controller
                 $row[] = $liters > 0 ? round($purchaseTotal, 1) : null;
             }
 
-            $rows[] = array_reverse($row);
+            $rows[] = $row;
         }
 
         return $exporter->download(
             filename: 'sadcop-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: array_reverse($headerRow),
+            headers: $headerRow,
             rows: $rows,
-            direction: $direction,
+            direction: 'ltr',
         );
     }
 
