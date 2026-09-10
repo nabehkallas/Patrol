@@ -18,6 +18,7 @@ use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -119,51 +120,105 @@ class SadcopController extends Controller
         );
     }
 
+    /**
+     * One row per day: the running Sadcop SYP balance, that day's payments in, and — for every
+     * fuel type, in its own group of columns — the liters delivered, the actual price paid for
+     * that delivery, and the resulting purchase total. Mirrors a hand-kept daily ledger sheet
+     * (balance/payments on one side, one delivery block per fuel type on the other) rather than
+     * the flat one-row-per-entry list the PDF export uses. Multiple same-day deliveries of one
+     * fuel type are combined: liters and purchase total sum, and price becomes the resulting
+     * weighted average so liters × price still equals the purchase total shown.
+     */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
-        $entries = $this->filteredEntriesQuery($request, $from, $to)->get();
+        $fuelTypes = FuelType::orderBy('name')->get();
+
+        $entries = SadcopLedgerEntry::with('transaction.tank.fuelType')
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->get();
+
+        $entriesByDay = $entries->groupBy(fn (SadcopLedgerEntry $entry) => $entry->occurred_at->toDateString());
+
+        $openingBalance = (float) SadcopLedgerEntry::whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])
+            ->where('occurred_at', '<', $from->copy()->startOfDay())
+            ->sum('amount')
+            - (float) SadcopLedgerEntry::where('type', SadcopLedgerEntryType::Delivery)
+                ->where('occurred_at', '<', $from->copy()->startOfDay())
+                ->sum('amount');
 
         $labels = app()->getLocale() === 'ar' ? [
             'title' => 'سجل سادكوب',
             'date' => 'التاريخ',
-            'type' => 'النوع',
-            'fuel_type' => 'نوع الوقود',
-            'liters' => 'اللترات',
-            'price' => 'سعر تكلفة سادكوب / لتر',
-            'amount' => 'المبلغ (ل.س)',
-            'recorded_by' => 'سجّله',
-            'types' => ['opening' => 'الرصيد الافتتاحي', 'deposit' => 'تحويل', 'delivery' => 'توريد'],
+            'balance' => 'المدور سوري',
+            'deposits' => 'الدفعات بالسوري',
+            'volume' => 'حجم الصهريج',
+            'tanker_price' => 'سعر الصهريج',
+            'purchase_price' => 'سعر الشراء',
         ] : [
             'title' => 'Sadcop Ledger',
             'date' => 'Date',
-            'type' => 'Type',
-            'fuel_type' => 'Fuel type',
-            'liters' => 'Liters',
-            'price' => 'Sadcop cost price / liter',
-            'amount' => 'Amount (SYP)',
-            'recorded_by' => 'Recorded by',
-            'types' => ['opening' => 'Opening balance', 'deposit' => 'Transfer', 'delivery' => 'Delivery'],
+            'balance' => 'Balance (SYP)',
+            'deposits' => 'Payments (SYP)',
+            'volume' => 'Tanker Volume',
+            'tanker_price' => 'Tanker Price',
+            'purchase_price' => 'Purchase Price',
         ];
 
-        $rows = $entries->map(fn (SadcopLedgerEntry $entry) => [
-            $entry->occurred_at->format('Y-m-d H:i'),
-            $labels['types'][$entry->type->value] ?? $entry->type->value,
-            $entry->transaction?->tank?->fuelType?->name,
-            $entry->liters !== null ? round((float) $entry->liters, 3) : null,
-            $entry->price_per_liter !== null ? round((float) $entry->price_per_liter, 3) : null,
-            ($entry->type === SadcopLedgerEntryType::Delivery ? -1 : 1) * round((float) $entry->amount, 1),
-            $entry->recordedBy?->name,
-        ])->all();
+        // Built in natural reading order (date/balance block, then one block per fuel type) and
+        // reversed as a whole at the end -- an RTL sheet renders column A on the right, so the
+        // block that should appear rightmost (the last fuel type) needs to be first in the row.
+        $headerRow = [$labels['date'], $labels['balance'], $labels['deposits']];
+
+        foreach ($fuelTypes as $fuelType) {
+            $headerRow[] = null;
+            $headerRow[] = $labels['volume'].' '.$fuelType->name;
+            $headerRow[] = $labels['tanker_price'];
+            $headerRow[] = $labels['purchase_price'];
+        }
+
+        $rows = [];
+        $runningBalance = $openingBalance;
+
+        foreach (CarbonPeriod::create($from, $to) as $day) {
+            $dayKey = $day->toDateString();
+            $dayEntries = $entriesByDay->get($dayKey, collect());
+
+            $credits = (float) $dayEntries->whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])->sum('amount');
+            $deliveryTotal = (float) $dayEntries->where('type', SadcopLedgerEntryType::Delivery)->sum('amount');
+            $runningBalance += $credits - $deliveryTotal;
+
+            $row = [
+                $dayKey,
+                round($runningBalance, 0),
+                $credits > 0 ? round($credits, 0) : null,
+            ];
+
+            foreach ($fuelTypes as $fuelType) {
+                $deliveries = $dayEntries->where('type', SadcopLedgerEntryType::Delivery)
+                    ->filter(fn (SadcopLedgerEntry $entry) => $entry->transaction?->tank?->fuel_type_id === $fuelType->id);
+
+                $liters = (float) $deliveries->sum('liters');
+                $purchaseTotal = (float) $deliveries->sum('amount');
+
+                $row[] = null;
+                $row[] = $liters > 0 ? round($liters, 3) : null;
+                $row[] = $liters > 0 ? round($purchaseTotal / $liters, 3) : null;
+                $row[] = $liters > 0 ? round($purchaseTotal, 1) : null;
+            }
+
+            $rows[] = array_reverse($row);
+        }
 
         return $exporter->download(
             filename: 'sadcop-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['date'], $labels['type'], $labels['fuel_type'], $labels['liters'], $labels['price'], $labels['amount'], $labels['recorded_by']],
+            headers: array_reverse($headerRow),
             rows: $rows,
             direction: $direction,
         );
