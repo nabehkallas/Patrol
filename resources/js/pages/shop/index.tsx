@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { index, exportPdf } from '@/routes/shop';
+import { index, exportPdf, exportXlsx } from '@/routes/shop';
 import {
     store as storeItem,
     update as updateItem,
@@ -265,7 +266,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </span>
                     <span>{formatNumber(item.stock, 0)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="text-muted-foreground flex items-center justify-between text-xs">
                     <span>
                         {t('shop.sell_price')}:{' '}
                         {item.sell_price
@@ -557,7 +558,7 @@ export default function ShopIndex() {
                         <ItemCard key={item.id} item={item} />
                     ))}
                     {items.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {t('common.no_results')}
                         </p>
                     )}
@@ -568,7 +569,7 @@ export default function ShopIndex() {
                         <h3 className="font-semibold">
                             {t('shop.quantity_sold')}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {t('shop.quantity_sold_description')}
                         </p>
                     </div>
@@ -588,7 +589,7 @@ export default function ShopIndex() {
                             </div>
                         ))}
                         {quantitiesSold.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                                 {t('common.no_results')}
                             </p>
                         )}
@@ -605,6 +606,9 @@ export default function ShopIndex() {
                         />
                         <GeneratePdfButton
                             href={exportPdf.url({ query: filters })}
+                        />
+                        <GenerateXlsxButton
+                            href={exportXlsx.url({ query: filters })}
                         />
                     </div>
 
@@ -638,7 +642,7 @@ export default function ShopIndex() {
                             <tbody>
                                 {history.map((entry) => (
                                     <tr key={entry.id} className="border-t">
-                                        <td className="px-4 py-2 whitespace-nowrap">
+                                        <td className="whitespace-nowrap px-4 py-2">
                                             {formatDateTime(entry.occurred_at)}
                                         </td>
                                         <td className="px-4 py-2">
@@ -680,7 +684,7 @@ export default function ShopIndex() {
                                     <tr>
                                         <td
                                             colSpan={auth.isAdmin ? 7 : 6}
-                                            className="px-4 py-6 text-center text-muted-foreground"
+                                            className="text-muted-foreground px-4 py-6 text-center"
                                         >
                                             {t('common.no_results')}
                                         </td>

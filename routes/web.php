@@ -107,6 +107,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::get('shop', [ShopController::class, 'index'])->name('shop.index');
         Route::get('shop/export-pdf', [ShopController::class, 'exportPdf'])->name('shop.export-pdf');
+        Route::get('shop/export-xlsx', [ShopController::class, 'exportXlsx'])->name('shop.export-xlsx');
         Route::post('shop/items', [ShopController::class, 'storeItem'])->name('shop.items.store');
         Route::patch('shop/items/{shopItem}', [ShopController::class, 'updateItem'])->name('shop.items.update');
         Route::delete('shop/items/{shopItem}', [ShopController::class, 'destroyItem'])->name('shop.items.destroy');

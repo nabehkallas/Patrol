@@ -8,14 +8,17 @@ use App\Models\ExchangeRate;
 use App\Models\ShopItem;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class ShopController extends Controller
 {
@@ -86,6 +89,144 @@ class ShopController extends Controller
             headers: [$labels['time'], $labels['type'], $labels['item'], $labels['quantity'], $labels['amount'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
+        );
+    }
+
+    /**
+     * One row per day: for every shop item, in its own group of columns, the stock level as of
+     * that day, how many units sold that day, and the resulting revenue (sold x the item's
+     * current unit price, a live formula) -- plus an overall revenue total per currency at the
+     * end (a shop can carry items priced in different currencies, so a single grand total would
+     * silently mix them). Stock is a real historical reconstruction (units purchased minus units
+     * sold, up to and including that day), not today's currentStock() repeated on every row --
+     * seeded from all movement strictly before the range, the same pattern used for the running
+     * totals in the Sadcop/Cash Box/Pump Counters exports.
+     */
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
+
+        $items = ShopItem::orderBy('name')->get();
+
+        $sumQtyBefore = fn (TransactionType $type) => Transaction::whereNotNull('shop_item_id')
+            ->where('type', $type)
+            ->where('occurred_at', '<', $from->copy()->startOfDay())
+            ->groupBy('shop_item_id')
+            ->selectRaw('shop_item_id, SUM(quantity) as qty')
+            ->pluck('qty', 'shop_item_id');
+
+        $priorPurchased = $sumQtyBefore(TransactionType::Purchase);
+        $priorSold = $sumQtyBefore(TransactionType::OtherIncome);
+
+        $runningStock = $items->mapWithKeys(fn (ShopItem $item) => [
+            $item->id => (int) ($priorPurchased[$item->id] ?? 0) - (int) ($priorSold[$item->id] ?? 0),
+        ])->all();
+
+        $transactions = Transaction::whereNotNull('shop_item_id')
+            ->whereIn('type', [TransactionType::Purchase, TransactionType::OtherIncome])
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->get();
+
+        $byDayItem = fn (TransactionType $type) => $transactions->where('type', $type)
+            ->groupBy(fn (Transaction $t) => $t->occurred_at->toDateString().'|'.$t->shop_item_id);
+
+        $purchasedByDayItem = $byDayItem(TransactionType::Purchase);
+        $soldByDayItem = $byDayItem(TransactionType::OtherIncome);
+
+        $labels = app()->getLocale() === 'ar' ? [
+            'title' => 'المتجر',
+            'date' => 'التاريخ',
+            'stock' => 'المخزون الحالي',
+            'sold' => 'الكمية المباعة',
+            'revenue' => 'إجمالي السعر',
+            'overall' => 'إجمالي الإيراد اليومي',
+        ] : [
+            'title' => 'Shop',
+            'date' => 'Date',
+            'stock' => 'Current Stock',
+            'sold' => 'Sold Qty',
+            'revenue' => 'Total Revenue',
+            'overall' => 'Overall Daily Revenue',
+        ];
+
+        // Column indexes are 1-based here (matching Coordinate::stringFromColumnIndex) for
+        // building cell-reference formulas; converted to 0-based when writing into $row/$headerRow.
+        $headerRow = [$labels['date']];
+        $soldColByItem = [];
+        $revenueColByItem = [];
+        $revenueColsByCurrency = [];
+        $col = 1;
+
+        foreach ($items as $item) {
+            $currency = $item->currency->value;
+
+            $headerRow[] = null;
+            $headerRow[] = $item->name.' — '.$labels['stock'];
+            $headerRow[] = $item->name.' — '.$labels['sold'];
+            $headerRow[] = $item->name.' — '.$labels['revenue'].' ('.$currency.')';
+
+            $soldColByItem[$item->id] = $col + 3;
+            $revenueColByItem[$item->id] = $col + 4;
+            $revenueColsByCurrency[$currency][] = $col + 4;
+            $col += 4;
+        }
+
+        $currencies = $items->pluck('currency.value')->unique()->sort()->values();
+        $overallColByCurrency = [];
+
+        foreach ($currencies as $currency) {
+            $headerRow[] = $labels['overall'].' ('.$currency.')';
+            $overallColByCurrency[$currency] = ++$col;
+        }
+
+        $columnLetter = fn (int $index) => Coordinate::stringFromColumnIndex($index);
+
+        $rows = [];
+        $firstDataRow = 5; // title, subtitle, blank, header, then data
+        $columnFormats = [];
+
+        foreach (CarbonPeriod::create($from, $to) as $i => $day) {
+            $dayKey = $day->toDateString();
+            $thisRow = $firstDataRow + $i;
+
+            $row = [$dayKey];
+
+            foreach ($items as $item) {
+                $purchasedToday = (int) ($purchasedByDayItem->get("{$dayKey}|{$item->id}", collect())->sum('quantity'));
+                $soldToday = (int) ($soldByDayItem->get("{$dayKey}|{$item->id}", collect())->sum('quantity'));
+                $runningStock[$item->id] += $purchasedToday - $soldToday;
+
+                $soldCol = $columnLetter($soldColByItem[$item->id]);
+
+                $row[] = null;
+                $row[] = $runningStock[$item->id];
+                $row[] = $soldToday > 0 ? $soldToday : null;
+                $row[] = "={$soldCol}{$thisRow}*".((float) $item->sell_price);
+
+                $columnFormats[$soldColByItem[$item->id] - 2] = '#,##0'; // stock column
+                $columnFormats[$soldColByItem[$item->id] - 1] = '#,##0';
+                $columnFormats[$revenueColByItem[$item->id] - 1] = '#,##0.00';
+            }
+
+            foreach ($currencies as $currency) {
+                $cells = implode(',', array_map(fn ($c) => $columnLetter($c).$thisRow, $revenueColsByCurrency[$currency]));
+                $row[] = "=SUM({$cells})";
+                $columnFormats[$overallColByCurrency[$currency] - 1] = '#,##0.00';
+            }
+
+            $rows[] = $row;
+        }
+
+        return $exporter->download(
+            filename: 'shop-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
+            title: $labels['title'],
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
+            headers: $headerRow,
+            rows: $rows,
+            direction: 'ltr',
+            columnFormats: $columnFormats,
         );
     }
 
