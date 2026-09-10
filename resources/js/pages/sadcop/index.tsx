@@ -2,6 +2,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { formatDateTime, formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { exportPdf, index } from '@/routes/sadcop';
+import { exportPdf, exportXlsx, index } from '@/routes/sadcop';
 import { create as createDelivery } from '@/routes/sadcop/deliveries';
 import { create as createDeposit } from '@/routes/sadcop/deposits';
 import { destroy, edit } from '@/routes/sadcop/entries';
@@ -129,7 +130,7 @@ export default function SadcopIndex() {
                             </Button>
                         </form>
                     ) : (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {t('sadcop.ask_admin_opening_balance')}
                         </p>
                     )}
@@ -153,14 +154,14 @@ export default function SadcopIndex() {
                         {auth.isAdmin && (
                             <Link
                                 href={createDeposit()}
-                                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                             >
                                 {t('sadcop.transfer_money')}
                             </Link>
                         )}
                         <Link
                             href={createDelivery()}
-                            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                         >
                             {t('sadcop.record_delivery')}
                         </Link>
@@ -168,7 +169,7 @@ export default function SadcopIndex() {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('sadcop.balance')}
@@ -178,7 +179,7 @@ export default function SadcopIndex() {
                             {formatSyp(balance)}
                         </CardContent>
                     </Card>
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('sadcop.payments_this_month')}
@@ -253,6 +254,9 @@ export default function SadcopIndex() {
 
                     <GeneratePdfButton
                         href={exportPdf.url({ query: filters })}
+                    />
+                    <GenerateXlsxButton
+                        href={exportXlsx.url({ query: filters })}
                     />
                 </div>
 
@@ -341,7 +345,7 @@ export default function SadcopIndex() {
                                 <tr>
                                     <td
                                         colSpan={auth.isAdmin ? 8 : 7}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>

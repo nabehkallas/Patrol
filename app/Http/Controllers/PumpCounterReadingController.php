@@ -181,9 +181,17 @@ class PumpCounterReadingController extends Controller
             ->get()
             ->groupBy(fn (Transaction $transaction) => $transaction->occurred_at->toDateString());
 
+        // One column per pump that actually posted a reading in this window, ordered by name,
+        // rather than cramming every pump's reading into one combined text cell.
+        $pumps = $readingsByDay->flatten()
+            ->pluck('pump')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
         $labels = app()->getLocale() === 'ar' ? [
             'date' => 'التاريخ',
-            'readings' => 'قيمة العداد',
             'liters_sold' => 'المباع (لتر)',
             'governmental' => 'حكومي (لتر)',
             'return' => 'مرتجع (لتر)',
@@ -192,7 +200,6 @@ class PumpCounterReadingController extends Controller
             'amount' => 'المبلغ (ل.س)',
         ] : [
             'date' => 'Date',
-            'readings' => 'Closing reading(s)',
             'liters_sold' => 'Liters Sold (gross)',
             'governmental' => 'Governmental (L)',
             'return' => 'Return (L)',
@@ -208,9 +215,11 @@ class PumpCounterReadingController extends Controller
             $dayReadings = $readingsByDay->get($dayKey, collect());
             $daySales = $salesByDay->get($dayKey, collect());
 
-            $readingText = $dayReadings
-                ->map(fn (PumpCounterReading $reading) => ($reading->pump?->name ?? '—').': '.$reading->reading_value)
-                ->implode(', ');
+            // A pump can log more than one reading the same day (e.g. shared across tanks) --
+            // the closing (last recorded) reading_value is what the column shows for that day.
+            $closingReadingByPumpId = $dayReadings
+                ->groupBy('pump_id')
+                ->map(fn ($readings) => $readings->last()->reading_value);
 
             $litersSold = (float) $dayReadings->sum('liters_sold');
             $governmentalLiters = (float) $dayReadings->sum('governmental_liters');
@@ -220,23 +229,36 @@ class PumpCounterReadingController extends Controller
             $priceAtDay = $fuelType->priceAt($day->copy()->midDay());
             $amountSyp = $daySales->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
 
-            $rows[] = [
-                $dayKey,
-                $readingText !== '' ? $readingText : null,
-                $litersSold > 0 ? round($litersSold, 3) : null,
-                $governmentalLiters > 0 ? round($governmentalLiters, 3) : null,
-                $returnLiters > 0 ? round($returnLiters, 3) : null,
-                $litersSold > 0 ? $netLiters : null,
-                $priceAtDay ? round((float) $priceAtDay->price_per_liter, 2) : null,
-                $amountSyp > 0 ? round($amountSyp, 0) : null,
-            ];
+            $row = [$dayKey];
+
+            foreach ($pumps as $pump) {
+                $row[] = $closingReadingByPumpId->get($pump->id);
+            }
+
+            $row[] = $litersSold > 0 ? round($litersSold, 3) : null;
+            $row[] = $governmentalLiters > 0 ? round($governmentalLiters, 3) : null;
+            $row[] = $returnLiters > 0 ? round($returnLiters, 3) : null;
+            $row[] = $litersSold > 0 ? $netLiters : null;
+            $row[] = $priceAtDay ? round((float) $priceAtDay->price_per_liter, 2) : null;
+            $row[] = $amountSyp > 0 ? round($amountSyp, 0) : null;
+
+            $rows[] = $row;
         }
 
         return $exporter->download(
             filename: 'pump-counters-'.$fuelType->slug.'-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $fuelType->name,
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['date'], $labels['readings'], $labels['liters_sold'], $labels['governmental'], $labels['return'], $labels['net_liters'], $labels['price_per_liter'], $labels['amount']],
+            headers: [
+                $labels['date'],
+                ...$pumps->pluck('name'),
+                $labels['liters_sold'],
+                $labels['governmental'],
+                $labels['return'],
+                $labels['net_liters'],
+                $labels['price_per_liter'],
+                $labels['amount'],
+            ],
             rows: $rows,
             direction: $direction,
         );

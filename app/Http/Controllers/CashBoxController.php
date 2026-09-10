@@ -12,6 +12,7 @@ use App\Models\DebtPayment;
 use App\Models\ExchangeRate;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -114,6 +115,83 @@ class CashBoxController extends Controller
 
         return $exporter->download(
             filename: 'cash-box-'.now()->format('Y-m-d').'.pdf',
+            title: $labels['title'],
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
+            headers: [$labels['section'], $labels['metric'], $labels['value']],
+            rows: $rows,
+            direction: $direction,
+        );
+    }
+
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
+
+        $user = $request->user();
+        $isAdmin = $user->isAdmin();
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+
+        $period = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
+        $today = $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate);
+
+        $labels = app()->getLocale() === 'ar' ? [
+            'title' => 'صندوق النقد',
+            'metric' => 'المؤشر',
+            'value' => 'القيمة',
+            'section' => 'الفترة',
+            'period' => 'الفترة المحددة',
+            'today' => 'اليوم',
+            'income' => 'الدخل',
+            'sadcop' => 'مدفوعات سادكوب',
+            'other_expenses' => 'مصروفات أخرى',
+            'exchanged' => 'تحويل عملة',
+            'net' => 'الصافي',
+            'liters_sold' => 'اللترات المباعة',
+            'debts' => 'الديون (غير مسددة)',
+            'debts_liters' => 'لترات مباعة بالدين (غير مسددة)',
+        ] : [
+            'title' => 'Cash Box',
+            'metric' => 'Metric',
+            'value' => 'Value',
+            'section' => 'Section',
+            'period' => 'Selected period',
+            'today' => 'Today',
+            'income' => 'Income',
+            'sadcop' => 'Sadcop payments',
+            'other_expenses' => 'Other expenses',
+            'exchanged' => 'Currency exchanged',
+            'net' => 'Net',
+            'liters_sold' => 'Liters sold',
+            'debts' => 'Debts (unsettled)',
+            'debts_liters' => 'Liters sold in debt (unsettled)',
+        ];
+
+        $formatBreakdown = fn (array $breakdown) => collect($breakdown)
+            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->implode(' + ');
+
+        $rowsFor = fn (array $summary) => [
+            [$labels['income'], $formatBreakdown($summary['income'])],
+            [$labels['sadcop'], round($summary['sadcop_expense_syp'], 0)],
+            [$labels['other_expenses'], $formatBreakdown($summary['other_expense'])],
+            [$labels['exchanged'], $formatBreakdown($summary['exchanged'])],
+            [$labels['net'], $formatBreakdown($summary['net'])],
+            [$labels['liters_sold'], round($summary['liters_sold'], 3)],
+            [$labels['debts'], $formatBreakdown($summary['debts'])],
+            [$labels['debts_liters'], round($summary['debts_liters_sold'], 3)],
+        ];
+
+        $rows = [
+            [$labels['period'], '', ''],
+            ...array_map(fn ($row) => [$labels['period'], ...$row], $rowsFor($period)),
+            [$labels['today'], '', ''],
+            ...array_map(fn ($row) => [$labels['today'], ...$row], $rowsFor($today)),
+        ];
+
+        return $exporter->download(
+            filename: 'cash-box-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
             headers: [$labels['section'], $labels['metric'], $labels['value']],

@@ -53,6 +53,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
     Route::middleware([RequireOnboarding::class])->group(function () {
         Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
         Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
+        Route::get('cash-box/export-xlsx', [CashBoxController::class, 'exportXlsx'])->name('cash-box.export-xlsx');
 
         Route::resource('transactions', TransactionController::class)->except('show');
         Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
@@ -83,6 +84,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::get('sadcop', [SadcopController::class, 'index'])->name('sadcop.index');
         Route::get('sadcop/export-pdf', [SadcopController::class, 'exportPdf'])->name('sadcop.export-pdf');
+        Route::get('sadcop/export-xlsx', [SadcopController::class, 'exportXlsx'])->name('sadcop.export-xlsx');
         Route::get('sadcop/deliveries/create', [SadcopController::class, 'createDelivery'])->name('sadcop.deliveries.create');
         Route::post('sadcop/deliveries', [SadcopController::class, 'storeDelivery'])->name('sadcop.deliveries.store');
         Route::get('sadcop/deposits/create', [SadcopController::class, 'createDeposit'])->name('sadcop.deposits.create')->middleware('role:admin');

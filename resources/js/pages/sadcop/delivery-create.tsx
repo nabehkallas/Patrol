@@ -67,7 +67,7 @@ export default function SadcopDeliveryCreate() {
 
             return {
                 ...data,
-                price_per_liter: String(defaultPrice),
+                price_per_liter: defaultPrice.toFixed(3),
                 amount:
                     Number.isFinite(computed) && computed > 0
                         ? computed.toFixed(2)
@@ -176,7 +176,7 @@ export default function SadcopDeliveryCreate() {
                             <Label htmlFor="liters">
                                 {t('common.liters')}
                                 {selectedTank && (
-                                    <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                    <span className="text-muted-foreground ms-2 text-xs font-normal">
                                         ({t('common.max')}:{' '}
                                         {formatNumber(
                                             selectedTank.remaining_liters,

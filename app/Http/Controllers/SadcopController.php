@@ -15,6 +15,7 @@ use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -110,6 +111,56 @@ class SadcopController extends Controller
 
         return $exporter->download(
             filename: 'sadcop-'.now()->format('Y-m-d').'.pdf',
+            title: $labels['title'],
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
+            headers: [$labels['date'], $labels['type'], $labels['fuel_type'], $labels['liters'], $labels['price'], $labels['amount'], $labels['recorded_by']],
+            rows: $rows,
+            direction: $direction,
+        );
+    }
+
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
+        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+
+        $entries = $this->filteredEntriesQuery($request, $from, $to)->get();
+
+        $labels = app()->getLocale() === 'ar' ? [
+            'title' => 'سجل سادكوب',
+            'date' => 'التاريخ',
+            'type' => 'النوع',
+            'fuel_type' => 'نوع الوقود',
+            'liters' => 'اللترات',
+            'price' => 'سعر تكلفة سادكوب / لتر',
+            'amount' => 'المبلغ (ل.س)',
+            'recorded_by' => 'سجّله',
+            'types' => ['opening' => 'الرصيد الافتتاحي', 'deposit' => 'تحويل', 'delivery' => 'توريد'],
+        ] : [
+            'title' => 'Sadcop Ledger',
+            'date' => 'Date',
+            'type' => 'Type',
+            'fuel_type' => 'Fuel type',
+            'liters' => 'Liters',
+            'price' => 'Sadcop cost price / liter',
+            'amount' => 'Amount (SYP)',
+            'recorded_by' => 'Recorded by',
+            'types' => ['opening' => 'Opening balance', 'deposit' => 'Transfer', 'delivery' => 'Delivery'],
+        ];
+
+        $rows = $entries->map(fn (SadcopLedgerEntry $entry) => [
+            $entry->occurred_at->format('Y-m-d H:i'),
+            $labels['types'][$entry->type->value] ?? $entry->type->value,
+            $entry->transaction?->tank?->fuelType?->name,
+            $entry->liters !== null ? round((float) $entry->liters, 3) : null,
+            $entry->price_per_liter !== null ? round((float) $entry->price_per_liter, 3) : null,
+            ($entry->type === SadcopLedgerEntryType::Delivery ? -1 : 1) * round((float) $entry->amount, 1),
+            $entry->recordedBy?->name,
+        ])->all();
+
+        return $exporter->download(
+            filename: 'sadcop-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
             headers: [$labels['date'], $labels['type'], $labels['fuel_type'], $labels['liters'], $labels['price'], $labels['amount'], $labels['recorded_by']],
