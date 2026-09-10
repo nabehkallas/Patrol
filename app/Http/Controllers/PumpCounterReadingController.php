@@ -168,32 +168,28 @@ class PumpCounterReadingController extends Controller
         $fuelType = FuelType::findOrFail($request->integer('fuel_type_id'));
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
         $tankIds = Tank::where('fuel_type_id', $fuelType->id)->pluck('id');
 
+        // whereDate(), not where('date', ...), since this column stores a full "Y-m-d H:i:s"
+        // string -- comparing that against a bare "Y-m-d" boundary with <= is false for a
+        // reading dated exactly on the boundary (the longer string sorts after the short one),
+        // which was silently dropping any reading dated on the exact last day of the range.
         $readingsByDay = PumpCounterReading::with('pump')
             ->whereIn('tank_id', $tankIds)
-            ->where('date', '>=', $from->toDateString())
-            ->where('date', '<=', $to->toDateString())
+            ->whereDate('date', '>=', $from->toDateString())
+            ->whereDate('date', '<=', $to->toDateString())
             ->orderBy('date')
             ->orderBy('id')
             ->get()
             ->groupBy(fn (PumpCounterReading $reading) => $reading->date->toDateString());
-
-        $salesByDay = Transaction::where('fuel_type_id', $fuelType->id)
-            ->where('type', TransactionType::FuelSale)
-            ->where('occurred_at', '>=', $from->copy()->startOfDay())
-            ->where('occurred_at', '<=', $to->copy()->endOfDay())
-            ->get()
-            ->groupBy(fn (Transaction $transaction) => $transaction->occurred_at->toDateString());
 
         // One column per pump that has ever read a tank of this fuel type up to the end of the
         // range -- not just pumps active within it, so an idle pump still gets a (carried
         // forward) column instead of silently disappearing for the period it wasn't touched.
         $pumps = PumpCounterReading::with('pump')
             ->whereIn('tank_id', $tankIds)
-            ->where('date', '<=', $to->toDateString())
+            ->whereDate('date', '<=', $to->toDateString())
             ->get()
             ->pluck('pump')
             ->filter()
@@ -208,7 +204,7 @@ class PumpCounterReadingController extends Controller
         // always reliable: a pump with no prior reading at all has nothing to show here, and the
         // station knows the real starting value better than any guess this could make.
         $lastKnownReading = PumpCounterReading::whereIn('tank_id', $tankIds)
-            ->where('date', '<', $from->toDateString())
+            ->whereDate('date', '<', $from->toDateString())
             ->orderBy('date')
             ->orderBy('id')
             ->get()
@@ -241,6 +237,8 @@ class PumpCounterReadingController extends Controller
         $soldCol = Coordinate::stringFromColumnIndex($pumpCount + 3);
         $govCol = Coordinate::stringFromColumnIndex($pumpCount + 4);
         $returnCol = Coordinate::stringFromColumnIndex($pumpCount + 5);
+        $netLitersCol = Coordinate::stringFromColumnIndex($pumpCount + 6);
+        $priceCol = Coordinate::stringFromColumnIndex($pumpCount + 7);
         $firstPumpCol = Coordinate::stringFromColumnIndex(2);
         $lastPumpCol = Coordinate::stringFromColumnIndex($pumpCount + 1);
 
@@ -269,7 +267,6 @@ class PumpCounterReadingController extends Controller
         foreach (CarbonPeriod::create($from, $to) as $i => $day) {
             $dayKey = $day->toDateString();
             $dayReadings = $readingsByDay->get($dayKey, collect());
-            $daySales = $salesByDay->get($dayKey, collect());
             $thisRow = $firstDataRow + 1 + $i;
             $previousRow = $thisRow - 1;
 
@@ -288,7 +285,6 @@ class PumpCounterReadingController extends Controller
             $returnLiters = (float) $dayReadings->sum('return_liters');
 
             $priceAtDay = $fuelType->priceAt($day->copy()->midDay());
-            $amountSyp = $daySales->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
 
             $row = [$dayKey];
 
@@ -302,7 +298,11 @@ class PumpCounterReadingController extends Controller
             $row[] = $returnLiters > 0 ? round($returnLiters, 0) : null;
             $row[] = "={$soldCol}{$thisRow}-{$govCol}{$thisRow}-{$returnCol}{$thisRow}";
             $row[] = $priceAtDay ? round((float) $priceAtDay->price_per_liter, 3) : null;
-            $row[] = $amountSyp > 0 ? round($amountSyp, 2) : null;
+            // Amount = net liters x price/liter -- a live formula, not the real recorded
+            // transaction total, so it stays self-consistent with the two cells beside it and
+            // recalculates automatically if either is corrected. Left blank (not a misleading 0)
+            // whenever there's no price for the day, same as before.
+            $row[] = $priceAtDay ? "={$netLitersCol}{$thisRow}*{$priceCol}{$thisRow}" : null;
 
             $rows[] = $row;
         }
