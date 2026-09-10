@@ -140,8 +140,8 @@ class FuelPriceController extends Controller
         $repriced = 0;
 
         foreach ($transactions as $transaction) {
-            $priceAsOf = $fuelType->priceAsOf($transaction->occurred_at);
-            $newPricePerLiter = $priceAsOf ? (string) $priceAsOf->price_per_liter : '0.0000';
+            $priceAtDate = $fuelType->priceAt($transaction->occurred_at);
+            $newPricePerLiter = $priceAtDate ? (string) $priceAtDate->price_per_liter : '0.0000';
 
             if ($newPricePerLiter === (string) $transaction->price_per_liter) {
                 continue;
