@@ -155,6 +155,13 @@ class PumpCounterReadingController extends Controller
      * daily tabs (one row per calendar day, days with no activity still appear rather than
      * disappearing). Parameterized by fuel type rather than hardcoded to two, since fuel types
      * aren't hardcoded anywhere else in this app.
+     *
+     * The first row is a seed dated the day before the range starts, showing each pump's last
+     * known reading (blank if there isn't one) so it can be confirmed or corrected by hand rather
+     * than trusting a number computed silently from whatever history happens to exist. Every real
+     * day's Total/Sold/Net Liters then reads as a plain formula against the row directly above —
+     * no special-cased first row — and a pump not updated on a given day carries its last known
+     * reading forward instead of leaving that cell blank.
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
@@ -196,8 +203,10 @@ class PumpCounterReadingController extends Controller
 
         // The last reading recorded for each pump strictly before the range starts -- carried
         // forward as that pump's value on any day within the range it isn't actually updated
-        // ("since I didn't update the reading, put it as it is"), and used as the baseline the
-        // first row's Sold figure is measured against.
+        // ("since I didn't update the reading, put it as it is"). Shown as an explicit, editable
+        // seed row (below) rather than a number baked invisibly into a formula, since it isn't
+        // always reliable: a pump with no prior reading at all has nothing to show here, and the
+        // station knows the real starting value better than any guess this could make.
         $lastKnownReading = PumpCounterReading::whereIn('tank_id', $tankIds)
             ->where('date', '<', $from->toDateString())
             ->orderBy('date')
@@ -206,8 +215,6 @@ class PumpCounterReadingController extends Controller
             ->groupBy('pump_id')
             ->map(fn ($readings) => (int) $readings->last()->reading_value)
             ->all();
-
-        $seedTotal = array_sum(array_intersect_key($lastKnownReading, $pumps->pluck('id')->flip()->all()));
 
         $labels = app()->getLocale() === 'ar' ? [
             'date' => 'التاريخ',
@@ -240,11 +247,31 @@ class PumpCounterReadingController extends Controller
         $rows = [];
         $firstDataRow = 5; // title, subtitle, blank, header, then data
 
+        // Seed row, dated the day before the range: each pump's last known reading if one
+        // exists, blank otherwise -- editable/correctable in the sheet, not a hidden number.
+        // Every real day below reads as a plain "this row minus the row above" formula, this
+        // row included, so there's no special-cased first row.
+        $seedRow = [$from->copy()->subDay()->toDateString()];
+
+        foreach ($pumps as $pump) {
+            $seedRow[] = $lastKnownReading[$pump->id] ?? null;
+        }
+
+        $seedRow[] = "=SUM({$firstPumpCol}{$firstDataRow}:{$lastPumpCol}{$firstDataRow})";
+        $seedRow[] = null; // liters sold -- nothing to compare the seed row against
+        $seedRow[] = null; // governmental
+        $seedRow[] = null; // return
+        $seedRow[] = null; // net liters
+        $seedRow[] = null; // price/liter
+        $seedRow[] = null; // amount
+        $rows[] = $seedRow;
+
         foreach (CarbonPeriod::create($from, $to) as $i => $day) {
             $dayKey = $day->toDateString();
             $dayReadings = $readingsByDay->get($dayKey, collect());
             $daySales = $salesByDay->get($dayKey, collect());
-            $thisRow = $firstDataRow + $i;
+            $thisRow = $firstDataRow + 1 + $i;
+            $previousRow = $thisRow - 1;
 
             // A pump can log more than one reading the same day (e.g. shared across tanks) --
             // the closing (last recorded) reading_value is what the column shows for that day.
@@ -270,9 +297,7 @@ class PumpCounterReadingController extends Controller
             }
 
             $row[] = "=SUM({$firstPumpCol}{$thisRow}:{$lastPumpCol}{$thisRow})";
-            $row[] = $i === 0
-                ? "={$totalCol}{$thisRow}-{$seedTotal}"
-                : "={$totalCol}{$thisRow}-{$totalCol}".($thisRow - 1);
+            $row[] = "={$totalCol}{$thisRow}-{$totalCol}{$previousRow}";
             $row[] = $governmentalLiters > 0 ? round($governmentalLiters, 0) : null;
             $row[] = $returnLiters > 0 ? round($returnLiters, 0) : null;
             $row[] = "={$soldCol}{$thisRow}-{$govCol}{$thisRow}-{$returnCol}{$thisRow}";
