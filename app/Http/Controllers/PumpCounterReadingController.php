@@ -354,8 +354,13 @@ class PumpCounterReadingController extends Controller
         }
 
         $litersSold = DB::transaction(function () use ($request, $data, $pump, $tank) {
+            // whereDate(), not where('date', ...): the column stores a full "Y-m-d H:i:s"
+            // string, so a bare <= comparison against $data['date'] (just "Y-m-d") is false for
+            // a reading dated on that same day (the longer string sorts after the short one) --
+            // silently skipping same-day predecessors and picking an earlier day's reading
+            // instead, which computes the wrong liters sold.
             $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-                ->where('date', '<=', $data['date'])
+                ->whereDate('date', '<=', $data['date'])
                 ->orderByDesc('date')
                 ->orderByDesc('id')
                 ->first();
@@ -459,11 +464,14 @@ class PumpCounterReadingController extends Controller
             // This query runs before the row below is saved, so the reading's own still-old DB
             // state could otherwise match itself here if the date is changing (e.g. moving it
             // later would make its own pre-update date satisfy "< new date") — excluded by id
-            // explicitly rather than relying on the date/id comparison alone.
+            // explicitly rather than relying on the date/id comparison alone. whereDate(), not
+            // where('date', ...), for the same reason as store(): the column stores a full
+            // datetime string, so a bare equality/less-than check against $data['date'] ("Y-m-d"
+            // only) never matches a same-day row at all.
             $prevReading = PumpCounterReading::where('pump_id', $pump->id)
                 ->where('id', '!=', $pumpCounterReading->id)
-                ->where(fn ($q) => $q->where('date', '<', $data['date'])
-                    ->orWhere(fn ($q2) => $q2->where('date', $data['date'])->where('id', '<', $pumpCounterReading->id)))
+                ->where(fn ($q) => $q->whereDate('date', '<', $data['date'])
+                    ->orWhere(fn ($q2) => $q2->whereDate('date', $data['date'])->where('id', '<', $pumpCounterReading->id)))
                 ->orderByDesc('date')
                 ->orderByDesc('id')
                 ->first();
