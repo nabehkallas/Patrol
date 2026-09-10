@@ -8,12 +8,14 @@ use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debt;
+use App\Models\Debtor;
 use App\Models\DebtPayment;
 use App\Models\ExchangeRate;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
@@ -123,6 +125,25 @@ class CashBoxController extends Controller
         );
     }
 
+    /**
+     * One row per day: the running SYP cash balance, that day's SYP sales, Sadcop payments,
+     * government ("smart card") debt collections, the running USD cash balance, and SYP/USD
+     * expenses. Mirrors the hand-kept daily ledger sheet, not the flat metric/value summary the
+     * PDF export uses.
+     *
+     * Both balance columns are real Excel formulas, carried forward from the *previous* row's
+     * complete activity (same pattern as the Sadcop export's المدور column) — a day's own sales/
+     * payments/expenses appear in its own row but only affect the *next* row's balance. Unlike
+     * Sadcop, this app has no stored "opening cash balance" concept for Cash Box at all (it only
+     * ever computes income/expense totals for a range, never an absolute balance), so the first
+     * row's balance cells are left blank for the actual starting cash amount to be typed in by
+     * hand — exactly like starting a fresh ledger sheet.
+     *
+     * "Government" ("بطاقة ذكية") is broken out from ordinary SYP sales because it isn't cash in
+     * hand the same day — it's a debt payment received later from the government debtor — while
+     * regular customer debt payments stay folded into ordinary sales, same as the dashboard's
+     * Cash Box totals treat them.
+     */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
         $from = $request->date('from') ?? now()->startOfMonth();
@@ -130,71 +151,133 @@ class CashBoxController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
-        $period = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
-        $today = $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate);
+        $transactions = Transaction::query()
+            ->where('occurred_at', '>=', $from->copy()->startOfDay())
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
+            ->with(['debt', 'sadcopLedgerEntry'])
+            ->get();
+
+        $incomeTransactions = $transactions
+            ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
+            ->reject(fn (Transaction $t) => $t->debt !== null);
+
+        $expenseTransactions = $transactions
+            ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
+            ->reject(fn (Transaction $t) => $t->debt !== null);
+
+        $isSadcopPayment = fn (Transaction $t) => $t->sadcopLedgerEntry !== null;
+        $sadcopTransactions = $expenseTransactions->filter($isSadcopPayment);
+        $otherExpenseTransactions = $expenseTransactions->reject($isSadcopPayment);
+
+        $governmentDebtorId = Debtor::government()->id;
+
+        $debtPayments = DebtPayment::query()
+            ->whereDate('paid_at', '>=', $from->toDateString())
+            ->whereDate('paid_at', '<=', $to->toDateString())
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
+            ->with('debt')
+            ->get();
+
+        $receivablePayments = $debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
+        $payablePayments = $debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable);
+        $governmentPayments = $receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+        $customerReceivablePayments = $receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+
+        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item) => $item->{$dateField}->toDateString());
+        $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'SYP')->sum('amount');
+        $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'USD')->sum('amount');
+
+        $incomeByDay = $byDay($incomeTransactions, 'occurred_at');
+        $sadcopByDay = $byDay($sadcopTransactions, 'occurred_at');
+        $otherExpenseTxByDay = $byDay($otherExpenseTransactions, 'occurred_at');
+        $customerReceivableByDay = $byDay($customerReceivablePayments, 'paid_at');
+        $governmentByDay = $byDay($governmentPayments, 'paid_at');
+        $payableByDay = $byDay($payablePayments, 'paid_at');
 
         $labels = app()->getLocale() === 'ar' ? [
             'title' => 'صندوق النقد',
-            'metric' => 'المؤشر',
-            'value' => 'القيمة',
-            'section' => 'الفترة',
-            'period' => 'الفترة المحددة',
-            'today' => 'اليوم',
-            'income' => 'الدخل',
-            'sadcop' => 'مدفوعات سادكوب',
-            'other_expenses' => 'مصروفات أخرى',
-            'exchanged' => 'تحويل عملة',
-            'net' => 'الصافي',
-            'liters_sold' => 'اللترات المباعة',
-            'debts' => 'الديون (غير مسددة)',
-            'debts_liters' => 'لترات مباعة بالدين (غير مسددة)',
+            'date' => 'التاريخ',
+            'cash_syp' => 'الصندوق بالسوري',
+            'sold_syp' => 'المباع بالسوري',
+            'sadcop' => 'دفعات سادكوب',
+            'government' => 'بطاقة ذكية',
+            'cash_usd' => 'الصندوق بالدولار',
+            'expense_syp' => 'مصروف سوري',
+            'expense_usd' => 'مصروف دولار',
+            'notes' => 'ملاحظات',
         ] : [
             'title' => 'Cash Box',
-            'metric' => 'Metric',
-            'value' => 'Value',
-            'section' => 'Section',
-            'period' => 'Selected period',
-            'today' => 'Today',
-            'income' => 'Income',
-            'sadcop' => 'Sadcop payments',
-            'other_expenses' => 'Other expenses',
-            'exchanged' => 'Currency exchanged',
-            'net' => 'Net',
-            'liters_sold' => 'Liters sold',
-            'debts' => 'Debts (unsettled)',
-            'debts_liters' => 'Liters sold in debt (unsettled)',
+            'date' => 'Date',
+            'cash_syp' => 'Cash Box (SYP)',
+            'sold_syp' => 'Sold (SYP)',
+            'sadcop' => 'Sadcop Payments',
+            'government' => 'Government',
+            'cash_usd' => 'Cash Box (USD)',
+            'expense_syp' => 'Expense (SYP)',
+            'expense_usd' => 'Expense (USD)',
+            'notes' => 'Notes',
         ];
 
-        $formatBreakdown = fn (array $breakdown) => collect($breakdown)
-            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
-            ->implode(' + ');
-
-        $rowsFor = fn (array $summary) => [
-            [$labels['income'], $formatBreakdown($summary['income'])],
-            [$labels['sadcop'], round($summary['sadcop_expense_syp'], 0)],
-            [$labels['other_expenses'], $formatBreakdown($summary['other_expense'])],
-            [$labels['exchanged'], $formatBreakdown($summary['exchanged'])],
-            [$labels['net'], $formatBreakdown($summary['net'])],
-            [$labels['liters_sold'], round($summary['liters_sold'], 3)],
-            [$labels['debts'], $formatBreakdown($summary['debts'])],
-            [$labels['debts_liters'], round($summary['debts_liters_sold'], 3)],
+        $headerRow = [
+            $labels['date'], $labels['cash_syp'], $labels['sold_syp'], $labels['sadcop'],
+            $labels['government'], $labels['cash_usd'], $labels['expense_syp'], $labels['expense_usd'],
+            $labels['notes'],
         ];
 
-        $rows = [
-            [$labels['period'], '', ''],
-            ...array_map(fn ($row) => [$labels['period'], ...$row], $rowsFor($period)),
-            [$labels['today'], '', ''],
-            ...array_map(fn ($row) => [$labels['today'], ...$row], $rowsFor($today)),
-        ];
+        $cashSypCol = 'B';
+        $soldSypCol = 'C';
+        $sadcopCol = 'D';
+        $governmentCol = 'E';
+        $cashUsdCol = 'F';
+        $expenseSypCol = 'G';
+        $expenseUsdCol = 'H';
+
+        $rows = [];
+        $firstDataRow = 5; // title, subtitle, blank, header, then data
+
+        foreach (CarbonPeriod::create($from, $to) as $i => $day) {
+            $dayKey = $day->toDateString();
+            $thisRow = $firstDataRow + $i;
+
+            $soldSyp = $sumSyp($incomeByDay->get($dayKey, collect()), 'currency')
+                + $sumSyp($customerReceivableByDay->get($dayKey, collect()), 'debt.currency');
+            $sadcopSyp = (float) $sadcopByDay->get($dayKey, collect())->sum('amount');
+            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'debt.currency');
+            $expenseSyp = $sumSyp($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
+                + $sumSyp($payableByDay->get($dayKey, collect()), 'debt.currency');
+            $expenseUsd = $sumUsd($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
+                + $sumUsd($payableByDay->get($dayKey, collect()), 'debt.currency');
+
+            if ($i === 0) {
+                $cashSypCell = null;
+                $cashUsdCell = null;
+            } else {
+                $previousRow = $thisRow - 1;
+                $cashSypCell = "={$cashSypCol}{$previousRow}+{$soldSypCol}{$previousRow}-{$sadcopCol}{$previousRow}+{$governmentCol}{$previousRow}-{$expenseSypCol}{$previousRow}";
+                $cashUsdCell = "={$cashUsdCol}{$previousRow}-{$expenseUsdCol}{$previousRow}";
+            }
+
+            $rows[] = [
+                $dayKey,
+                $cashSypCell,
+                $soldSyp > 0 ? round($soldSyp, 0) : null,
+                $sadcopSyp > 0 ? round($sadcopSyp, 0) : null,
+                $governmentSyp > 0 ? round($governmentSyp, 0) : null,
+                $cashUsdCell,
+                $expenseSyp > 0 ? round($expenseSyp, 0) : null,
+                $expenseUsd > 0 ? round($expenseUsd, 2) : null,
+                null,
+            ];
+        }
 
         return $exporter->download(
             filename: 'cash-box-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['section'], $labels['metric'], $labels['value']],
+            headers: $headerRow,
             rows: $rows,
             direction: $direction,
         );
