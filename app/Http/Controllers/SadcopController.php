@@ -127,8 +127,8 @@ class SadcopController extends Controller
      * that delivery, and the resulting purchase total. Mirrors a hand-kept daily ledger sheet
      * (balance/payments on one side, one delivery block per fuel type on the other) rather than
      * the flat one-row-per-entry list the PDF export uses. Multiple same-day deliveries of one
-     * fuel type are combined: liters and purchase total sum, and price becomes the resulting
-     * weighted average so liters × price still equals the purchase total shown.
+     * fuel type are combined: liters and purchase total sum, price becomes the resulting
+     * weighted average, and the purchase total itself is a live volume × price formula.
      *
      * The balance column ("المدور" — carried forward) is a real Excel formula, not a pre-computed
      * number: each row reads the *previous* row's balance + that prior day's payments − that
@@ -184,6 +184,8 @@ class SadcopController extends Controller
         $headerRow = [$labels['date'], $labels['balance'], $labels['deposits']];
         $balanceColumn = 2;
         $depositsColumn = 3;
+        $volumeColumns = [];
+        $priceColumns = [];
         $purchaseColumns = [];
         $col = 3;
 
@@ -192,6 +194,8 @@ class SadcopController extends Controller
             $headerRow[] = $labels['volume'].' '.$fuelType->name;
             $headerRow[] = $labels['tanker_price'];
             $headerRow[] = $labels['purchase_price'];
+            $volumeColumns[] = $col + 2;
+            $priceColumns[] = $col + 3;
             $col += 4;
             $purchaseColumns[] = $col;
         }
@@ -200,6 +204,8 @@ class SadcopController extends Controller
         $balanceLetter = $columnLetter($balanceColumn);
         $depositsLetter = $columnLetter($depositsColumn);
         $purchaseLetters = array_map($columnLetter, $purchaseColumns);
+        $volumeLetters = array_map($columnLetter, $volumeColumns);
+        $priceLetters = array_map($columnLetter, $priceColumns);
 
         $rows = [];
         $firstDataRow = 5; // title, subtitle, blank, header, then data
@@ -225,7 +231,7 @@ class SadcopController extends Controller
                 $credits > 0 ? round($credits, 0) : null,
             ];
 
-            foreach ($fuelTypes as $fuelType) {
+            foreach ($fuelTypes as $fuelTypeIndex => $fuelType) {
                 $deliveries = $dayEntries->where('type', SadcopLedgerEntryType::Delivery)
                     ->filter(fn (SadcopLedgerEntry $entry) => $entry->transaction?->tank?->fuel_type_id === $fuelType->id);
 
@@ -235,7 +241,7 @@ class SadcopController extends Controller
                 $row[] = null;
                 $row[] = $liters > 0 ? round($liters, 3) : null;
                 $row[] = $liters > 0 ? round($purchaseTotal / $liters, 3) : null;
-                $row[] = $liters > 0 ? round($purchaseTotal, 1) : null;
+                $row[] = $liters > 0 ? "={$volumeLetters[$fuelTypeIndex]}{$thisRow}*{$priceLetters[$fuelTypeIndex]}{$thisRow}" : null;
             }
 
             $rows[] = $row;

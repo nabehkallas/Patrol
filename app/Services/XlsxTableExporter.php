@@ -20,6 +20,7 @@ class XlsxTableExporter
     public function download(string $filename, string $title, ?string $subtitle, array $headers, array $rows, string $direction = 'ltr'): Response
     {
         $spreadsheet = new Spreadsheet;
+        $spreadsheet->getDefaultStyle()->getFont()->setSize(14);
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle($this->safeSheetTitle($title));
         $sheet->setRightToLeft($direction === 'rtl');
