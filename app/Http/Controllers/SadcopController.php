@@ -26,6 +26,7 @@ use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class SadcopController extends Controller
 {
@@ -128,6 +129,12 @@ class SadcopController extends Controller
      * the flat one-row-per-entry list the PDF export uses. Multiple same-day deliveries of one
      * fuel type are combined: liters and purchase total sum, and price becomes the resulting
      * weighted average so liters × price still equals the purchase total shown.
+     *
+     * The balance column is a real Excel formula (previous row's balance + this row's payments
+     * − this row's purchases), not a pre-computed number, so opening it shows exactly how each
+     * day's figure was derived and lets it be corrected/audited directly in the sheet — only the
+     * very first row has no "previous row" to reference and is seeded with the actual computed
+     * balance as of the day before the export range starts.
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
@@ -169,30 +176,53 @@ class SadcopController extends Controller
         ];
 
         // Sheet always reads left-to-right (date/balance block, then one block per fuel type),
-        // regardless of language -- only the header/label text follows the locale.
+        // regardless of language -- only the header/label text follows the locale. Column indexes
+        // (1-based) are tracked as they're built so the balance formula can reference them by
+        // letter -- purchaseColumns collects one entry per fuel type in the same order as $fuelTypes.
         $headerRow = [$labels['date'], $labels['balance'], $labels['deposits']];
+        $balanceColumn = 2;
+        $depositsColumn = 3;
+        $purchaseColumns = [];
+        $col = 3;
 
         foreach ($fuelTypes as $fuelType) {
             $headerRow[] = null;
             $headerRow[] = $labels['volume'].' '.$fuelType->name;
             $headerRow[] = $labels['tanker_price'];
             $headerRow[] = $labels['purchase_price'];
+            $col += 4;
+            $purchaseColumns[] = $col;
         }
+
+        $columnLetter = fn (int $index) => Coordinate::stringFromColumnIndex($index);
+        $balanceLetter = $columnLetter($balanceColumn);
+        $depositsLetter = $columnLetter($depositsColumn);
+        $purchaseLetters = array_map($columnLetter, $purchaseColumns);
 
         $rows = [];
         $runningBalance = $openingBalance;
+        $firstDataRow = 5; // title, subtitle, blank, header, then data
 
-        foreach (CarbonPeriod::create($from, $to) as $day) {
+        foreach (CarbonPeriod::create($from, $to) as $i => $day) {
             $dayKey = $day->toDateString();
             $dayEntries = $entriesByDay->get($dayKey, collect());
+            $thisRow = $firstDataRow + $i;
 
             $credits = (float) $dayEntries->whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])->sum('amount');
             $deliveryTotal = (float) $dayEntries->where('type', SadcopLedgerEntryType::Delivery)->sum('amount');
             $runningBalance += $credits - $deliveryTotal;
 
+            if ($i === 0) {
+                $balanceCell = round($runningBalance, 0);
+            } else {
+                $previousRow = $thisRow - 1;
+                $deductions = implode('', array_map(fn ($letter) => "-{$letter}{$thisRow}", $purchaseLetters));
+                $balanceCell = "={$balanceLetter}{$previousRow}+{$depositsLetter}{$thisRow}{$deductions}";
+            }
+
             $row = [
                 $dayKey,
-                round($runningBalance, 0),
+                $balanceCell,
                 $credits > 0 ? round($credits, 0) : null,
             ];
 
