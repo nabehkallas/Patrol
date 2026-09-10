@@ -130,10 +130,12 @@ class SadcopController extends Controller
      * fuel type are combined: liters and purchase total sum, and price becomes the resulting
      * weighted average so liters × price still equals the purchase total shown.
      *
-     * The balance column is a real Excel formula (previous row's balance + this row's payments
-     * − this row's purchases), not a pre-computed number, so opening it shows exactly how each
-     * day's figure was derived and lets it be corrected/audited directly in the sheet — only the
-     * very first row has no "previous row" to reference and is seeded with the actual computed
+     * The balance column ("المدور" — carried forward) is a real Excel formula, not a pre-computed
+     * number: each row reads the *previous* row's balance + that prior day's payments − that
+     * prior day's purchases, i.e. what carried into today from yesterday's complete activity —
+     * not today's own activity applied to yesterday's balance. Opening any balance cell shows
+     * exactly how it was derived and lets it be corrected/audited directly in the sheet. Only the
+     * very first row has no previous row to reference and is seeded with the actual computed
      * balance as of the day before the export range starts.
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
@@ -200,7 +202,6 @@ class SadcopController extends Controller
         $purchaseLetters = array_map($columnLetter, $purchaseColumns);
 
         $rows = [];
-        $runningBalance = $openingBalance;
         $firstDataRow = 5; // title, subtitle, blank, header, then data
 
         foreach (CarbonPeriod::create($from, $to) as $i => $day) {
@@ -209,15 +210,13 @@ class SadcopController extends Controller
             $thisRow = $firstDataRow + $i;
 
             $credits = (float) $dayEntries->whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])->sum('amount');
-            $deliveryTotal = (float) $dayEntries->where('type', SadcopLedgerEntryType::Delivery)->sum('amount');
-            $runningBalance += $credits - $deliveryTotal;
 
             if ($i === 0) {
-                $balanceCell = round($runningBalance, 0);
+                $balanceCell = round($openingBalance, 0);
             } else {
                 $previousRow = $thisRow - 1;
-                $deductions = implode('', array_map(fn ($letter) => "-{$letter}{$thisRow}", $purchaseLetters));
-                $balanceCell = "={$balanceLetter}{$previousRow}+{$depositsLetter}{$thisRow}{$deductions}";
+                $deductions = implode('', array_map(fn ($letter) => "-{$letter}{$previousRow}", $purchaseLetters));
+                $balanceCell = "={$balanceLetter}{$previousRow}+{$depositsLetter}{$previousRow}{$deductions}";
             }
 
             $row = [
