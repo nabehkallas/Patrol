@@ -6,6 +6,7 @@ use Illuminate\Http\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class XlsxTableExporter
 {
@@ -74,8 +75,33 @@ class XlsxTableExporter
             }
         }
 
-        foreach (range(1, count($headers)) as $col) {
-            $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
+        // Excel's own autosize consistently over-estimates at this font size/RTL mix, so widths
+        // are computed directly from each column's actual displayed text instead -- read back
+        // from the real cells (their *calculated* value, so a formula cell is measured by what
+        // it shows, not its formula text) rather than the raw $rows data. Title and subtitle
+        // (only ever in column 1, and often much longer than any real column-1 value) are
+        // deliberately excluded, so a long date-range subtitle doesn't stretch the date column.
+        foreach ($headers as $col => $header) {
+            $longest = mb_strlen((string) $header);
+
+            if ($lastDataRow >= $firstDataRow) {
+                for ($r = $firstDataRow; $r <= $lastDataRow; $r++) {
+                    $cell = $sheet->getCell([$col + 1, $r]);
+                    $value = $cell->getCalculatedValue();
+
+                    if ($value === null || $value === '') {
+                        continue;
+                    }
+
+                    $display = is_numeric($value)
+                        ? NumberFormat::toFormattedString($value, $cell->getStyle()->getNumberFormat()->getFormatCode())
+                        : (string) $value;
+
+                    $longest = max($longest, mb_strlen($display));
+                }
+            }
+
+            $sheet->getColumnDimensionByColumn($col + 1)->setWidth($longest + 2);
         }
 
         $resource = fopen('php://temp', 'r+');

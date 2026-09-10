@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class PumpCounterReadingController extends Controller
 {
@@ -180,17 +181,37 @@ class PumpCounterReadingController extends Controller
             ->get()
             ->groupBy(fn (Transaction $transaction) => $transaction->occurred_at->toDateString());
 
-        // One column per pump that actually posted a reading in this window, ordered by name,
-        // rather than cramming every pump's reading into one combined text cell.
-        $pumps = $readingsByDay->flatten()
+        // One column per pump that has ever read a tank of this fuel type up to the end of the
+        // range -- not just pumps active within it, so an idle pump still gets a (carried
+        // forward) column instead of silently disappearing for the period it wasn't touched.
+        $pumps = PumpCounterReading::with('pump')
+            ->whereIn('tank_id', $tankIds)
+            ->where('date', '<=', $to->toDateString())
+            ->get()
             ->pluck('pump')
             ->filter()
             ->unique('id')
             ->sortBy('name')
             ->values();
 
+        // The last reading recorded for each pump strictly before the range starts -- carried
+        // forward as that pump's value on any day within the range it isn't actually updated
+        // ("since I didn't update the reading, put it as it is"), and used as the baseline the
+        // first row's Sold figure is measured against.
+        $lastKnownReading = PumpCounterReading::whereIn('tank_id', $tankIds)
+            ->where('date', '<', $from->toDateString())
+            ->orderBy('date')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('pump_id')
+            ->map(fn ($readings) => (int) $readings->last()->reading_value)
+            ->all();
+
+        $seedTotal = array_sum(array_intersect_key($lastKnownReading, $pumps->pluck('id')->flip()->all()));
+
         $labels = app()->getLocale() === 'ar' ? [
             'date' => 'التاريخ',
+            'total' => 'المجموع الكامل',
             'liters_sold' => 'المباع (لتر)',
             'governmental' => 'حكومي (لتر)',
             'return' => 'مرتجع (لتر)',
@@ -199,6 +220,7 @@ class PumpCounterReadingController extends Controller
             'amount' => 'المبلغ (ل.س)',
         ] : [
             'date' => 'Date',
+            'total' => 'Total',
             'liters_sold' => 'Liters Sold (gross)',
             'governmental' => 'Governmental (L)',
             'return' => 'Return (L)',
@@ -207,23 +229,36 @@ class PumpCounterReadingController extends Controller
             'amount' => 'Amount (SYP)',
         ];
 
-        $rows = [];
+        $pumpCount = $pumps->count();
+        $totalCol = Coordinate::stringFromColumnIndex($pumpCount + 2);
+        $soldCol = Coordinate::stringFromColumnIndex($pumpCount + 3);
+        $govCol = Coordinate::stringFromColumnIndex($pumpCount + 4);
+        $returnCol = Coordinate::stringFromColumnIndex($pumpCount + 5);
+        $firstPumpCol = Coordinate::stringFromColumnIndex(2);
+        $lastPumpCol = Coordinate::stringFromColumnIndex($pumpCount + 1);
 
-        foreach (CarbonPeriod::create($from, $to) as $day) {
+        $rows = [];
+        $firstDataRow = 5; // title, subtitle, blank, header, then data
+
+        foreach (CarbonPeriod::create($from, $to) as $i => $day) {
             $dayKey = $day->toDateString();
             $dayReadings = $readingsByDay->get($dayKey, collect());
             $daySales = $salesByDay->get($dayKey, collect());
+            $thisRow = $firstDataRow + $i;
 
             // A pump can log more than one reading the same day (e.g. shared across tanks) --
             // the closing (last recorded) reading_value is what the column shows for that day.
-            $closingReadingByPumpId = $dayReadings
-                ->groupBy('pump_id')
-                ->map(fn ($readings) => $readings->last()->reading_value);
+            $closingReadingByPumpId = $dayReadings->groupBy('pump_id')
+                ->map(fn ($readings) => (int) $readings->last()->reading_value);
 
-            $litersSold = (float) $dayReadings->sum('liters_sold');
+            foreach ($pumps as $pump) {
+                if ($closingReadingByPumpId->has($pump->id)) {
+                    $lastKnownReading[$pump->id] = $closingReadingByPumpId->get($pump->id);
+                }
+            }
+
             $governmentalLiters = (float) $dayReadings->sum('governmental_liters');
             $returnLiters = (float) $dayReadings->sum('return_liters');
-            $netLiters = round($litersSold - $governmentalLiters - $returnLiters, 3);
 
             $priceAtDay = $fuelType->priceAt($day->copy()->midDay());
             $amountSyp = $daySales->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
@@ -231,15 +266,18 @@ class PumpCounterReadingController extends Controller
             $row = [$dayKey];
 
             foreach ($pumps as $pump) {
-                $row[] = $closingReadingByPumpId->get($pump->id);
+                $row[] = $lastKnownReading[$pump->id] ?? null;
             }
 
-            $row[] = $litersSold > 0 ? round($litersSold, 3) : null;
-            $row[] = $governmentalLiters > 0 ? round($governmentalLiters, 3) : null;
-            $row[] = $returnLiters > 0 ? round($returnLiters, 3) : null;
-            $row[] = $litersSold > 0 ? $netLiters : null;
-            $row[] = $priceAtDay ? round((float) $priceAtDay->price_per_liter, 2) : null;
-            $row[] = $amountSyp > 0 ? round($amountSyp, 0) : null;
+            $row[] = "=SUM({$firstPumpCol}{$thisRow}:{$lastPumpCol}{$thisRow})";
+            $row[] = $i === 0
+                ? "={$totalCol}{$thisRow}-{$seedTotal}"
+                : "={$totalCol}{$thisRow}-{$totalCol}".($thisRow - 1);
+            $row[] = $governmentalLiters > 0 ? round($governmentalLiters, 0) : null;
+            $row[] = $returnLiters > 0 ? round($returnLiters, 0) : null;
+            $row[] = "={$soldCol}{$thisRow}-{$govCol}{$thisRow}-{$returnCol}{$thisRow}";
+            $row[] = $priceAtDay ? round((float) $priceAtDay->price_per_liter, 3) : null;
+            $row[] = $amountSyp > 0 ? round($amountSyp, 2) : null;
 
             $rows[] = $row;
         }
@@ -251,6 +289,7 @@ class PumpCounterReadingController extends Controller
             headers: [
                 $labels['date'],
                 ...$pumps->pluck('name'),
+                $labels['total'],
                 $labels['liters_sold'],
                 $labels['governmental'],
                 $labels['return'],
@@ -261,13 +300,9 @@ class PumpCounterReadingController extends Controller
             rows: $rows,
             direction: 'ltr',
             // array union (+), not spread (...), since spread silently renumbers integer keys.
-            columnFormats: array_fill_keys(range(1, $pumps->count()), '#,##0') + [
-                $pumps->count() + 1 => '#,##0.000',
-                $pumps->count() + 2 => '#,##0.000',
-                $pumps->count() + 3 => '#,##0.000',
-                $pumps->count() + 4 => '#,##0.000',
-                $pumps->count() + 5 => '#,##0.00',
-                $pumps->count() + 6 => '#,##0.00',
+            columnFormats: array_fill_keys(range(1, $pumpCount + 5), '#,##0') + [
+                $pumpCount + 6 => '#,##0.000',
+                $pumpCount + 7 => '#,##0.00',
             ],
         );
     }

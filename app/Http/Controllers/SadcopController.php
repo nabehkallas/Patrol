@@ -239,7 +239,7 @@ class SadcopController extends Controller
                 $purchaseTotal = (float) $deliveries->sum('amount');
 
                 $row[] = null;
-                $row[] = $liters > 0 ? round($liters, 3) : null;
+                $row[] = $liters > 0 ? round($liters, 0) : null;
                 $row[] = $liters > 0 ? round($purchaseTotal / $liters, 3) : null;
                 $row[] = $liters > 0 ? "={$volumeLetters[$fuelTypeIndex]}{$thisRow}*{$priceLetters[$fuelTypeIndex]}{$thisRow}" : null;
             }
@@ -255,7 +255,7 @@ class SadcopController extends Controller
         ];
 
         foreach ($volumeColumns as $col) {
-            $columnFormats[$col - 1] = '#,##0.000';
+            $columnFormats[$col - 1] = '#,##0';
         }
 
         foreach ($priceColumns as $col) {
