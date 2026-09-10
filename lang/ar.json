@@ -53,6 +53,7 @@
     "Profit margin updated.": "تم تحديث هامش الربح.",
     "Fuel price updated.": "تم تحديث سعر الوقود.",
     "Fuel price deleted.": "تم حذف سعر الوقود.",
+    ":count transaction(s) updated to match.": "تم تحديث :count معاملة لمطابقة السعر الجديد.",
     "Liters added to tank.": "تمت إضافة اللترات إلى الخزان.",
     "Debtor added.": "تمت إضافة المدين.",
     "Debtor updated.": "تم تحديث المدين.",

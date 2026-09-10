@@ -47,13 +47,16 @@ class FuelType extends Model
 
     /**
      * The price in effect on a given date — e.g. so a pump reading dated in the past is charged
-     * at the price that actually applied then, not whatever's current right now.
+     * at the price that actually applied then, not whatever's current right now. A date-only
+     * correction is stored at startOfDay(), so two corrections entered for the same date share
+     * an identical effective_at — id breaks the tie in entry order.
      */
     public function priceAt(CarbonInterface $date): ?FuelPrice
     {
         return $this->prices()
             ->effectiveAsOf($date)
             ->latest('effective_at')
+            ->latest('id')
             ->first();
     }
 }

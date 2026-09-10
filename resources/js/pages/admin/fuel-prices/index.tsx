@@ -1,5 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -22,6 +23,7 @@ import {
     index,
     profitMargin,
     store,
+    update,
 } from '@/routes/admin/fuel-prices';
 import type { Currency, FuelPrice, FuelType, Paginated } from '@/types';
 
@@ -72,11 +74,11 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelTypeOption }) {
                             )
                         }
                     />
-                    <span className="absolute inset-y-0 end-3 flex items-center text-sm text-muted-foreground">
+                    <span className="text-muted-foreground absolute inset-y-0 end-3 flex items-center text-sm">
                         %
                     </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     {t('fuel_prices.cost_price')}:{' '}
                     {costPrice !== null
                         ? `${formatNumber(costPrice, 3)} SYP`
@@ -95,6 +97,8 @@ export default function FuelPricesIndex() {
     const { fuelTypes, prices } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
+    const [editingId, setEditingId] = useState<number | null>(null);
+
     const form = useForm({
         fuel_type_id: String(fuelTypes[0]?.id ?? ''),
         price_per_liter: '',
@@ -104,9 +108,34 @@ export default function FuelPricesIndex() {
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url(), {
-            onSuccess: () => form.reset('price_per_liter'),
+
+        if (editingId !== null) {
+            form.patch(update.url(editingId), {
+                onSuccess: () => {
+                    setEditingId(null);
+                    form.reset();
+                },
+            });
+        } else {
+            form.post(store.url(), {
+                onSuccess: () => form.reset('price_per_liter'),
+            });
+        }
+    }
+
+    function edit(price: FuelPrice) {
+        setEditingId(price.id);
+        form.setData({
+            fuel_type_id: String(price.fuel_type_id),
+            price_per_liter: price.price_per_liter,
+            currency: price.currency,
+            effective_at: price.effective_at.slice(0, 10),
         });
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        form.reset();
     }
 
     function remove(price: FuelPrice) {
@@ -233,13 +262,25 @@ export default function FuelPricesIndex() {
                                     message={form.errors.effective_at}
                                 />
                             </div>
-                            <Button
-                                type="submit"
-                                disabled={form.processing}
-                                className="self-end"
-                            >
-                                {t('fuel_prices.save_price')}
-                            </Button>
+                            <div className="flex items-end gap-2">
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                >
+                                    {editingId !== null
+                                        ? t('common.save')
+                                        : t('fuel_prices.save_price')}
+                                </Button>
+                                {editingId !== null && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={cancelEdit}
+                                    >
+                                        {t('common.cancel')}
+                                    </Button>
+                                )}
+                            </div>
                         </form>
                     </CardContent>
                 </Card>
@@ -294,6 +335,13 @@ export default function FuelPricesIndex() {
                                         {price.set_by?.name}
                                     </td>
                                     <td className="px-4 py-2 text-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => edit(price)}
+                                        >
+                                            {t('common.edit')}
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"

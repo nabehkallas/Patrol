@@ -119,6 +119,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::get('fuel-prices', [FuelPriceController::class, 'index'])->name('fuel-prices.index');
         Route::post('fuel-prices', [FuelPriceController::class, 'store'])->name('fuel-prices.store');
+        Route::patch('fuel-prices/{fuelPrice}', [FuelPriceController::class, 'update'])->name('fuel-prices.update');
         Route::delete('fuel-prices/{fuelPrice}', [FuelPriceController::class, 'destroy'])->name('fuel-prices.destroy');
         Route::patch('fuel-prices/profit-margin/{fuelType}', [FuelPriceController::class, 'updateProfitMargin'])->name('fuel-prices.profit-margin');
 
