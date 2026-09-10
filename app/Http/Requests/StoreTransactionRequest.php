@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Currency;
 use App\Enums\DebtDirection;
+use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\FuelPump;
 use App\Models\Tank;
@@ -29,6 +30,7 @@ class StoreTransactionRequest extends FormRequest
             'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
             'occurred_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+            'other_income_category' => ['nullable', 'required_if:type,other_income', new Enum(OtherIncomeCategory::class)],
             'mark_as_debt' => ['nullable', 'boolean'],
             'debt_debtor_id' => ['nullable', 'required_if:mark_as_debt,1', 'exists:debtors,id'],
             'debt_direction' => ['nullable', new Enum(DebtDirection::class)],

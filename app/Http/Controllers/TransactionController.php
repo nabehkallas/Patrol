@@ -171,7 +171,7 @@ class TransactionController extends Controller
                 ...$transaction->only([
                     'id', 'type', 'fuel_type_id', 'tank_id', 'pump_id', 'liters', 'price_per_liter',
                     'description', 'amount', 'currency', 'to_currency', 'to_amount', 'exchange_rate_to_usd',
-                    'occurred_at', 'notes',
+                    'occurred_at', 'notes', 'other_income_category',
                 ]),
                 'debt' => $transaction->debt?->only(['debtor_id', 'direction']),
             ],

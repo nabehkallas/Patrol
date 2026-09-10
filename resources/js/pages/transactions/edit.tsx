@@ -23,6 +23,7 @@ import type {
     Currency,
     DebtDirection,
     Debtor,
+    OtherIncomeCategory,
     TankOption,
     Transaction,
     TransactionType,
@@ -93,6 +94,8 @@ export default function TransactionEdit() {
         exchange_rate_to_usd: transaction.exchange_rate_to_usd ?? '',
         occurred_at: transaction.occurred_at.slice(0, 10),
         notes: transaction.notes ?? '',
+        other_income_category: (transaction.other_income_category ??
+            'cash_box') as OtherIncomeCategory,
         mark_as_debt: transaction.debt != null,
         debt_debtor_id: String(
             transaction.debt?.debtor_id ?? debtors[0]?.id ?? '',
@@ -414,7 +417,7 @@ export default function TransactionEdit() {
                                         {t('common.liters')}
                                         {form.data.type === 'fuel_delivery' &&
                                             maxLiters !== undefined && (
-                                                <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                                <span className="text-muted-foreground ms-2 text-xs font-normal">
                                                     ({t('common.max')}:{' '}
                                                     {formatNumber(maxLiters)} L)
                                                 </span>
@@ -481,6 +484,50 @@ export default function TransactionEdit() {
                                 }
                             />
                             <InputError message={form.errors.description} />
+                        </div>
+                    )}
+
+                    {form.data.type === 'other_income' && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="other_income_category">
+                                {t('transactions.other_income_category')}
+                            </Label>
+                            <Select
+                                value={form.data.other_income_category}
+                                onValueChange={(value) =>
+                                    form.setData(
+                                        'other_income_category',
+                                        value as OtherIncomeCategory,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id="other_income_category"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="cash_box">
+                                        {t(
+                                            'transactions.other_income_category.cash_box',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem value="government">
+                                        {t(
+                                            'transactions.other_income_category.government',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem value="other">
+                                        {t(
+                                            'transactions.other_income_category.other',
+                                        )}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={form.errors.other_income_category}
+                            />
                         </div>
                     )}
 

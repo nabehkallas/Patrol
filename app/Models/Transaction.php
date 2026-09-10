@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Currency;
 use App\Enums\DebtStatus;
+use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'notes',
     'paid_by_sadcop',
     'is_governmental',
+    'other_income_category',
 ])]
 class Transaction extends Model
 {
@@ -48,6 +50,7 @@ class Transaction extends Model
             'occurred_at' => 'datetime',
             'paid_by_sadcop' => 'boolean',
             'is_governmental' => 'boolean',
+            'other_income_category' => OtherIncomeCategory::class,
         ];
     }
 

@@ -23,6 +23,7 @@ import type {
     Currency,
     DebtDirection,
     Debtor,
+    OtherIncomeCategory,
     TankOption,
     TransactionType,
 } from '@/types';
@@ -90,6 +91,7 @@ export default function TransactionCreate() {
         exchange_rate_to_usd: '',
         occurred_at: new Date().toISOString().slice(0, 10),
         notes: '',
+        other_income_category: 'cash_box' as OtherIncomeCategory,
         mark_as_debt: false,
         debt_debtor_id: String(debtors[0]?.id ?? ''),
         debt_direction: 'receivable' as DebtDirection,
@@ -398,7 +400,7 @@ export default function TransactionCreate() {
                                         {t('common.liters')}
                                         {form.data.type === 'fuel_delivery' &&
                                             selectedTank && (
-                                                <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                                <span className="text-muted-foreground ms-2 text-xs font-normal">
                                                     ({t('common.max')}:{' '}
                                                     {formatNumber(
                                                         selectedTank.remaining_liters,
@@ -433,7 +435,7 @@ export default function TransactionCreate() {
                                             {t('transactions.price_per_liter')}
                                             {form.data.type === 'fuel_sale' &&
                                                 selectedTank?.currentPrice && (
-                                                    <span className="ms-1 text-xs text-muted-foreground">
+                                                    <span className="text-muted-foreground ms-1 text-xs">
                                                         (default{' '}
                                                         {formatNumber(
                                                             selectedTank
@@ -484,6 +486,50 @@ export default function TransactionCreate() {
                                 }
                             />
                             <InputError message={form.errors.description} />
+                        </div>
+                    )}
+
+                    {form.data.type === 'other_income' && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="other_income_category">
+                                {t('transactions.other_income_category')}
+                            </Label>
+                            <Select
+                                value={form.data.other_income_category}
+                                onValueChange={(value) =>
+                                    form.setData(
+                                        'other_income_category',
+                                        value as OtherIncomeCategory,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id="other_income_category"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="cash_box">
+                                        {t(
+                                            'transactions.other_income_category.cash_box',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem value="government">
+                                        {t(
+                                            'transactions.other_income_category.government',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem value="other">
+                                        {t(
+                                            'transactions.other_income_category.other',
+                                        )}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={form.errors.other_income_category}
+                            />
                         </div>
                     )}
 
@@ -590,7 +636,7 @@ export default function TransactionCreate() {
                         <div className="grid gap-2">
                             <Label htmlFor="exchange_rate_to_usd">
                                 {t('transactions.exchange_rate')}
-                                <span className="ms-1 text-xs text-muted-foreground">
+                                <span className="text-muted-foreground ms-1 text-xs">
                                     (default{' '}
                                     {formatNumber(
                                         exchangeRates[form.data.currency],

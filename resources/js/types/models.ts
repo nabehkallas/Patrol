@@ -8,6 +8,8 @@ export type TransactionType =
     | 'purchase'
     | 'currency_exchange';
 
+export type OtherIncomeCategory = 'cash_box' | 'government' | 'other';
+
 export type UserRole = 'admin' | 'attendant';
 
 export type DebtStatus = 'outstanding' | 'settled';
@@ -100,6 +102,7 @@ export type Transaction = {
     exchange_rate_to_usd: string | null;
     occurred_at: string;
     notes: string | null;
+    other_income_category?: OtherIncomeCategory | null;
     user?: UserSummary;
     fuel_type?: FuelType | null;
     tank?: Tank | null;

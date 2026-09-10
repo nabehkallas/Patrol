@@ -205,6 +205,12 @@ const dictionary = {
         'transactions.type.expense': 'Expense',
         'transactions.type.purchase': 'Purchase',
         'transactions.type.currency_exchange': 'Currency exchange',
+        'transactions.other_income_category': 'Where does this money go?',
+        'transactions.other_income_category.cash_box':
+            'Cash box (ordinary sales)',
+        'transactions.other_income_category.government': 'Government',
+        'transactions.other_income_category.other':
+            "Other (doesn't affect cash box balance)",
         'transactions.price_per_liter': 'Price / liter',
         'transactions.description': 'Description',
         'transactions.exchange_rate': 'Exchange rate to USD',
@@ -702,6 +708,11 @@ const dictionary = {
         'transactions.type.expense': 'مصروف',
         'transactions.type.purchase': 'شراء',
         'transactions.type.currency_exchange': 'تحويل عملة',
+        'transactions.other_income_category': 'إلى أين تذهب هذه الأموال؟',
+        'transactions.other_income_category.cash_box': 'الصندوق (مبيعات عادية)',
+        'transactions.other_income_category.government': 'حكومي',
+        'transactions.other_income_category.other':
+            'أخرى (لا تؤثر على رصيد الصندوق)',
         'transactions.price_per_liter': 'السعر / لتر',
         'transactions.description': 'الوصف',
         'transactions.exchange_rate': 'سعر الصرف إلى الدولار',

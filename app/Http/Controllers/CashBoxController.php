@@ -6,6 +6,7 @@ use App\Concerns\GroupsByCurrency;
 use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
+use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\Debt;
 use App\Models\Debtor;
@@ -143,7 +144,12 @@ class CashBoxController extends Controller
      * "Government" ("بطاقة ذكية") is broken out from ordinary SYP sales because it isn't cash in
      * hand the same day — it's a debt payment received later from the government debtor — while
      * regular customer debt payments stay folded into ordinary sales, same as the dashboard's
-     * Cash Box totals treat them.
+     * Cash Box totals treat them. An Other Income transaction's own category (see
+     * OtherIncomeCategory) routes it the same way: "cash_box" (or no category, for entries
+     * predating this field) behaves like a fuel sale, "government" joins the Government column,
+     * and "other" gets its own column — still counted in the running balance, but kept out of
+     * Sold so it isn't mistaken for real sales. The Notes column surfaces those government/other
+     * entries' own notes, so a categorized amount stays explained without opening the app.
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
@@ -161,9 +167,24 @@ class CashBoxController extends Controller
             ->with(['debt', 'sadcopLedgerEntry'])
             ->get();
 
+        // An Other Income entry's category decides which column it lands in -- "cash_box" (or no
+        // category, for entries recorded before this existed) behaves exactly like a fuel sale;
+        // "government" joins government debt payments in the Government column; "other" gets its
+        // own column and still feeds the running balance, but is kept out of ordinary Sold so it
+        // doesn't get mistaken for real day-to-day sales revenue.
+        $isOtherCategory = fn (Transaction $t, OtherIncomeCategory $category) => $t->type === TransactionType::OtherIncome
+            && $t->other_income_category === $category;
+
         $incomeTransactions = $transactions
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $t) => $t->debt !== null);
+            ->reject(fn (Transaction $t) => $t->debt !== null)
+            ->reject(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government) || $isOtherCategory($t, OtherIncomeCategory::Other));
+
+        $governmentIncomeTransactions = $transactions
+            ->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government));
+
+        $otherCategoryTransactions = $transactions
+            ->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Other));
 
         $expenseTransactions = $transactions
             ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
@@ -201,7 +222,11 @@ class CashBoxController extends Controller
             ->with(['debt', 'sadcopLedgerEntry'])
             ->get();
 
-        $openingIncome = $openingTransactions->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])->reject(fn (Transaction $t) => $t->debt !== null);
+        $openingIncome = $openingTransactions->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
+            ->reject(fn (Transaction $t) => $t->debt !== null)
+            ->reject(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government) || $isOtherCategory($t, OtherIncomeCategory::Other));
+        $openingGovernmentIncome = $openingTransactions->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government));
+        $openingOtherCategory = $openingTransactions->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Other));
         $openingExpenseAll = $openingTransactions->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])->reject(fn (Transaction $t) => $t->debt !== null);
         $openingSadcop = $openingExpenseAll->filter($isSadcopPayment);
         $openingOtherExpense = $openingExpenseAll->reject($isSadcopPayment);
@@ -219,7 +244,8 @@ class CashBoxController extends Controller
 
         $openingSypBalance = $sumSyp($openingIncome, 'currency') + $sumSyp($openingCustomerReceivable, 'debt.currency')
             - (float) $openingSadcop->sum('amount')
-            + $sumSyp($openingGovernment, 'debt.currency')
+            + $sumSyp($openingGovernment, 'debt.currency') + $sumSyp($openingGovernmentIncome, 'currency')
+            + $sumSyp($openingOtherCategory, 'currency')
             - $sumSyp($openingOtherExpense, 'currency') - $sumSyp($openingPayable, 'debt.currency');
 
         $openingUsdBalance = -($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'debt.currency'));
@@ -227,6 +253,8 @@ class CashBoxController extends Controller
         $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item) => $item->{$dateField}->toDateString());
 
         $incomeByDay = $byDay($incomeTransactions, 'occurred_at');
+        $governmentIncomeByDay = $byDay($governmentIncomeTransactions, 'occurred_at');
+        $otherCategoryByDay = $byDay($otherCategoryTransactions, 'occurred_at');
         $sadcopByDay = $byDay($sadcopTransactions, 'occurred_at');
         $otherExpenseTxByDay = $byDay($otherExpenseTransactions, 'occurred_at');
         $customerReceivableByDay = $byDay($customerReceivablePayments, 'paid_at');
@@ -240,6 +268,7 @@ class CashBoxController extends Controller
             'sold_syp' => 'المباع بالسوري',
             'sadcop' => 'دفعات سادكوب',
             'government' => 'بطاقة ذكية',
+            'other_income' => 'دخل آخر',
             'cash_usd' => 'الصندوق بالدولار',
             'expense_syp' => 'مصروف سوري',
             'expense_usd' => 'مصروف دولار',
@@ -251,6 +280,7 @@ class CashBoxController extends Controller
             'sold_syp' => 'Sold (SYP)',
             'sadcop' => 'Sadcop Payments',
             'government' => 'Government',
+            'other_income' => 'Other Income',
             'cash_usd' => 'Cash Box (USD)',
             'expense_syp' => 'Expense (SYP)',
             'expense_usd' => 'Expense (USD)',
@@ -259,17 +289,18 @@ class CashBoxController extends Controller
 
         $headerRow = [
             $labels['date'], $labels['cash_syp'], $labels['sold_syp'], $labels['sadcop'],
-            $labels['government'], $labels['cash_usd'], $labels['expense_syp'], $labels['expense_usd'],
-            $labels['notes'],
+            $labels['government'], $labels['other_income'], $labels['cash_usd'], $labels['expense_syp'],
+            $labels['expense_usd'], $labels['notes'],
         ];
 
         $cashSypCol = 'B';
         $soldSypCol = 'C';
         $sadcopCol = 'D';
         $governmentCol = 'E';
-        $cashUsdCol = 'F';
-        $expenseSypCol = 'G';
-        $expenseUsdCol = 'H';
+        $otherIncomeCol = 'F';
+        $cashUsdCol = 'G';
+        $expenseSypCol = 'H';
+        $expenseUsdCol = 'I';
 
         $rows = [];
         $firstDataRow = 5; // title, subtitle, blank, header, then data
@@ -281,18 +312,26 @@ class CashBoxController extends Controller
             $soldSyp = $sumSyp($incomeByDay->get($dayKey, collect()), 'currency')
                 + $sumSyp($customerReceivableByDay->get($dayKey, collect()), 'debt.currency');
             $sadcopSyp = (float) $sadcopByDay->get($dayKey, collect())->sum('amount');
-            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'debt.currency');
+            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'debt.currency')
+                + $sumSyp($governmentIncomeByDay->get($dayKey, collect()), 'currency');
+            $otherIncomeSyp = $sumSyp($otherCategoryByDay->get($dayKey, collect()), 'currency');
             $expenseSyp = $sumSyp($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
                 + $sumSyp($payableByDay->get($dayKey, collect()), 'debt.currency');
             $expenseUsd = $sumUsd($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
                 + $sumUsd($payableByDay->get($dayKey, collect()), 'debt.currency');
+
+            $notes = $governmentIncomeByDay->get($dayKey, collect())
+                ->concat($otherCategoryByDay->get($dayKey, collect()))
+                ->pluck('notes')
+                ->filter()
+                ->implode('; ');
 
             if ($i === 0) {
                 $cashSypCell = round($openingSypBalance, 0);
                 $cashUsdCell = round($openingUsdBalance, 2);
             } else {
                 $previousRow = $thisRow - 1;
-                $cashSypCell = "={$cashSypCol}{$previousRow}+{$soldSypCol}{$previousRow}-{$sadcopCol}{$previousRow}+{$governmentCol}{$previousRow}-{$expenseSypCol}{$previousRow}";
+                $cashSypCell = "={$cashSypCol}{$previousRow}+{$soldSypCol}{$previousRow}-{$sadcopCol}{$previousRow}+{$governmentCol}{$previousRow}+{$otherIncomeCol}{$previousRow}-{$expenseSypCol}{$previousRow}";
                 $cashUsdCell = "={$cashUsdCol}{$previousRow}-{$expenseUsdCol}{$previousRow}";
             }
 
@@ -302,10 +341,11 @@ class CashBoxController extends Controller
                 $soldSyp > 0 ? round($soldSyp, 0) : null,
                 $sadcopSyp > 0 ? round($sadcopSyp, 0) : null,
                 $governmentSyp > 0 ? round($governmentSyp, 0) : null,
+                $otherIncomeSyp > 0 ? round($otherIncomeSyp, 0) : null,
                 $cashUsdCell,
                 $expenseSyp > 0 ? round($expenseSyp, 0) : null,
                 $expenseUsd > 0 ? round($expenseUsd, 2) : null,
-                null,
+                $notes !== '' ? $notes : null,
             ];
         }
 
