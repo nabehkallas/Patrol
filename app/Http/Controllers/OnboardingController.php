@@ -117,17 +117,20 @@ class OnboardingController extends Controller
     public function storePumpReadings(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'date' => ['nullable', 'date'],
             'readings' => ['required', 'array'],
             'readings.*.pump_id' => ['required', 'exists:fuel_pumps,id'],
             'readings.*.tank_id' => ['required', 'exists:tanks,id'],
             'readings.*.reading_value' => ['required', 'integer', 'min:0'],
         ]);
 
+        $date = $data['date'] ?? now()->toDateString();
+
         foreach ($data['readings'] as $reading) {
             PumpCounterReading::create([
                 'pump_id' => $reading['pump_id'],
                 'tank_id' => $reading['tank_id'],
-                'date' => now()->toDateString(),
+                'date' => $date,
                 'reading_value' => $reading['reading_value'],
                 'recorded_by_id' => $request->user()->id,
                 'notes' => __('Initial setup reading'),

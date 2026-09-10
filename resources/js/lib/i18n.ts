@@ -488,6 +488,7 @@ const dictionary = {
         'wizard.pump_readings_title': 'Starting counter reading per pump',
         'wizard.pump_readings_description':
             "Each pump's current physical meter reading.",
+        'wizard.pump_readings_date': 'As of date',
         'wizard.no_pumps':
             'No pumps yet — add them in Admin → Fuel Pumps first, then come back here.',
         'wizard.tank_placeholder': 'Tank',
@@ -985,6 +986,7 @@ const dictionary = {
         'wizard.pump_readings_title': 'قراءة العداد الابتدائية لكل مضخة',
         'wizard.pump_readings_description':
             'قراءة العداد الفعلية الحالية لكل مضخة.',
+        'wizard.pump_readings_date': 'كما في تاريخ',
         'wizard.no_pumps':
             'لا توجد مضخات بعد — أضفها من الإدارة ← مضخات الوقود أولاً، ثم عد إلى هنا.',
         'wizard.tank_placeholder': 'الخزان',

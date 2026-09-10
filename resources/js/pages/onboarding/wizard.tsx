@@ -157,7 +157,7 @@ function TankLevelsSection({ tanks }: { tanks: Tank[] }) {
             </CardHeader>
             <CardContent className="space-y-4">
                 {tanks.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('wizard.no_tanks')}
                     </p>
                 )}
@@ -211,8 +211,9 @@ function PumpReadingsSection({
 }) {
     const { t } = useTranslation();
     const form = useForm<{
+        date: string;
         readings: Record<number, { reading_value: string; tank_id: string }>;
-    }>({ readings: {} });
+    }>({ date: new Date().toISOString().slice(0, 10), readings: {} });
 
     function setField(
         pumpId: number,
@@ -246,7 +247,7 @@ function PumpReadingsSection({
             return;
         }
 
-        form.transform(() => ({ readings }));
+        form.transform((data) => ({ date: data.date, readings }));
         form.post(pumpReadings.url(), {
             preserveScroll: true,
             onSuccess: () => form.reset(),
@@ -263,12 +264,25 @@ function PumpReadingsSection({
             </CardHeader>
             <CardContent className="space-y-4">
                 {pumps.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('wizard.no_pumps')}
                     </p>
                 )}
                 {pumps.length > 0 && (
                     <form onSubmit={submit} className="space-y-3">
+                        <div className="grid max-w-56 gap-2">
+                            <Label htmlFor="pump_readings_date">
+                                {t('wizard.pump_readings_date')}
+                            </Label>
+                            <Input
+                                id="pump_readings_date"
+                                type="date"
+                                value={form.data.date}
+                                onChange={(e) =>
+                                    form.setData('date', e.target.value)
+                                }
+                            />
+                        </div>
                         {pumps.map((pump) => {
                             const availableTanks =
                                 pump.fuel_type_ids.length > 0
@@ -406,7 +420,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
             </CardHeader>
             <CardContent className="space-y-4">
                 {fuelTypes.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('wizard.no_fuel_types')}
                     </p>
                 )}
@@ -613,7 +627,7 @@ export default function OnboardingWizard() {
                         <h1 className="text-lg font-semibold">
                             {t('wizard.heading')}
                         </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             {t('wizard.intro')}
                         </p>
                     </div>
