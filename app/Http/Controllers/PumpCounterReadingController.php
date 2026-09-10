@@ -293,7 +293,12 @@ class PumpCounterReadingController extends Controller
             }
 
             $row[] = "=SUM({$firstPumpCol}{$thisRow}:{$lastPumpCol}{$thisRow})";
-            $row[] = "={$totalCol}{$thisRow}-{$totalCol}{$previousRow}";
+            // A baseline reading (the row right after an empty seed/no prior total) isn't a real
+            // sales day -- it's establishing where the counter starts -- so its own cumulative
+            // value must not be read as "liters sold that day". Guarded on the previous row's
+            // Total being 0 rather than on which row this is, so it's correct however many
+            // baseline-only rows come before real daily entries start.
+            $row[] = "=IF({$totalCol}{$previousRow}=0,0,{$totalCol}{$thisRow}-{$totalCol}{$previousRow})";
             $row[] = $governmentalLiters > 0 ? round($governmentalLiters, 0) : null;
             $row[] = $returnLiters > 0 ? round($returnLiters, 0) : null;
             $row[] = "={$soldCol}{$thisRow}-{$govCol}{$thisRow}-{$returnCol}{$thisRow}";
