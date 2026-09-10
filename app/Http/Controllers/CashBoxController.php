@@ -134,10 +134,11 @@ class CashBoxController extends Controller
      * Both balance columns are real Excel formulas, carried forward from the *previous* row's
      * complete activity (same pattern as the Sadcop export's المدور column) — a day's own sales/
      * payments/expenses appear in its own row but only affect the *next* row's balance. Unlike
-     * Sadcop, this app has no stored "opening cash balance" concept for Cash Box at all (it only
-     * ever computes income/expense totals for a range, never an absolute balance), so the first
-     * row's balance cells are left blank for the actual starting cash amount to be typed in by
-     * hand — exactly like starting a fresh ledger sheet.
+     * Sadcop, this app has no dedicated "opening cash balance" feature for Cash Box — instead the
+     * starting balance is whatever Other Income entry was recorded when the station started using
+     * this, which the first row's seed picks up automatically: the same category totals as every
+     * other row, just summed across all of history strictly before the export's start date rather
+     * than grouped by day.
      *
      * "Government" ("بطاقة ذكية") is broken out from ordinary SYP sales because it isn't cash in
      * hand the same day — it's a debt payment received later from the government debtor — while
@@ -186,9 +187,44 @@ class CashBoxController extends Controller
         $governmentPayments = $receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
         $customerReceivablePayments = $receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
 
-        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item) => $item->{$dateField}->toDateString());
         $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'SYP')->sum('amount');
         $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'USD')->sum('amount');
+
+        // The seed for row 1: there's no dedicated "opening balance" feature for Cash Box, but a
+        // starting balance recorded as an ordinary Other Income entry (the station's own
+        // workaround) is picked up automatically here, the same way it would be for any other
+        // day -- summing every category below across all of history strictly before $from, using
+        // the identical rules the per-day figures use.
+        $openingTransactions = Transaction::query()
+            ->where('occurred_at', '<', $from->copy()->startOfDay())
+            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
+            ->with(['debt', 'sadcopLedgerEntry'])
+            ->get();
+
+        $openingIncome = $openingTransactions->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])->reject(fn (Transaction $t) => $t->debt !== null);
+        $openingExpenseAll = $openingTransactions->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])->reject(fn (Transaction $t) => $t->debt !== null);
+        $openingSadcop = $openingExpenseAll->filter($isSadcopPayment);
+        $openingOtherExpense = $openingExpenseAll->reject($isSadcopPayment);
+
+        $openingDebtPayments = DebtPayment::query()
+            ->whereDate('paid_at', '<', $from->toDateString())
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
+            ->with('debt')
+            ->get();
+
+        $openingReceivable = $openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
+        $openingPayable = $openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable);
+        $openingGovernment = $openingReceivable->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+        $openingCustomerReceivable = $openingReceivable->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+
+        $openingSypBalance = $sumSyp($openingIncome, 'currency') + $sumSyp($openingCustomerReceivable, 'debt.currency')
+            - (float) $openingSadcop->sum('amount')
+            + $sumSyp($openingGovernment, 'debt.currency')
+            - $sumSyp($openingOtherExpense, 'currency') - $sumSyp($openingPayable, 'debt.currency');
+
+        $openingUsdBalance = -($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'debt.currency'));
+
+        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item) => $item->{$dateField}->toDateString());
 
         $incomeByDay = $byDay($incomeTransactions, 'occurred_at');
         $sadcopByDay = $byDay($sadcopTransactions, 'occurred_at');
@@ -252,8 +288,8 @@ class CashBoxController extends Controller
                 + $sumUsd($payableByDay->get($dayKey, collect()), 'debt.currency');
 
             if ($i === 0) {
-                $cashSypCell = null;
-                $cashUsdCell = null;
+                $cashSypCell = round($openingSypBalance, 0);
+                $cashUsdCell = round($openingUsdBalance, 2);
             } else {
                 $previousRow = $thisRow - 1;
                 $cashSypCell = "={$cashSypCol}{$previousRow}+{$soldSypCol}{$previousRow}-{$sadcopCol}{$previousRow}+{$governmentCol}{$previousRow}-{$expenseSypCol}{$previousRow}";
