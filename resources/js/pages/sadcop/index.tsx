@@ -312,6 +312,7 @@ export default function SadcopIndex() {
                                         {entry.price_per_liter !== null
                                             ? formatNumber(
                                                   entry.price_per_liter,
+                                                  3,
                                               )
                                             : '—'}
                                     </td>
