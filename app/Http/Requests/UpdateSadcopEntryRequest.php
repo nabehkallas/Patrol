@@ -18,6 +18,7 @@ class UpdateSadcopEntryRequest extends FormRequest
         return match ($entry->type) {
             SadcopLedgerEntryType::Opening => [
                 'amount' => ['required', 'numeric', 'min:1'],
+                'occurred_at' => ['nullable', 'date'],
                 'notes' => ['nullable', 'string'],
             ],
             SadcopLedgerEntryType::Deposit => [

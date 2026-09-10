@@ -9,6 +9,7 @@ import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -60,7 +61,10 @@ export default function SadcopIndex() {
         delivery: t('sadcop.type.delivery'),
     };
 
-    const openingForm = useForm({ amount: '' });
+    const openingForm = useForm({
+        amount: '',
+        occurred_at: new Date().toISOString().slice(0, 10),
+    });
 
     function submitOpeningBalance(event: FormEvent) {
         event.preventDefault();
@@ -119,6 +123,26 @@ export default function SadcopIndex() {
                                 />
                                 <InputError
                                     message={openingForm.errors.amount}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="occurred_at">
+                                    {t('sadcop.opening_balance_as_of')}
+                                </Label>
+                                <Input
+                                    id="occurred_at"
+                                    type="date"
+                                    value={openingForm.data.occurred_at}
+                                    onChange={(e) =>
+                                        openingForm.setData(
+                                            'occurred_at',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={openingForm.errors.occurred_at}
                                 />
                             </div>
 

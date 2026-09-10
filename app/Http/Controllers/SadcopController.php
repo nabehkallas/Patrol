@@ -250,7 +250,7 @@ class SadcopController extends Controller
             'type' => SadcopLedgerEntryType::Opening,
             'amount' => $data['amount'],
             'recorded_by_id' => $request->user()->id,
-            'occurred_at' => now(),
+            'occurred_at' => $data['occurred_at'] ?? now(),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Opening balance set.')]);
@@ -410,6 +410,7 @@ class SadcopController extends Controller
             match ($entry->type) {
                 SadcopLedgerEntryType::Opening => $entry->update([
                     'amount' => $data['amount'],
+                    'occurred_at' => $data['occurred_at'] ?? $entry->occurred_at,
                     'notes' => $data['notes'] ?? null,
                 ]),
                 SadcopLedgerEntryType::Deposit => $this->applyDepositUpdate($entry, $data),

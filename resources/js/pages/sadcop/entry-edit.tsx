@@ -181,22 +181,22 @@ export default function SadcopEntryEdit() {
                         <InputError message={form.errors.amount} />
                     </div>
 
-                    {!isOpening && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="occurred_at">
-                                {t('common.date')}
-                            </Label>
-                            <Input
-                                id="occurred_at"
-                                type="date"
-                                value={form.data.occurred_at}
-                                onChange={(e) =>
-                                    form.setData('occurred_at', e.target.value)
-                                }
-                            />
-                            <InputError message={form.errors.occurred_at} />
-                        </div>
-                    )}
+                    <div className="grid gap-2">
+                        <Label htmlFor="occurred_at">
+                            {isOpening
+                                ? t('sadcop.opening_balance_as_of')
+                                : t('common.date')}
+                        </Label>
+                        <Input
+                            id="occurred_at"
+                            type="date"
+                            value={form.data.occurred_at}
+                            onChange={(e) =>
+                                form.setData('occurred_at', e.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.occurred_at} />
+                    </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="notes">{t('common.notes')}</Label>

@@ -74,14 +74,17 @@ class OnboardingController extends Controller
 
     public function storeSadcopOpeningBalance(Request $request): RedirectResponse
     {
-        $data = $request->validate(['amount' => ['required', 'numeric', 'min:0']]);
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0'],
+            'occurred_at' => ['nullable', 'date'],
+        ]);
 
         if (SadcopLedgerEntry::query()->doesntExist()) {
             SadcopLedgerEntry::create([
                 'type' => SadcopLedgerEntryType::Opening,
                 'amount' => $data['amount'],
                 'recorded_by_id' => $request->user()->id,
-                'occurred_at' => now(),
+                'occurred_at' => $data['occurred_at'] ?? now(),
             ]);
         }
 

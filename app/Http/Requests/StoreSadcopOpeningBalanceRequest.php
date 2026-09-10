@@ -10,6 +10,7 @@ class StoreSadcopOpeningBalanceRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'numeric', 'min:0'],
+            'occurred_at' => ['nullable', 'date'],
         ];
     }
 }

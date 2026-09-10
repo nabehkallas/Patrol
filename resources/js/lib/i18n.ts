@@ -322,6 +322,7 @@ const dictionary = {
         'sadcop.save_delivery': 'Save delivery',
         'sadcop.amount_syp': 'Amount (SYP)',
         'sadcop.opening_balance': 'Opening balance (SYP)',
+        'sadcop.opening_balance_as_of': 'Opening balance as of',
         'sadcop.opening_balance_description':
             "Before you can use the Sadcop tab, set Sadcop's current balance (in Syrian Pounds)",
         'sadcop.save_opening_balance': 'Save opening balance',
@@ -811,6 +812,7 @@ const dictionary = {
             'نقل مبلغ من رصيد المحطة إلى رصيد سادكوب',
         'sadcop.amount_syp': 'المبلغ (ليرة سورية)',
         'sadcop.opening_balance': 'الرصيد الافتتاحي (ليرة سورية)',
+        'sadcop.opening_balance_as_of': 'الرصيد الافتتاحي كما في تاريخ',
         'sadcop.opening_balance_description':
             'قبل استخدام تبويب سادكوب، يرجى تحديد رصيد سادكوب الحالي (بالليرة السورية)',
         'sadcop.save_opening_balance': 'حفظ الرصيد الافتتاحي',
