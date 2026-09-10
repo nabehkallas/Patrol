@@ -193,6 +193,8 @@ class StatisticsController extends Controller
             ->whereDate('date', '<=', $to->toDateString())
             ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
             ->with('debtor')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
             ->get()
             ->map(fn (Debt $debt) => [
                 'id' => $debt->id,
@@ -209,6 +211,8 @@ class StatisticsController extends Controller
             ->where('paid_at', '<=', $to->copy()->endOfDay())
             ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
             ->with('debt.debtor')
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
             ->get()
             ->map(fn (DebtPayment $payment) => [
                 'id' => $payment->id,

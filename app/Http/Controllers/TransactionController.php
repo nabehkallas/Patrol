@@ -272,7 +272,9 @@ class TransactionController extends Controller
             return;
         }
 
-        $baselineQuery = PumpCounterReading::where('pump_id', $transaction->pump_id)->latest('id');
+        $baselineQuery = PumpCounterReading::where('pump_id', $transaction->pump_id)
+            ->orderByDesc('date')
+            ->orderByDesc('id');
 
         if ($existing) {
             $baselineQuery->where('id', '!=', $existing->id);

@@ -48,6 +48,7 @@ class ShopController extends Controller
             ->with(['shopItem', 'user'])
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->latest('occurred_at')
             ->latest('id')
             ->get();
 
@@ -248,6 +249,7 @@ class ShopController extends Controller
             ->with(['shopItem', 'user'])
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->latest('occurred_at')
             ->latest('id')
             ->get()
             ->map(fn (Transaction $transaction) => [

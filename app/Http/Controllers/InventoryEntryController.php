@@ -32,15 +32,18 @@ class InventoryEntryController extends Controller
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
             'entries' => InventoryEntry::with(['tank.fuelType', 'recordedBy'])
                 ->latest('date')
+                ->latest('id')
                 ->paginate(25),
             'topUps' => TankTopUp::with(['tank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)
+                ->latest('date')
                 ->latest('id')
                 ->get(),
             'transfers' => TankTransfer::with(['fromTank.fuelType', 'toTank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)
+                ->latest('date')
                 ->latest('id')
                 ->get(),
             'historyFrom' => $from->toDateString(),
@@ -52,7 +55,7 @@ class InventoryEntryController extends Controller
     {
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
-        $entries = InventoryEntry::with(['tank.fuelType', 'recordedBy'])->latest('date')->get();
+        $entries = InventoryEntry::with(['tank.fuelType', 'recordedBy'])->latest('date')->latest('id')->get();
 
         $labels = app()->getLocale() === 'ar' ? [
             'title' => 'سجل المخزون',
@@ -97,6 +100,7 @@ class InventoryEntryController extends Controller
         $topUps = TankTopUp::with(['tank.fuelType', 'recordedBy'])
             ->whereDate('date', '>=', $from)
             ->whereDate('date', '<=', $to)
+            ->latest('date')
             ->latest('id')
             ->get();
 

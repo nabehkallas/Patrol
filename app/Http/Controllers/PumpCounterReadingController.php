@@ -33,7 +33,7 @@ class PumpCounterReadingController extends Controller
 
         $pumps = FuelPump::with('fuelTypes')->orderBy('name')->get()
             ->map(function (FuelPump $pump) use ($date) {
-                $latest = $pump->counterReadings()->latest('id')->first();
+                $latest = $pump->counterReadings()->orderByDesc('date')->orderByDesc('id')->first();
                 $dailyLiters = (float) $pump->counterReadings()
                     ->whereDate('date', $date)
                     ->sum('liters_sold');
