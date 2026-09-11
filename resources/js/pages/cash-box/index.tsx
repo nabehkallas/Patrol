@@ -170,11 +170,23 @@ function StatCard({
     );
 }
 
-function BreakdownRow({ label, value }: { label: string; value: string }) {
+function BreakdownRow({
+    label,
+    value,
+    bold,
+}: {
+    label: string;
+    value: string;
+    bold?: boolean;
+}) {
     return (
         <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-medium">{value}</span>
+            <span className={bold ? 'font-semibold' : 'text-muted-foreground'}>
+                {label}
+            </span>
+            <span className={bold ? 'font-semibold' : 'font-medium'}>
+                {value}
+            </span>
         </div>
     );
 }
@@ -469,38 +481,37 @@ export default function CashBoxIndex() {
                         breakdownLabel={t('cash_box.income_breakdown')}
                         breakdown={
                             <>
-                                <p className="text-muted-foreground text-xs font-semibold">
-                                    {t('cash_box.fuel_sales')}
-                                </p>
-                                {totals.income_by_source_syp.fuel_sales_by_type.map(
-                                    (row) => (
-                                        <div
-                                            key={row.name}
-                                            className="space-y-0.5"
-                                        >
-                                            <BreakdownRow
-                                                label={row.name}
-                                                value={formatSyp(
-                                                    row.revenue_syp,
-                                                )}
-                                            />
-                                            <p className="text-muted-foreground text-end text-xs">
-                                                {formatNumber(row.liters)} L ×{' '}
-                                                {formatSyp(row.unit_price_syp)}
-                                            </p>
-                                        </div>
-                                    ),
-                                )}
-                                {totals.income_by_source_syp.fuel_sales_by_type
-                                    .length === 0 && (
-                                    <BreakdownRow
-                                        label={t('cash_box.fuel_sales')}
-                                        value={formatSyp(
-                                            totals.income_by_source_syp
-                                                .fuel_sales,
-                                        )}
-                                    />
-                                )}
+                                <BreakdownRow
+                                    bold
+                                    label={t('cash_box.total_fuel_sales')}
+                                    value={formatSyp(
+                                        totals.income_by_source_syp.fuel_sales,
+                                    )}
+                                />
+                                <div className="border-border space-y-1.5 border-s ps-3">
+                                    {totals.income_by_source_syp.fuel_sales_by_type.map(
+                                        (row) => (
+                                            <div
+                                                key={row.name}
+                                                className="space-y-0.5"
+                                            >
+                                                <BreakdownRow
+                                                    label={row.name}
+                                                    value={formatSyp(
+                                                        row.revenue_syp,
+                                                    )}
+                                                />
+                                                <p className="text-muted-foreground text-end text-xs">
+                                                    {formatNumber(row.liters)} L
+                                                    ×{' '}
+                                                    {formatSyp(
+                                                        row.unit_price_syp,
+                                                    )}
+                                                </p>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
                                 <BreakdownRow
                                     label={t('cash_box.store_income')}
                                     value={formatSyp(
