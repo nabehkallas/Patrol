@@ -74,32 +74,16 @@ function otherCurrencies(
     return Array.from(found);
 }
 
-type Accent = 'indigo' | 'emerald' | 'rose' | 'amber';
+type Accent = 'blue' | 'green' | 'red' | 'amber';
 
-const ACCENT_CLASSES: Record<
-    Accent,
-    { icon: string; value: string; bar: string }
-> = {
-    indigo: {
-        icon: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400',
-        value: 'text-indigo-600 dark:text-indigo-400',
-        bar: 'bg-indigo-500',
-    },
-    emerald: {
-        icon: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
-        value: 'text-emerald-600 dark:text-emerald-400',
-        bar: 'bg-emerald-500',
-    },
-    rose: {
-        icon: 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400',
-        value: 'text-rose-600 dark:text-rose-400',
-        bar: 'bg-rose-500',
-    },
-    amber: {
-        icon: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
-        value: 'text-amber-600 dark:text-amber-400',
-        bar: 'bg-amber-500',
-    },
+/** Solid fill for each summary card -- deliberately hardcoded (not the app's theme tokens)
+ * per an explicit design spec calling for solid colored cards with white text, distinct from
+ * the rest of the page which still follows the theme's light/dark surface colors. */
+const ACCENT_BG: Record<Accent, string> = {
+    blue: 'bg-blue-600 dark:bg-blue-700',
+    green: 'bg-green-600 dark:bg-green-700',
+    red: 'bg-red-600 dark:bg-red-700',
+    amber: 'bg-amber-600 dark:bg-amber-700',
 };
 
 function StatCard({
@@ -122,19 +106,14 @@ function StatCard({
     children?: ReactNode;
 }) {
     const { t } = useTranslation();
-    const classes = ACCENT_CLASSES[accent];
 
     return (
-        <Card className="relative overflow-hidden py-0">
-            <div
-                className={`absolute inset-x-0 top-0 h-1 ${classes.bar}`}
-                aria-hidden
-            />
+        <Card
+            className={`overflow-hidden rounded-xl border-0 py-0 ${ACCENT_BG[accent]}`}
+        >
             <CardContent className="space-y-3 pt-5">
                 <div className="flex items-start justify-between gap-3">
-                    <div
-                        className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${classes.icon}`}
-                    >
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
                         {icon}
                     </div>
                     {breakdown && (
@@ -142,7 +121,7 @@ function StatCard({
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    className="text-muted-foreground hover:text-foreground text-xs underline decoration-dotted underline-offset-4"
+                                    className="text-xs text-white/80 underline decoration-dotted underline-offset-4 hover:text-white"
                                 >
                                     {t('cash_box.view_breakdown')}
                                 </button>
@@ -161,12 +140,10 @@ function StatCard({
                 </div>
 
                 <div>
-                    <p className="text-muted-foreground text-sm">{label}</p>
-                    <p className={`text-2xl font-bold ${classes.value}`}>
-                        {value}
-                    </p>
+                    <p className="text-sm text-white">{label}</p>
+                    <p className="text-2xl font-bold text-white">{value}</p>
                     {subtitle && (
-                        <p className="text-muted-foreground mt-0.5 text-xs">
+                        <p className="mt-0.5 text-xs text-white/80">
                             {subtitle}
                         </p>
                     )}
@@ -558,14 +535,14 @@ export default function CashBoxIndex() {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
-                        accent="indigo"
+                        accent="blue"
                         icon={<Wallet className="size-5" />}
                         label={t('cash_box.opening_balance')}
                         value={formatSyp(openingBalance.SYP)}
                     />
 
                     <StatCard
-                        accent="emerald"
+                        accent="green"
                         icon={<TrendingUp className="size-5" />}
                         label={t('cash_box.total_income')}
                         value={formatSyp(totals.income.SYP)}
@@ -626,7 +603,7 @@ export default function CashBoxIndex() {
                     />
 
                     <StatCard
-                        accent="rose"
+                        accent="red"
                         icon={<TrendingDown className="size-5" />}
                         label={t('cash_box.total_outflow')}
                         value={formatSyp(
@@ -693,12 +670,12 @@ export default function CashBoxIndex() {
                         label={t('cash_box.current_balance')}
                         value={formatSyp(openingBalance.SYP + totals.net.SYP)}
                     >
-                        <div className="space-y-1 border-t pt-2">
+                        <div className="space-y-1 border-t border-white/25 pt-2">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
+                                <span className="text-white/80">
                                     {t('dashboard.debts')}
                                 </span>
-                                <span className="font-medium">
+                                <span className="font-medium text-white">
                                     {formatSyp(totals.debts.SYP)}
                                 </span>
                             </div>
