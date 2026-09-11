@@ -36,15 +36,20 @@ class CashBoxController extends Controller
         $isAdmin = $user->isAdmin();
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
+        // Opening balance: this app has no stored "starting cash balance" concept for Cash Box
+        // (unlike Sadcop's ledger) -- it's derived the same way the XLSX export seeds its first
+        // row, just reusing summarize() itself rather than duplicating its categorization rules:
+        // summarize()'s own "net" for everything strictly before the range IS the balance carried
+        // into it, since net is already (income - expenses + exchanged - sadcop) by definition.
+        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), $isAdmin, $user->id, $sypRate)['net'];
+
         return Inertia::render('cash-box/index', [
             'filters' => [
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
-            'cashBox' => [
-                'period' => $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate),
-                'today' => $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate),
-            ],
+            'cashBox' => $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate),
+            'openingBalance' => $openingBalance,
             'history' => $this->historyEntries($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id),
         ]);
     }
@@ -430,6 +435,15 @@ class CashBoxController extends Controller
         $incomeBreakdown = $this->byCurrency($incomeTransactions->concat($receivablePayments));
         $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions->concat($payablePayments));
 
+        // Income by source (SYP only, mirroring sadcop_expense_syp's precedent) -- for the
+        // dashboard's income breakdown popover, not used by the PDF/XLSX exports' existing
+        // shape, so this is additive rather than a change to what income/incomeBreakdown mean.
+        $incomeBySourceSyp = [
+            'fuel_sales' => round($incomeTransactions->where('type', TransactionType::FuelSale)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'debt_collections' => round($receivablePayments->sum(fn ($p) => $p->currency === Currency::SYP ? $p->amount : 0), 0),
+        ];
+
         $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
         $exchangedBreakdown = $this->exchangedByCurrency($exchangeTransactions);
 
@@ -452,6 +466,7 @@ class CashBoxController extends Controller
 
         return [
             'income' => $incomeBreakdown,
+            'income_by_source_syp' => $incomeBySourceSyp,
             'sadcop_expense_syp' => round($sadcopExpenseSyp, 0),
             'other_expense' => $otherExpenseBreakdown,
             'exchanged' => $exchangedBreakdown,

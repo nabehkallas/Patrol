@@ -77,8 +77,26 @@ export default function TransactionCreate() {
         currency_exchange: t('transactions.type.currency_exchange'),
     };
 
+    // Quick-action links (e.g. Cash Box's "Cash In"/"Cash Out" buttons) can jump straight to a
+    // given type via ?type=..., instead of always landing on the default and making the user
+    // switch it themselves.
+    const requestedType = new URLSearchParams(window.location.search).get(
+        'type',
+    );
+    const validTypes: TransactionType[] = [
+        'fuel_sale',
+        'fuel_delivery',
+        'other_income',
+        'expense',
+        'purchase',
+        'currency_exchange',
+    ];
+    const initialType = validTypes.includes(requestedType as TransactionType)
+        ? (requestedType as TransactionType)
+        : 'fuel_sale';
+
     const form = useForm({
-        type: 'fuel_sale' as TransactionType,
+        type: initialType,
         tank_id: String(tanks[0]?.id ?? ''),
         pump_id: String(pumps[0]?.id ?? ''),
         liters: '',

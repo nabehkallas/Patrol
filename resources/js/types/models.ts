@@ -232,6 +232,11 @@ export type DebtsSummary = {
 
 export type CashBoxSummary = {
     income: CurrencyBreakdown;
+    income_by_source_syp: {
+        fuel_sales: number;
+        store_income: number;
+        debt_collections: number;
+    };
     sadcop_expense_syp: number;
     other_expense: CurrencyBreakdown;
     exchanged: Partial<Record<Currency, number>>;
@@ -240,11 +245,6 @@ export type CashBoxSummary = {
     liters_sold_by_fuel_type: FuelTypeLiters[];
     debts: CurrencyBreakdown;
     debts_liters_sold: number;
-};
-
-export type CashBox = {
-    period: CashBoxSummary;
-    today: CashBoxSummary;
 };
 
 export type CashBoxHistoryEntryType =

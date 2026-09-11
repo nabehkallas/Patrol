@@ -1,17 +1,25 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import {
+    ArrowDownCircle,
+    ArrowUpCircle,
+    Coins,
+    TrendingDown,
+    TrendingUp,
+    Wallet,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     formatCurrencyAmount,
     formatDateTime,
@@ -21,21 +29,26 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import { exportPdf, exportXlsx, index } from '@/routes/cash-box';
+import { create as createTransaction } from '@/routes/transactions';
 import type {
-    CashBox,
     CashBoxHistoryEntry,
     CashBoxSummary,
     Currency,
+    CurrencyBreakdown,
 } from '@/types';
 
 type PageProps = {
     filters: { from: string; to: string };
-    cashBox: CashBox;
+    cashBox: CashBoxSummary;
+    openingBalance: CurrencyBreakdown;
     history: CashBoxHistoryEntry[];
 };
 
 /** Every currency besides SYP that has activity anywhere in this summary. */
-function otherCurrencies(totals: CashBoxSummary): Currency[] {
+function otherCurrencies(
+    totals: CashBoxSummary,
+    openingBalance: CurrencyBreakdown,
+): Currency[] {
     const found = new Set<Currency>();
 
     for (const breakdown of [
@@ -44,6 +57,7 @@ function otherCurrencies(totals: CashBoxSummary): Currency[] {
         totals.exchanged,
         totals.net,
         totals.debts,
+        openingBalance,
     ]) {
         for (const currency of Object.keys(breakdown) as Currency[]) {
             if (currency !== 'SYP') {
@@ -55,120 +69,126 @@ function otherCurrencies(totals: CashBoxSummary): Currency[] {
     return Array.from(found);
 }
 
-function SypGrid({
-    totals,
-    t,
+type Accent = 'indigo' | 'emerald' | 'rose' | 'amber';
+
+const ACCENT_CLASSES: Record<
+    Accent,
+    { icon: string; value: string; bar: string }
+> = {
+    indigo: {
+        icon: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400',
+        value: 'text-indigo-600 dark:text-indigo-400',
+        bar: 'bg-indigo-500',
+    },
+    emerald: {
+        icon: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
+        value: 'text-emerald-600 dark:text-emerald-400',
+        bar: 'bg-emerald-500',
+    },
+    rose: {
+        icon: 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400',
+        value: 'text-rose-600 dark:text-rose-400',
+        bar: 'bg-rose-500',
+    },
+    amber: {
+        icon: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+        value: 'text-amber-600 dark:text-amber-400',
+        bar: 'bg-amber-500',
+    },
+};
+
+function StatCard({
+    accent,
+    icon,
+    label,
+    value,
+    subtitle,
+    breakdown,
+    breakdownLabel,
+    children,
 }: {
-    totals: CashBoxSummary;
-    t: (key: TranslationKey) => string;
+    accent: Accent;
+    icon: ReactNode;
+    label: string;
+    value: string;
+    subtitle?: string;
+    breakdown?: ReactNode;
+    breakdownLabel?: string;
+    children?: ReactNode;
 }) {
+    const { t } = useTranslation();
+    const classes = ACCENT_CLASSES[accent];
+
     return (
-        <div className="grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.income')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.income.SYP)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('cash_box.sadcop_payments')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.sadcop_expense_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('cash_box.other_expenses')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.other_expense.SYP)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            {totals.exchanged.SYP !== undefined && (
-                <Card>
-                    <CardHeader>
-                        <CardDescription>
-                            {t('cash_box.exchanged')}
-                        </CardDescription>
-                        <CardTitle className="text-2xl">
-                            {formatSyp(totals.exchanged.SYP)}
-                        </CardTitle>
-                    </CardHeader>
-                </Card>
-            )}
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.net')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.net.SYP)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('dashboard.liters_sold')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatNumber(totals.liters_sold)} L
-                    </CardTitle>
-                </CardHeader>
-                {totals.liters_sold_by_fuel_type.length > 0 && (
-                    <CardContent className="space-y-1">
-                        {totals.liters_sold_by_fuel_type.map((row) => (
-                            <div
-                                key={row.name}
-                                className="flex items-center justify-between text-sm"
-                            >
-                                <span className="text-muted-foreground">
-                                    {row.name}
-                                </span>
-                                <span className="font-medium">
-                                    {formatNumber(row.liters)} L
-                                </span>
-                            </div>
-                        ))}
-                    </CardContent>
-                )}
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.debts')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.debts.SYP)}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                            {t('dashboard.liters_sold_in_debt')}
-                        </span>
-                        <span className="font-medium">
-                            {formatNumber(totals.debts_liters_sold)} L
-                        </span>
+        <Card className="relative overflow-hidden py-0">
+            <div
+                className={`absolute inset-x-0 top-0 h-1 ${classes.bar}`}
+                aria-hidden
+            />
+            <CardContent className="space-y-3 pt-5">
+                <div className="flex items-start justify-between gap-3">
+                    <div
+                        className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${classes.icon}`}
+                    >
+                        {icon}
                     </div>
-                </CardContent>
-            </Card>
+                    {breakdown && (
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground text-xs underline decoration-dotted underline-offset-4"
+                                >
+                                    {t('cash_box.view_breakdown')}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-64">
+                                <p className="mb-2 text-sm font-semibold">
+                                    {breakdownLabel}
+                                </p>
+                                <div className="space-y-1.5">{breakdown}</div>
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                </div>
+
+                <div>
+                    <p className="text-muted-foreground text-sm">{label}</p>
+                    <p className={`text-2xl font-bold ${classes.value}`}>
+                        {value}
+                    </p>
+                    {subtitle && (
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                            {subtitle}
+                        </p>
+                    )}
+                </div>
+
+                {children}
+            </CardContent>
+        </Card>
+    );
+}
+
+function BreakdownRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="font-medium">{value}</span>
         </div>
     );
 }
 
 function OtherCurrencyBoxes({
     totals,
+    openingBalance,
     t,
 }: {
     totals: CashBoxSummary;
+    openingBalance: CurrencyBreakdown;
     t: (key: TranslationKey) => string;
 }) {
-    const currencies = otherCurrencies(totals);
+    const currencies = otherCurrencies(totals, openingBalance);
 
     if (currencies.length === 0) {
         return null;
@@ -178,85 +198,55 @@ function OtherCurrencyBoxes({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {currencies.map((currency) => (
                 <Card key={currency}>
-                    <CardHeader>
-                        <CardTitle>{currency}</CardTitle>
-                    </CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                {t('dashboard.income')}
-                            </span>
-                            <span className="font-medium">
-                                {formatCurrencyAmount(
-                                    totals.income[currency] ?? 0,
-                                    currency,
-                                )}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                {t('cash_box.other_expenses')}
-                            </span>
-                            <span className="font-medium">
-                                {formatCurrencyAmount(
-                                    totals.other_expense[currency] ?? 0,
-                                    currency,
-                                )}
-                            </span>
-                        </div>
+                        <p className="mb-1 font-semibold">{currency}</p>
+                        <BreakdownRow
+                            label={t('cash_box.opening_balance')}
+                            value={formatCurrencyAmount(
+                                openingBalance[currency] ?? 0,
+                                currency,
+                            )}
+                        />
+                        <BreakdownRow
+                            label={t('dashboard.income')}
+                            value={formatCurrencyAmount(
+                                totals.income[currency] ?? 0,
+                                currency,
+                            )}
+                        />
+                        <BreakdownRow
+                            label={t('cash_box.other_expenses')}
+                            value={formatCurrencyAmount(
+                                totals.other_expense[currency] ?? 0,
+                                currency,
+                            )}
+                        />
                         {totals.exchanged[currency] !== undefined && (
-                            <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    {t('cash_box.exchanged')}
-                                </span>
-                                <span className="font-medium">
-                                    {formatCurrencyAmount(
-                                        totals.exchanged[currency] ?? 0,
-                                        currency,
-                                    )}
-                                </span>
-                            </div>
+                            <BreakdownRow
+                                label={t('cash_box.exchanged')}
+                                value={formatCurrencyAmount(
+                                    totals.exchanged[currency] ?? 0,
+                                    currency,
+                                )}
+                            />
                         )}
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                {t('dashboard.net')}
-                            </span>
-                            <span className="font-medium">
-                                {formatCurrencyAmount(
-                                    totals.net[currency] ?? 0,
-                                    currency,
-                                )}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                {t('dashboard.debts')}
-                            </span>
-                            <span className="font-medium">
-                                {formatCurrencyAmount(
-                                    totals.debts[currency] ?? 0,
-                                    currency,
-                                )}
-                            </span>
-                        </div>
+                        <BreakdownRow
+                            label={t('dashboard.net')}
+                            value={formatCurrencyAmount(
+                                totals.net[currency] ?? 0,
+                                currency,
+                            )}
+                        />
+                        <BreakdownRow
+                            label={t('dashboard.debts')}
+                            value={formatCurrencyAmount(
+                                totals.debts[currency] ?? 0,
+                                currency,
+                            )}
+                        />
                     </CardContent>
                 </Card>
             ))}
-        </div>
-    );
-}
-
-function CashBoxSection({
-    totals,
-    t,
-}: {
-    totals: CashBoxSummary;
-    t: (key: TranslationKey) => string;
-}) {
-    return (
-        <div className="space-y-4">
-            <SypGrid totals={totals} t={t} />
-            <OtherCurrencyBoxes totals={totals} t={t} />
         </div>
     );
 }
@@ -279,7 +269,7 @@ function CashBoxHistory({
     return (
         <div className="space-y-3">
             <div>
-                <h2 className="text-muted-foreground text-sm font-medium">
+                <h2 className="text-sm font-semibold">
                     {t('cash_box.history_title')}
                 </h2>
                 <p className="text-muted-foreground text-sm">
@@ -287,10 +277,10 @@ function CashBoxHistory({
                 </p>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border">
+            <div className="max-h-[32rem] overflow-auto rounded-xl border">
                 <table className="w-full text-sm">
-                    <thead>
-                        <tr className="bg-muted/50 text-start">
+                    <thead className="sticky top-0 z-10">
+                        <tr className="bg-muted text-start">
                             <th className="px-4 py-2">{t('common.date')}</th>
                             <th className="px-4 py-2">{t('common.type')}</th>
                             <th className="px-4 py-2">
@@ -300,32 +290,49 @@ function CashBoxHistory({
                         </tr>
                     </thead>
                     <tbody>
-                        {entries.map((entry) => (
-                            <tr key={entry.id} className="border-t">
-                                <td className="whitespace-nowrap px-4 py-2">
-                                    {formatDateTime(entry.date)}
-                                </td>
-                                <td className="px-4 py-2">
-                                    {typeLabels[entry.type]}
-                                </td>
-                                <td className="px-4 py-2">
-                                    {entry.description}
-                                </td>
-                                <td className="px-4 py-2">
-                                    {entry.type === 'expense' ||
-                                    entry.type === 'purchase' ||
-                                    entry.type === 'sadcop'
-                                        ? '-'
-                                        : entry.type === 'income'
-                                          ? '+'
-                                          : ''}
-                                    {formatCurrencyAmount(
-                                        entry.amount,
-                                        entry.currency,
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                        {entries.map((entry) => {
+                            const isNegative =
+                                entry.type === 'expense' ||
+                                entry.type === 'purchase' ||
+                                entry.type === 'sadcop';
+                            const isPositive = entry.type === 'income';
+
+                            return (
+                                <tr
+                                    key={entry.id}
+                                    className="hover:bg-muted/50 border-t transition-colors"
+                                >
+                                    <td className="text-muted-foreground whitespace-nowrap px-4 py-2">
+                                        {formatDateTime(entry.date)}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {typeLabels[entry.type]}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {entry.description}
+                                    </td>
+                                    <td
+                                        className={`px-4 py-2 font-medium ${
+                                            isPositive
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : isNegative
+                                                  ? 'text-rose-600 dark:text-rose-400'
+                                                  : ''
+                                        }`}
+                                    >
+                                        {isNegative
+                                            ? '-'
+                                            : isPositive
+                                              ? '+'
+                                              : ''}
+                                        {formatCurrencyAmount(
+                                            entry.amount,
+                                            entry.currency,
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         {entries.length === 0 && (
                             <tr>
                                 <td
@@ -344,7 +351,12 @@ function CashBoxHistory({
 }
 
 export default function CashBoxIndex() {
-    const { filters, cashBox: totals, history } = usePage<PageProps>().props;
+    const {
+        filters,
+        cashBox: totals,
+        openingBalance,
+        history,
+    } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const [fromVal, setFromVal] = useState(filters.from);
@@ -363,53 +375,166 @@ export default function CashBoxIndex() {
             <Head title={t('cash_box.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title={t('cash_box.title')}
-                    description={t('cash_box.description')}
-                />
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                    <Heading
+                        variant="small"
+                        title={t('cash_box.title')}
+                        description={t('cash_box.description')}
+                    />
 
-                <div className="space-y-3">
-                    <h2 className="text-muted-foreground text-sm font-medium">
-                        {t('dashboard.today')}
-                    </h2>
-                    <CashBoxSection totals={totals.today} t={t} />
+                    <div className="flex flex-wrap items-end gap-3">
+                        <DateRangePicker
+                            from={fromVal}
+                            to={toVal}
+                            onChange={(range) => {
+                                setFromVal(range.from);
+                                setToVal(range.to);
+                            }}
+                        />
+                        <Button onClick={apply}>{t('statistics.apply')}</Button>
+                        <GeneratePdfButton
+                            href={exportPdf.url({
+                                query: { from: fromVal, to: toVal },
+                            })}
+                        />
+                        <GenerateXlsxButton
+                            href={exportXlsx.url({
+                                query: { from: fromVal, to: toVal },
+                            })}
+                        />
+                    </div>
                 </div>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-wrap items-end gap-4">
-                            <DateRangePicker
-                                from={fromVal}
-                                to={toVal}
-                                onChange={(range) => {
-                                    setFromVal(range.from);
-                                    setToVal(range.to);
-                                }}
-                            />
-                            <Button onClick={apply}>
-                                {t('statistics.apply')}
-                            </Button>
-                            <GeneratePdfButton
-                                href={exportPdf.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
-                            />
-                            <GenerateXlsxButton
-                                href={exportXlsx.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <StatCard
+                        accent="indigo"
+                        icon={<Wallet className="size-5" />}
+                        label={t('cash_box.opening_balance')}
+                        value={formatSyp(openingBalance.SYP)}
+                    />
 
-                <div className="space-y-3">
-                    <h2 className="text-muted-foreground text-sm font-medium">
-                        {t('cash_box.selected_period')} ({filters.from} —{' '}
-                        {filters.to})
-                    </h2>
-                    <CashBoxSection totals={totals.period} t={t} />
+                    <StatCard
+                        accent="emerald"
+                        icon={<TrendingUp className="size-5" />}
+                        label={t('cash_box.total_income')}
+                        value={formatSyp(totals.income.SYP)}
+                        breakdownLabel={t('cash_box.income_breakdown')}
+                        breakdown={
+                            <>
+                                <BreakdownRow
+                                    label={t('cash_box.fuel_sales')}
+                                    value={formatSyp(
+                                        totals.income_by_source_syp.fuel_sales,
+                                    )}
+                                />
+                                <BreakdownRow
+                                    label={t('cash_box.store_income')}
+                                    value={formatSyp(
+                                        totals.income_by_source_syp
+                                            .store_income,
+                                    )}
+                                />
+                                <BreakdownRow
+                                    label={t('cash_box.debt_collections')}
+                                    value={formatSyp(
+                                        totals.income_by_source_syp
+                                            .debt_collections,
+                                    )}
+                                />
+                            </>
+                        }
+                    />
+
+                    <StatCard
+                        accent="rose"
+                        icon={<TrendingDown className="size-5" />}
+                        label={t('cash_box.total_outflow')}
+                        value={formatSyp(
+                            totals.sadcop_expense_syp +
+                                (totals.other_expense.SYP ?? 0),
+                        )}
+                        breakdownLabel={t('cash_box.outflow_breakdown')}
+                        breakdown={
+                            <>
+                                <BreakdownRow
+                                    label={t('cash_box.sadcop_payments')}
+                                    value={formatSyp(totals.sadcop_expense_syp)}
+                                />
+                                <BreakdownRow
+                                    label={t('cash_box.other_expenses')}
+                                    value={formatSyp(
+                                        totals.other_expense.SYP ?? 0,
+                                    )}
+                                />
+                            </>
+                        }
+                    />
+
+                    <StatCard
+                        accent="amber"
+                        icon={<Coins className="size-5" />}
+                        label={t('cash_box.net_cash')}
+                        value={formatSyp(totals.net.SYP)}
+                    >
+                        <div className="space-y-1 border-t pt-2">
+                            {totals.liters_sold_by_fuel_type.map((row) => (
+                                <div
+                                    key={row.name}
+                                    className="flex items-center justify-between text-sm"
+                                >
+                                    <span className="text-muted-foreground">
+                                        {row.name}
+                                    </span>
+                                    <span className="font-medium">
+                                        {formatNumber(row.liters)} L
+                                    </span>
+                                </div>
+                            ))}
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                    {t('dashboard.debts')}
+                                </span>
+                                <span className="font-medium">
+                                    {formatSyp(totals.debts.SYP)}
+                                </span>
+                            </div>
+                        </div>
+                    </StatCard>
+                </div>
+
+                <OtherCurrencyBoxes
+                    totals={totals}
+                    openingBalance={openingBalance}
+                    t={t}
+                />
+
+                <div className="flex items-center gap-3 rounded-xl border p-3">
+                    <Button
+                        className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                        onClick={() =>
+                            router.get(
+                                createTransaction.url({
+                                    query: { type: 'other_income' },
+                                }),
+                            )
+                        }
+                    >
+                        <ArrowUpCircle className="size-4" />
+                        {t('cash_box.cash_in')}
+                    </Button>
+                    <Button
+                        className="gap-2 bg-rose-600 text-white hover:bg-rose-700"
+                        onClick={() =>
+                            router.get(
+                                createTransaction.url({
+                                    query: { type: 'expense' },
+                                }),
+                            )
+                        }
+                    >
+                        <ArrowDownCircle className="size-4" />
+                        {t('cash_box.cash_out')}
+                    </Button>
                 </div>
 
                 <CashBoxHistory entries={history} t={t} />
