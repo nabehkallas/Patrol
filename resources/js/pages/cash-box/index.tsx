@@ -238,6 +238,14 @@ function OtherCurrencyBoxes({
                             )}
                         />
                         <BreakdownRow
+                            label={t('cash_box.current_balance')}
+                            value={formatCurrencyAmount(
+                                (openingBalance[currency] ?? 0) +
+                                    (totals.net[currency] ?? 0),
+                                currency,
+                            )}
+                        />
+                        <BreakdownRow
                             label={t('dashboard.debts')}
                             value={formatCurrencyAmount(
                                 totals.debts[currency] ?? 0,
@@ -539,8 +547,8 @@ export default function CashBoxIndex() {
                     <StatCard
                         accent="amber"
                         icon={<Coins className="size-5" />}
-                        label={t('cash_box.net_cash')}
-                        value={formatSyp(totals.net.SYP)}
+                        label={t('cash_box.current_balance')}
+                        value={formatSyp(openingBalance.SYP + totals.net.SYP)}
                     >
                         <div className="space-y-1 border-t pt-2">
                             <div className="flex items-center justify-between text-sm">
