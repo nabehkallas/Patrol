@@ -679,7 +679,11 @@ class CashBoxController extends Controller
         }
 
         if ($transaction->sadcopLedgerEntry !== null) {
-            return $labels['sadcop_transfer'];
+            // A Sadcop deposit isn't earmarked for a specific fuel type at payment time (it
+            // just tops up a shared balance that later deliveries draw down) -- notes are the
+            // only place a cashier can record what a payment was actually for, so prefer that
+            // over the generic label when it's there.
+            return $transaction->notes ?: $labels['sadcop_transfer'];
         }
 
         return $transaction->fuelType?->name ?? $transaction->description ?? $transaction->type->value;

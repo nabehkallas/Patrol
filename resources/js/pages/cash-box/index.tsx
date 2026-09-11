@@ -3,9 +3,13 @@ import {
     ArrowDownCircle,
     ArrowUpCircle,
     Coins,
+    Fuel,
+    HandCoins,
+    Store,
     TrendingDown,
     TrendingUp,
     Wallet,
+    Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -24,6 +28,7 @@ import {
     formatCurrencyAmount,
     formatDateTime,
     formatNumber,
+    formatShortDate,
     formatSyp,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -142,11 +147,14 @@ function StatCard({
                                     {t('cash_box.view_breakdown')}
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent align="end" className="w-64">
+                            <PopoverContent
+                                align="end"
+                                className="max-h-96 w-80 overflow-auto"
+                            >
                                 <p className="mb-2 text-sm font-semibold">
                                     {breakdownLabel}
                                 </p>
-                                <div className="space-y-1.5">{breakdown}</div>
+                                <div className="space-y-2">{breakdown}</div>
                             </PopoverContent>
                         </Popover>
                     )}
@@ -187,6 +195,75 @@ function BreakdownRow({
             <span className={bold ? 'font-semibold' : 'font-medium'}>
                 {value}
             </span>
+        </div>
+    );
+}
+
+/** A single itemized line inside a breakdown category: a bold title with an optional muted
+ * sub-line (liters x unit price, or a date), and the signed amount alongside it. DOM order is
+ * [label block, amount] deliberately -- under this app's RTL Arabic mode, flexbox places the
+ * first child at the "start" edge (the right, in RTL) and the second at "end" (the left), which
+ * is exactly the label-right/amount-left layout the design calls for, with no direction-specific
+ * classes needed. */
+function ItemRow({
+    label,
+    value,
+    subLine,
+    tone,
+}: {
+    label: string;
+    value: string;
+    subLine?: string;
+    tone: 'income' | 'expense';
+}) {
+    const sign = tone === 'income' ? '+' : '-';
+    const toneClass =
+        tone === 'income'
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : 'text-rose-600 dark:text-rose-400';
+
+    return (
+        <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+                <p className="text-sm font-semibold">{label}</p>
+                {subLine && (
+                    <p className="text-muted-foreground text-xs">{subLine}</p>
+                )}
+            </div>
+            <span className={`shrink-0 text-sm font-medium ${toneClass}`}>
+                {sign}
+                {value}
+            </span>
+        </div>
+    );
+}
+
+/** A category group within a breakdown popover: a pill-style header (icon + name, with an
+ * optional running total) over its itemized rows, matching the "category section" design used
+ * for both the Total Income and Total Expenses popups. */
+function CategorySection({
+    icon,
+    label,
+    total,
+    children,
+}: {
+    icon: ReactNode;
+    label: string;
+    total?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="bg-muted/60 space-y-2 rounded-lg p-2.5">
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">{icon}</span>
+                    <span className="text-xs font-semibold">{label}</span>
+                </div>
+                {total && (
+                    <span className="text-xs font-semibold">{total}</span>
+                )}
+            </div>
+            <div className="space-y-2">{children}</div>
         </div>
     );
 }
@@ -379,6 +456,20 @@ export default function CashBoxIndex() {
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
+    // Itemized rows for the Total Expenses popup's category sections -- SYP only, matching
+    // sadcop_expense_syp/other_expense.SYP's precedent (other currencies get their own card
+    // in OtherCurrencyBoxes below). "General Expenses" covers both plain Expense transactions
+    // and non-Sadcop Purchases (e.g. shop restocking), the same two types other_expense.SYP
+    // already sums together.
+    const sadcopItems = history.filter(
+        (entry) => entry.type === 'sadcop' && entry.currency === 'SYP',
+    );
+    const generalExpenseItems = history.filter(
+        (entry) =>
+            (entry.type === 'expense' || entry.type === 'purchase') &&
+            entry.currency === 'SYP',
+    );
+
     const [mode, setMode] = useState(filters.mode);
     const [fromVal, setFromVal] = useState(filters.from);
     const [toVal, setToVal] = useState(filters.to);
@@ -481,51 +572,55 @@ export default function CashBoxIndex() {
                         breakdownLabel={t('cash_box.income_breakdown')}
                         breakdown={
                             <>
-                                <BreakdownRow
-                                    bold
+                                <CategorySection
+                                    icon={<Fuel className="size-4" />}
                                     label={t('cash_box.total_fuel_sales')}
-                                    value={formatSyp(
+                                    total={formatSyp(
                                         totals.income_by_source_syp.fuel_sales,
                                     )}
-                                />
-                                <div className="border-border space-y-1.5 border-s ps-3">
+                                >
                                     {totals.income_by_source_syp.fuel_sales_by_type.map(
                                         (row) => (
-                                            <div
+                                            <ItemRow
                                                 key={row.name}
-                                                className="space-y-0.5"
-                                            >
-                                                <BreakdownRow
-                                                    label={row.name}
-                                                    value={formatSyp(
-                                                        row.revenue_syp,
-                                                    )}
-                                                />
-                                                <p className="text-muted-foreground text-end text-xs">
-                                                    {formatNumber(row.liters)} L
-                                                    ×{' '}
-                                                    {formatSyp(
-                                                        row.unit_price_syp,
-                                                    )}
-                                                </p>
-                                            </div>
+                                                tone="income"
+                                                label={row.name}
+                                                value={formatSyp(
+                                                    row.revenue_syp,
+                                                )}
+                                                subLine={`${formatNumber(row.liters)} L × ${formatSyp(row.unit_price_syp)}`}
+                                            />
                                         ),
                                     )}
-                                </div>
-                                <BreakdownRow
+                                </CategorySection>
+
+                                <CategorySection
+                                    icon={<Store className="size-4" />}
                                     label={t('cash_box.store_income')}
-                                    value={formatSyp(
-                                        totals.income_by_source_syp
-                                            .store_income,
-                                    )}
-                                />
-                                <BreakdownRow
+                                >
+                                    <ItemRow
+                                        tone="income"
+                                        label={t('cash_box.store_income')}
+                                        value={formatSyp(
+                                            totals.income_by_source_syp
+                                                .store_income,
+                                        )}
+                                    />
+                                </CategorySection>
+
+                                <CategorySection
+                                    icon={<HandCoins className="size-4" />}
                                     label={t('cash_box.debt_collections')}
-                                    value={formatSyp(
-                                        totals.income_by_source_syp
-                                            .debt_collections,
-                                    )}
-                                />
+                                >
+                                    <ItemRow
+                                        tone="income"
+                                        label={t('cash_box.debt_collections')}
+                                        value={formatSyp(
+                                            totals.income_by_source_syp
+                                                .debt_collections,
+                                        )}
+                                    />
+                                </CategorySection>
                             </>
                         }
                     />
@@ -541,16 +636,53 @@ export default function CashBoxIndex() {
                         breakdownLabel={t('cash_box.outflow_breakdown')}
                         breakdown={
                             <>
-                                <BreakdownRow
+                                <CategorySection
+                                    icon={<Fuel className="size-4" />}
                                     label={t('cash_box.sadcop_payments')}
-                                    value={formatSyp(totals.sadcop_expense_syp)}
-                                />
-                                <BreakdownRow
-                                    label={t('cash_box.other_expenses')}
-                                    value={formatSyp(
+                                    total={formatSyp(totals.sadcop_expense_syp)}
+                                >
+                                    {sadcopItems.map((entry) => (
+                                        <ItemRow
+                                            key={entry.id}
+                                            tone="expense"
+                                            label={entry.description}
+                                            value={formatSyp(entry.amount)}
+                                            subLine={formatShortDate(
+                                                entry.date,
+                                            )}
+                                        />
+                                    ))}
+                                    {sadcopItems.length === 0 && (
+                                        <p className="text-muted-foreground text-xs">
+                                            {t('common.no_results')}
+                                        </p>
+                                    )}
+                                </CategorySection>
+
+                                <CategorySection
+                                    icon={<Wrench className="size-4" />}
+                                    label={t('cash_box.general_expenses')}
+                                    total={formatSyp(
                                         totals.other_expense.SYP ?? 0,
                                     )}
-                                />
+                                >
+                                    {generalExpenseItems.map((entry) => (
+                                        <ItemRow
+                                            key={entry.id}
+                                            tone="expense"
+                                            label={entry.description}
+                                            value={formatSyp(entry.amount)}
+                                            subLine={formatShortDate(
+                                                entry.date,
+                                            )}
+                                        />
+                                    ))}
+                                    {generalExpenseItems.length === 0 && (
+                                        <p className="text-muted-foreground text-xs">
+                                            {t('common.no_results')}
+                                        </p>
+                                    )}
+                                </CategorySection>
                             </>
                         }
                     />

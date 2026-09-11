@@ -345,6 +345,7 @@ const dictionary = {
         'cash_box.selected_period': 'Selected period',
         'cash_box.sadcop_payments': 'Sadcop payments',
         'cash_box.other_expenses': 'Other expenses',
+        'cash_box.general_expenses': 'General Expenses',
         'cash_box.exchanged': 'Currency exchanged',
         'cash_box.history_title': 'History',
         'cash_box.history_description':
@@ -858,6 +859,7 @@ const dictionary = {
         'cash_box.selected_period': 'الفترة المحددة',
         'cash_box.sadcop_payments': 'مدفوعات سادكوب',
         'cash_box.other_expenses': 'مصروفات أخرى',
+        'cash_box.general_expenses': 'المصاريف العامة',
         'cash_box.exchanged': 'تحويل عملة',
         'cash_box.history_title': 'السجل',
         'cash_box.history_description':

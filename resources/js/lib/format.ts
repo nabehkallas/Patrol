@@ -82,6 +82,16 @@ export function formatDate(value: string): string {
     });
 }
 
+/** Compact "Sep 10" style date, for a breakdown row's sub-line where a full medium date
+ * (which includes the year) would be too wide. Fixed 'en-US' locale for the same reason
+ * as formatDate/formatDateTime above. */
+export function formatShortDate(value: string): string {
+    return new Date(value).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
 /**
  * Strips everything but digits and a single decimal point from user input,
  * so typed thousand separators (or stray characters) never reach form state.
