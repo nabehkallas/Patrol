@@ -38,7 +38,7 @@ import type {
 } from '@/types';
 
 type PageProps = {
-    filters: { from: string; to: string };
+    filters: { mode: 'today' | 'custom'; from: string; to: string };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
     history: CashBoxHistoryEntry[];
@@ -359,13 +359,26 @@ export default function CashBoxIndex() {
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
+    const [mode, setMode] = useState(filters.mode);
     const [fromVal, setFromVal] = useState(filters.from);
     const [toVal, setToVal] = useState(filters.to);
+
+    function showToday() {
+        setMode('today');
+        router.get(index.url(), { mode: 'today' }, { preserveState: false });
+    }
+
+    function showCustomRange() {
+        // Only flips the local UI into "custom" mode -- reveals the date picker + Apply
+        // button -- without navigating yet, so picking dates never briefly re-fetches
+        // "today" data first. Apply below is what actually commits the custom range.
+        setMode('custom');
+    }
 
     function apply() {
         router.get(
             index.url(),
-            { from: fromVal, to: toVal },
+            { mode: 'custom', from: fromVal, to: toVal },
             { preserveState: false },
         );
     }
@@ -383,15 +396,42 @@ export default function CashBoxIndex() {
                     />
 
                     <div className="flex flex-wrap items-end gap-3">
-                        <DateRangePicker
-                            from={fromVal}
-                            to={toVal}
-                            onChange={(range) => {
-                                setFromVal(range.from);
-                                setToVal(range.to);
-                            }}
-                        />
-                        <Button onClick={apply}>{t('statistics.apply')}</Button>
+                        <div className="bg-muted flex items-center gap-1 rounded-lg p-1">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={mode === 'today' ? 'default' : 'ghost'}
+                                onClick={showToday}
+                            >
+                                {t('cash_box.today')}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    mode === 'custom' ? 'default' : 'ghost'
+                                }
+                                onClick={showCustomRange}
+                            >
+                                {t('cash_box.custom_range')}
+                            </Button>
+                        </div>
+
+                        {mode === 'custom' && (
+                            <>
+                                <DateRangePicker
+                                    from={fromVal}
+                                    to={toVal}
+                                    onChange={(range) => {
+                                        setFromVal(range.from);
+                                        setToVal(range.to);
+                                    }}
+                                />
+                                <Button onClick={apply}>
+                                    {t('statistics.apply')}
+                                </Button>
+                            </>
+                        )}
                         <GeneratePdfButton
                             href={exportPdf.url({
                                 query: { from: fromVal, to: toVal },
@@ -421,12 +461,38 @@ export default function CashBoxIndex() {
                         breakdownLabel={t('cash_box.income_breakdown')}
                         breakdown={
                             <>
-                                <BreakdownRow
-                                    label={t('cash_box.fuel_sales')}
-                                    value={formatSyp(
-                                        totals.income_by_source_syp.fuel_sales,
-                                    )}
-                                />
+                                <p className="text-muted-foreground text-xs font-semibold">
+                                    {t('cash_box.fuel_sales')}
+                                </p>
+                                {totals.income_by_source_syp.fuel_sales_by_type.map(
+                                    (row) => (
+                                        <div
+                                            key={row.name}
+                                            className="space-y-0.5"
+                                        >
+                                            <BreakdownRow
+                                                label={row.name}
+                                                value={formatSyp(
+                                                    row.revenue_syp,
+                                                )}
+                                            />
+                                            <p className="text-muted-foreground text-end text-xs">
+                                                {formatNumber(row.liters)} L ×{' '}
+                                                {formatSyp(row.unit_price_syp)}
+                                            </p>
+                                        </div>
+                                    ),
+                                )}
+                                {totals.income_by_source_syp.fuel_sales_by_type
+                                    .length === 0 && (
+                                    <BreakdownRow
+                                        label={t('cash_box.fuel_sales')}
+                                        value={formatSyp(
+                                            totals.income_by_source_syp
+                                                .fuel_sales,
+                                        )}
+                                    />
+                                )}
                                 <BreakdownRow
                                     label={t('cash_box.store_income')}
                                     value={formatSyp(
@@ -477,19 +543,6 @@ export default function CashBoxIndex() {
                         value={formatSyp(totals.net.SYP)}
                     >
                         <div className="space-y-1 border-t pt-2">
-                            {totals.liters_sold_by_fuel_type.map((row) => (
-                                <div
-                                    key={row.name}
-                                    className="flex items-center justify-between text-sm"
-                                >
-                                    <span className="text-muted-foreground">
-                                        {row.name}
-                                    </span>
-                                    <span className="font-medium">
-                                        {formatNumber(row.liters)} L
-                                    </span>
-                                </div>
-                            ))}
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">
                                     {t('dashboard.debts')}

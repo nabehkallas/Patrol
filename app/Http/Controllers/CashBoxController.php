@@ -29,22 +29,45 @@ class CashBoxController extends Controller
 
     public function index(Request $request): Response
     {
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now();
+        // "Today" and "Custom Range" are kept as two distinct, explicit modes rather than
+        // inferring one from from/to (e.g. from === to === today) -- the picker only ever
+        // writes from/to, so an explicit mode is what lets the "Today" tab stay selected/
+        // reproducible on reload without accidentally matching a genuine one-day custom range.
+        $mode = $request->string('mode')->value() === 'custom' ? 'custom' : 'today';
+
+        if ($mode === 'custom' && $request->filled('from')) {
+            $from = $request->date('from');
+            $to = $request->date('to') ?? now();
+        } else {
+            $mode = 'today';
+            $from = now()->startOfDay();
+            $to = now();
+        }
 
         $user = $request->user();
         $isAdmin = $user->isAdmin();
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
-        // Opening balance: this app has no stored "starting cash balance" concept for Cash Box
-        // (unlike Sadcop's ledger) -- it's derived the same way the XLSX export seeds its first
-        // row, just reusing summarize() itself rather than duplicating its categorization rules:
-        // summarize()'s own "net" for everything strictly before the range IS the balance carried
-        // into it, since net is already (income - expenses + exchanged - sadcop) by definition.
-        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), $isAdmin, $user->id, $sypRate)['net'];
+        // Opening balance is the physical cash actually in the drawer -- a station-wide fact,
+        // not something that belongs to whichever cashier happens to be logged in -- so it's
+        // deliberately computed unscoped (isAdmin: true) even for a non-admin viewer. Scoping
+        // it by user_id was the bug behind "Opening Balance always shows 0": a non-admin
+        // viewer's balance was silently limited to only the transactions *they personally*
+        // recorded, so it read 0 for anyone who didn't record every prior transaction
+        // themselves (e.g. a new shift, or a rotating cashier).
+        //
+        // This app has no stored "starting cash balance" concept for Cash Box (unlike Sadcop's
+        // ledger) -- it's derived the same way the XLSX export seeds its first row, just
+        // reusing summarize() itself rather than duplicating its categorization rules:
+        // summarize()'s own "net" for everything strictly before the range IS the balance
+        // carried into it (income - expenses + exchanged - sadcop, summed since the beginning),
+        // which is mathematically the same figure as chaining "yesterday's opening + yesterday's
+        // net" one day at a time, just computed in one pass instead of recursively.
+        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), true, $user->id, $sypRate)['net'];
 
         return Inertia::render('cash-box/index', [
             'filters' => [
+                'mode' => $mode,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
@@ -438,8 +461,11 @@ class CashBoxController extends Controller
         // Income by source (SYP only, mirroring sadcop_expense_syp's precedent) -- for the
         // dashboard's income breakdown popover, not used by the PDF/XLSX exports' existing
         // shape, so this is additive rather than a change to what income/incomeBreakdown mean.
+        $fuelSaleIncomeTransactions = $incomeTransactions->where('type', TransactionType::FuelSale);
+
         $incomeBySourceSyp = [
-            'fuel_sales' => round($incomeTransactions->where('type', TransactionType::FuelSale)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions, $sypRate),
             'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
             'debt_collections' => round($receivablePayments->sum(fn ($p) => $p->currency === Currency::SYP ? $p->amount : 0), 0),
         ];
@@ -510,6 +536,38 @@ class CashBoxController extends Controller
                 'name' => $fromTransactions[$fuelTypeId]['name'] ?? $fromDebts[$fuelTypeId]['name'] ?? null,
                 'liters' => round(($fromTransactions[$fuelTypeId]['liters'] ?? 0.0) + ($fromDebts[$fuelTypeId]['liters'] ?? 0.0), 3),
             ])
+            ->filter(fn (array $row) => $row['name'] !== null)
+            ->sortBy('name')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Fuel-sale revenue (SYP) per fuel type, for the dashboard's "Total Income" breakdown --
+     * liters and revenue are both summed straight from the transactions, and unit price is
+     * derived from them (revenue / liters) rather than looked up separately, so it always
+     * reconciles exactly as "liters x unit price = revenue" even if a fuel type's price
+     * changed mid-range.
+     *
+     * @param  Collection<int, Transaction>  $fuelSaleIncomeTransactions
+     * @return array<int, array{name: string, liters: float, unit_price_syp: float, revenue_syp: float}>
+     */
+    private function fuelRevenueByType(Collection $fuelSaleIncomeTransactions, float $sypRate): array
+    {
+        return $fuelSaleIncomeTransactions
+            ->filter(fn (Transaction $transaction) => $transaction->fuel_type_id !== null)
+            ->groupBy('fuel_type_id')
+            ->map(function ($group) use ($sypRate) {
+                $liters = round((float) $group->sum('liters'), 3);
+                $revenue = round($group->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0);
+
+                return [
+                    'name' => $group->first()->fuelType?->name,
+                    'liters' => $liters,
+                    'unit_price_syp' => $liters > 0 ? round($revenue / $liters, 2) : 0,
+                    'revenue_syp' => $revenue,
+                ];
+            })
             ->filter(fn (array $row) => $row['name'] !== null)
             ->sortBy('name')
             ->values()

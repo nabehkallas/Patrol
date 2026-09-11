@@ -366,6 +366,8 @@ const dictionary = {
         'cash_box.cash_in': 'Cash In',
         'cash_box.cash_out': 'Cash Out',
         'cash_box.view_breakdown': 'View breakdown',
+        'cash_box.today': 'Today',
+        'cash_box.custom_range': 'Custom Range',
 
         'nav.statistics': 'Statistics',
         'nav.pump_counters': 'Pump counters',
@@ -877,6 +879,8 @@ const dictionary = {
         'cash_box.cash_in': 'إيداع نقد',
         'cash_box.cash_out': 'صرف / سحب',
         'cash_box.view_breakdown': 'عرض التفاصيل',
+        'cash_box.today': 'اليوم',
+        'cash_box.custom_range': 'نطاق مخصص',
 
         'nav.statistics': 'الإحصائيات',
         'nav.pump_counters': 'عدادات المضخات',

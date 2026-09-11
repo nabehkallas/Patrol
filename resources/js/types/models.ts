@@ -230,10 +230,18 @@ export type DebtsSummary = {
     payable_total: CurrencyBreakdown;
 };
 
+export type FuelTypeRevenue = {
+    name: string;
+    liters: number;
+    unit_price_syp: number;
+    revenue_syp: number;
+};
+
 export type CashBoxSummary = {
     income: CurrencyBreakdown;
     income_by_source_syp: {
         fuel_sales: number;
+        fuel_sales_by_type: FuelTypeRevenue[];
         store_income: number;
         debt_collections: number;
     };
