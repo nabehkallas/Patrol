@@ -35,7 +35,11 @@ import {
     store,
 } from '@/routes/inventory';
 import { destroy, edit } from '@/routes/inventory/entries';
-import { store as storeTopUp } from '@/routes/tank-top-ups';
+import {
+    destroy as destroyTopUp,
+    edit as editTopUp,
+    store as storeTopUp,
+} from '@/routes/tank-top-ups';
 import { store as storeTransfer } from '@/routes/tank-transfers';
 import type {
     Auth,
@@ -156,6 +160,12 @@ export default function InventoryIndex() {
         }
     }
 
+    function removeTopUp(topUp: TankTopUp) {
+        if (confirm(t('common.confirm_delete'))) {
+            router.delete(destroyTopUp.url(topUp.id));
+        }
+    }
+
     function handleHistoryRangeChange(updates: { from?: string; to?: string }) {
         router.get(
             index(),
@@ -196,7 +206,7 @@ export default function InventoryIndex() {
                             className={cn(
                                 'rounded-md px-3.5 py-1.5 text-sm transition-colors',
                                 activeTab === value
-                                    ? 'bg-white shadow-xs dark:bg-neutral-700 dark:text-neutral-100'
+                                    ? 'shadow-xs bg-white dark:bg-neutral-700 dark:text-neutral-100'
                                     : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
                             )}
                         >
@@ -216,7 +226,7 @@ export default function InventoryIndex() {
                                                 {tank.fuel_type.name} —{' '}
                                                 {tank.name}
                                             </span>
-                                            <span className="text-xs text-muted-foreground">
+                                            <span className="text-muted-foreground text-xs">
                                                 {t('inventory.capacity')}:{' '}
                                                 {formatNumber(
                                                     tank.capacity_liters,
@@ -312,6 +322,9 @@ export default function InventoryIndex() {
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
                                             <th className="px-4 py-2">
+                                                {t('common.date')}
+                                            </th>
+                                            <th className="px-4 py-2">
                                                 {t('common.tank')}
                                             </th>
                                             <th className="px-4 py-2">
@@ -323,6 +336,9 @@ export default function InventoryIndex() {
                                             <th className="px-4 py-2">
                                                 {t('common.notes')}
                                             </th>
+                                            {auth.isAdmin && (
+                                                <th className="px-4 py-2"></th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -331,6 +347,9 @@ export default function InventoryIndex() {
                                                 key={topUp.id}
                                                 className="border-t"
                                             >
+                                                <td className="px-4 py-2">
+                                                    {formatDate(topUp.date)}
+                                                </td>
                                                 <td className="px-4 py-2">
                                                     {
                                                         topUp.tank?.fuel_type
@@ -348,13 +367,38 @@ export default function InventoryIndex() {
                                                 <td className="px-4 py-2">
                                                     {topUp.notes}
                                                 </td>
+                                                {auth.isAdmin && (
+                                                    <td className="space-x-2 px-4 py-2 text-end">
+                                                        <Link
+                                                            href={editTopUp(
+                                                                topUp.id,
+                                                            )}
+                                                            className="text-sm underline"
+                                                        >
+                                                            {t('common.edit')}
+                                                        </Link>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                removeTopUp(
+                                                                    topUp,
+                                                                )
+                                                            }
+                                                        >
+                                                            {t('common.delete')}
+                                                        </Button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                         {topUps.length === 0 && (
                                             <tr>
                                                 <td
-                                                    colSpan={4}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    colSpan={
+                                                        auth.isAdmin ? 6 : 5
+                                                    }
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -428,7 +472,7 @@ export default function InventoryIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={5}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -457,7 +501,7 @@ export default function InventoryIndex() {
                                                     {tank.fuel_type.name} —{' '}
                                                     {tank.name}
                                                 </span>
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="text-muted-foreground text-xs">
                                                     {t('inventory.capacity')}:{' '}
                                                     {formatNumber(
                                                         tank.capacity_liters,
@@ -694,7 +738,7 @@ export default function InventoryIndex() {
                                         <tr>
                                             <td
                                                 colSpan={auth.isAdmin ? 6 : 5}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
