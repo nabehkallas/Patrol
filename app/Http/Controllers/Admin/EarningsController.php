@@ -105,7 +105,12 @@ class EarningsController extends Controller
             ->whereDate('date', '<=', $to->toDateString())
             ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'date']);
 
+        // Excludes opening-balance top-ups (a tank's starting inventory, recorded once during
+        // onboarding) -- that liters was already in the tank before this reporting period, not
+        // fuel added/gained during it, so counting it here would inflate earnings by the full
+        // value of the station's starting stock whenever the onboarding date falls in range.
         $topUps = TankTopUp::query()
+            ->where('is_opening_balance', false)
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
             ->with('tank:id,fuel_type_id')

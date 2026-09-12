@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['tank_id', 'liters', 'date', 'recorded_by_id', 'notes'])]
+#[Fillable(['tank_id', 'liters', 'date', 'recorded_by_id', 'notes', 'is_opening_balance'])]
 class TankTopUp extends Model
 {
     protected function casts(): array
@@ -14,6 +14,7 @@ class TankTopUp extends Model
         return [
             'date' => 'date',
             'liters' => 'decimal:3',
+            'is_opening_balance' => 'boolean',
         ];
     }
 

@@ -337,6 +337,7 @@ export type TankTopUp = {
     liters: string;
     date: string;
     notes: string | null;
+    is_opening_balance: boolean;
     tank?: Tank;
     recorded_by?: UserSummary;
 };

@@ -107,6 +107,7 @@ class OnboardingController extends Controller
                     'date' => now()->toDateString(),
                     'recorded_by_id' => $request->user()->id,
                     'notes' => __('Opening balance (initial setup)'),
+                    'is_opening_balance' => true,
                 ]);
             }
         }
