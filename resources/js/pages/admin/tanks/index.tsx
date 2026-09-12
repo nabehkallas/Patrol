@@ -1,4 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { formatNumber } from '@/lib/format';
@@ -16,7 +17,13 @@ export default function TanksIndex() {
 
     function remove(tank: Tank) {
         if (confirm(`${t('common.confirm_delete')} (${tank.name})`)) {
-            router.delete(destroy.url(tank.id));
+            router.delete(destroy.url(tank.id), {
+                onError: (errors) => {
+                    if (errors.tank) {
+                        toast.error(errors.tank);
+                    }
+                },
+            });
         }
     }
 
@@ -33,7 +40,7 @@ export default function TanksIndex() {
                     />
                     <Link
                         href={create()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('tanks.new')}
                     </Link>
@@ -86,7 +93,7 @@ export default function TanksIndex() {
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>

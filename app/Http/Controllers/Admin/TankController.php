@@ -77,6 +77,14 @@ class TankController extends Controller
     {
         $this->authorize('delete', $tank);
 
+        // tank_transfers.from_tank_id/to_tank_id are restrictOnDelete() at the DB level (a
+        // transfer must always point at two real tanks) -- without this check, deleting a tank
+        // with transfer history throws an uncaught SQLite FOREIGN KEY constraint violation
+        // (500) instead of a normal validation error.
+        if ($tank->transfersIn()->exists() || $tank->transfersOut()->exists()) {
+            return back()->withErrors(['tank' => __('This tank has transfer history and cannot be deleted.')]);
+        }
+
         $tank->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Tank deleted.')]);
