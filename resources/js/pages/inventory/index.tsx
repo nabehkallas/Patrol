@@ -25,6 +25,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ export default function InventoryIndex() {
     const { auth, tanks, entries, topUps, transfers, historyFrom, historyTo } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
     const [activeTab, setActiveTab] = useState<Tab>('amounts');
     const [topUpLiters, setTopUpLiters] = useState<Record<number, string>>({});
     const [topUpErrors, setTopUpErrors] = useState<Record<number, string>>({});
@@ -73,7 +75,7 @@ export default function InventoryIndex() {
 
     const form = useForm({
         tank_id: String(tanks[0]?.id ?? ''),
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultEntryDate,
         quantity_liters: '',
         notes: '',
     });
@@ -82,7 +84,7 @@ export default function InventoryIndex() {
         from_tank_id: String(tanks[0]?.id ?? ''),
         to_tank_id: '',
         liters: '',
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultEntryDate,
         notes: '',
     });
 
@@ -137,7 +139,7 @@ export default function InventoryIndex() {
             {
                 tank_id: tankId,
                 liters,
-                date: new Date().toISOString().slice(0, 10),
+                date: defaultEntryDate,
             },
             {
                 preserveScroll: true,

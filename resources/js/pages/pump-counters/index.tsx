@@ -19,6 +19,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -107,6 +108,7 @@ export default function PumpCountersIndex() {
         date,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
 
     const initialPump = pumps[0];
     const initialTanks = tanksFor(initialPump, tanks);
@@ -114,7 +116,7 @@ export default function PumpCountersIndex() {
     const form = useForm({
         pump_id: String(initialPump?.id ?? ''),
         tank_id: String(defaultTankFor(initialPump, initialTanks)),
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultEntryDate,
         reading_value: '',
         governmental_liters: '',
         return_liters: '',
@@ -344,7 +346,7 @@ export default function PumpCountersIndex() {
                                 <Label htmlFor="reading_value">
                                     {t('pump_counters.reading_value')}
                                     {selectedPump?.latest_reading && (
-                                        <span className="ms-2 text-sm font-normal text-muted-foreground">
+                                        <span className="text-muted-foreground ms-2 text-sm font-normal">
                                             ({t('pump_counters.previous')}:{' '}
                                             {formatNumber(
                                                 selectedPump.latest_reading
@@ -377,7 +379,7 @@ export default function PumpCountersIndex() {
                                 <Label htmlFor="governmental_liters">
                                     {t('pump_counters.governmental_sale')}
                                     {maxLitersSold !== null && (
-                                        <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                        <span className="text-muted-foreground ms-2 text-xs font-normal">
                                             ({t('pump_counters.max')}:{' '}
                                             {formatNumber(maxLitersSold)} L)
                                         </span>
@@ -405,7 +407,7 @@ export default function PumpCountersIndex() {
                                 <Label htmlFor="return_liters">
                                     {t('pump_counters.return_liters')}
                                     {maxLitersSold !== null && (
-                                        <span className="ms-2 text-xs font-normal text-muted-foreground">
+                                        <span className="text-muted-foreground ms-2 text-xs font-normal">
                                             ({t('pump_counters.max')}:{' '}
                                             {formatNumber(maxLitersSold)} L)
                                         </span>
@@ -566,7 +568,7 @@ export default function PumpCountersIndex() {
 
                     {exportFuelTypes.length > 0 && (
                         <div className="flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
-                            <span className="text-sm font-medium text-muted-foreground">
+                            <span className="text-muted-foreground text-sm font-medium">
                                 {t('pump_counters.monthly_export')}
                             </span>
                             <DateRangePicker
@@ -631,7 +633,7 @@ export default function PumpCountersIndex() {
                             <tbody>
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
-                                        <td className="px-4 py-2 whitespace-nowrap">
+                                        <td className="whitespace-nowrap px-4 py-2">
                                             {formatDateTime(loggedAt(reading))}
                                         </td>
                                         <td className="px-4 py-2">
@@ -704,7 +706,7 @@ export default function PumpCountersIndex() {
                                     <tr>
                                         <td
                                             colSpan={auth.isAdmin ? 11 : 10}
-                                            className="px-4 py-6 text-center text-muted-foreground"
+                                            className="text-muted-foreground px-4 py-6 text-center"
                                         >
                                             {t('common.no_results')}
                                         </td>

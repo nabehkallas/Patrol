@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debts';
@@ -37,6 +38,7 @@ type DebtKind = 'money' | 'liters';
 export default function DebtCreate() {
     const { debtors, fuelTypes, exchangeRates } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
     const [debtKind, setDebtKind] = useState<DebtKind>('money');
 
     const form = useForm({
@@ -48,7 +50,7 @@ export default function DebtCreate() {
         amount: '',
         currency: 'SYP' as Currency,
         exchange_rate_to_usd: '',
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultEntryDate,
         details: '',
         affect_cash_box: false,
     });
@@ -307,7 +309,7 @@ export default function DebtCreate() {
                             <Label htmlFor="amount">
                                 {t('common.amount')}
                                 {debtKind === 'liters' && (
-                                    <span className="ms-1 text-xs text-muted-foreground">
+                                    <span className="text-muted-foreground ms-1 text-xs">
                                         ({t('debts.computed_from_liters')})
                                     </span>
                                 )}
@@ -357,7 +359,7 @@ export default function DebtCreate() {
                         <div className="grid gap-2">
                             <Label htmlFor="exchange_rate_to_usd">
                                 {t('transactions.exchange_rate')}
-                                <span className="ms-1 text-xs text-muted-foreground">
+                                <span className="text-muted-foreground ms-1 text-xs">
                                     (default{' '}
                                     {formatNumber(
                                         exchangeRates[form.data.currency],

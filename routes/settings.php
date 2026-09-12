@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\StationDataController;
@@ -23,6 +24,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::middleware(RequireTenant::class)->group(function () {
+        Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
+        Route::patch('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
+    });
 
     Route::middleware([RequireTenant::class, 'role:admin'])->group(function () {
         Route::get('settings/data', [StationDataController::class, 'edit'])->name('data.edit');

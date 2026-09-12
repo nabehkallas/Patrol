@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index } from '@/routes/sadcop';
@@ -31,6 +32,7 @@ type PageProps = {
 export default function SadcopDeliveryCreate() {
     const { tanks, balance, lastUsedTankId } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
 
     const defaultTankId =
         lastUsedTankId !== null &&
@@ -43,7 +45,7 @@ export default function SadcopDeliveryCreate() {
         liters: '',
         price_per_liter: '',
         amount: '',
-        occurred_at: new Date().toISOString().slice(0, 10),
+        occurred_at: defaultEntryDate,
         notes: '',
     });
 

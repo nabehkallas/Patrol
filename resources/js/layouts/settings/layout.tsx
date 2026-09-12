@@ -8,6 +8,7 @@ import { useTranslation } from '@/lib/i18n';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editData } from '@/routes/data';
+import { edit as editPreferences } from '@/routes/preferences';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { Auth, NavItem } from '@/types';
@@ -33,6 +34,15 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             href: editAppearance(),
             icon: null,
         },
+        ...(!auth.isSuperAdmin
+            ? [
+                  {
+                      title: t('settings.nav.preferences'),
+                      href: editPreferences(),
+                      icon: null,
+                  },
+              ]
+            : []),
         ...(auth.isAdmin
             ? [
                   {
@@ -54,7 +64,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             <div className="flex flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
                     <nav
-                        className="flex flex-col space-y-1 space-x-0"
+                        className="flex flex-col space-x-0 space-y-1"
                         aria-label="Settings"
                     >
                         {sidebarNavItems.map((item, index) => (

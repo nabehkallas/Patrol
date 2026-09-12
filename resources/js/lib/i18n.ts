@@ -95,7 +95,16 @@ const dictionary = {
         'settings.nav.profile': 'Profile',
         'settings.nav.security': 'Security',
         'settings.nav.appearance': 'Appearance',
+        'settings.nav.preferences': 'General Preferences',
         'settings.nav.data': 'Station Data',
+        'settings.preferences.title': 'System Preferences',
+        'settings.preferences.description':
+            'Preferences that affect how forms behave across the app',
+        'settings.preferences.default_entry_date': 'Default Data Entry Date',
+        'settings.preferences.default_entry_date_description':
+            'Select which calendar date automatically pre-fills when creating new entries across forms (Pump Counters, Cash Box, Debts, Inventory, etc.).',
+        'settings.preferences.today': 'Today (default)',
+        'settings.preferences.yesterday': 'Yesterday (for closing shifts)',
         'settings.profile.title': 'Profile settings',
         'settings.profile.heading': 'Profile',
         'settings.profile.description': 'Update your name and email address',
@@ -618,7 +627,16 @@ const dictionary = {
         'settings.nav.profile': 'الملف الشخصي',
         'settings.nav.security': 'الأمان',
         'settings.nav.appearance': 'المظهر',
+        'settings.nav.preferences': 'التفضيلات العامة',
         'settings.nav.data': 'بيانات المحطة',
+        'settings.preferences.title': 'تفضيلات النظام',
+        'settings.preferences.description':
+            'تفضيلات تؤثر على سلوك النماذج في جميع أنحاء التطبيق',
+        'settings.preferences.default_entry_date': 'تاريخ الإدخال الافتراضي',
+        'settings.preferences.default_entry_date_description':
+            'اختر التاريخ الذي يُعبّأ تلقائيًا عند إنشاء إدخالات جديدة عبر النماذج (عدادات المضخات، صندوق النقد، الديون، المخزون، وغيرها).',
+        'settings.preferences.today': 'اليوم الحالي (افتراضي)',
+        'settings.preferences.yesterday': 'اليوم السابق (إغلاق الورديات)',
         'settings.profile.title': 'إعدادات الملف الشخصي',
         'settings.profile.heading': 'الملف الشخصي',
         'settings.profile.description': 'تحديث الاسم والبريد الإلكتروني',

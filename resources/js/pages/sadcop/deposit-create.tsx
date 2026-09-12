@@ -7,16 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { useTranslation } from '@/lib/i18n';
 import { index } from '@/routes/sadcop';
 import { store } from '@/routes/sadcop/deposits';
 
 export default function SadcopDepositCreate() {
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
 
     const form = useForm({
         amount: '',
-        occurred_at: new Date().toISOString().slice(0, 10),
+        occurred_at: defaultEntryDate,
         notes: '',
     });
 

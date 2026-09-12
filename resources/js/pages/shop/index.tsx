@@ -25,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, exportPdf, exportXlsx } from '@/routes/shop';
@@ -80,12 +81,15 @@ type MovementFormState = {
     date: string;
 };
 
-function movementDefaults(currency: Currency): MovementFormState {
+function movementDefaults(
+    currency: Currency,
+    entryDate: string,
+): MovementFormState {
     return {
         quantity: '',
         amount: '',
         currency,
-        date: new Date().toISOString().slice(0, 10),
+        date: entryDate,
     };
 }
 
@@ -114,10 +118,11 @@ function CurrencySelect({
 
 function ItemCard({ item }: { item: ShopItem }) {
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
     const [buyOpen, setBuyOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [purchase, setPurchase] = useState<MovementFormState>(() =>
-        movementDefaults(item.currency),
+        movementDefaults(item.currency, defaultEntryDate),
     );
     const [purchaseErrors, setPurchaseErrors] = useState<
         Record<string, string>
@@ -125,9 +130,7 @@ function ItemCard({ item }: { item: ShopItem }) {
 
     const [sellQuantity, setSellQuantity] = useState('');
     const [sellAmount, setSellAmount] = useState('');
-    const [sellDate, setSellDate] = useState(() =>
-        new Date().toISOString().slice(0, 10),
-    );
+    const [sellDate, setSellDate] = useState(() => defaultEntryDate);
     const [sellErrors, setSellErrors] = useState<Record<string, string>>({});
 
     const editForm = useForm({
@@ -163,7 +166,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                 onSuccess: () => {
                     setSellQuantity('');
                     setSellAmount('');
-                    setSellDate(new Date().toISOString().slice(0, 10));
+                    setSellDate(defaultEntryDate);
                     setSellErrors({});
                 },
                 onError: (errors) =>
@@ -173,7 +176,7 @@ function ItemCard({ item }: { item: ShopItem }) {
     }
 
     function openBuy() {
-        setPurchase(movementDefaults(item.currency));
+        setPurchase(movementDefaults(item.currency, defaultEntryDate));
         setPurchaseErrors({});
         setBuyOpen(true);
     }

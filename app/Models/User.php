@@ -20,10 +20,11 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
+ * @property string $default_entry_date
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'must_change_password'])]
+#[Fillable(['name', 'email', 'password', 'must_change_password', 'default_entry_date'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

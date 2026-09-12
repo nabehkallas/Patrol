@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/transactions';
@@ -67,6 +68,7 @@ type PageProps = {
 export default function TransactionCreate() {
     const { tanks, pumps, debtors, exchangeRates } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
 
     const typeLabels: Record<TransactionType, string> = {
         fuel_sale: t('transactions.type.fuel_sale'),
@@ -107,7 +109,7 @@ export default function TransactionCreate() {
         to_currency: 'USD' as Currency,
         to_amount: '',
         exchange_rate_to_usd: '',
-        occurred_at: new Date().toISOString().slice(0, 10),
+        occurred_at: defaultEntryDate,
         notes: '',
         other_income_category: 'cash_box' as OtherIncomeCategory,
         mark_as_debt: false,
