@@ -180,12 +180,37 @@ function DetailCard({
                         <Syp value={row.tier1_profit_syp} />
                     </span>
                 </div>
+                {row.tier1_tiers.map((tier, index) => (
+                    <div
+                        key={index}
+                        className="text-muted-foreground flex justify-between ps-2 text-[11px]"
+                    >
+                        <span>
+                            {formatNumber(tier.liters)} L ×{' '}
+                            <Syp value={tier.margin_rate_syp} />
+                        </span>
+                        <span>
+                            <Syp value={tier.profit_syp} />
+                        </span>
+                    </div>
+                ))}
                 <div className="text-muted-foreground flex justify-between text-xs">
                     <span>{t('earnings.tier2_profit')}</span>
                     <span>
                         <Syp value={row.tier2_profit_syp} />
                     </span>
                 </div>
+                {row.tier2_liters > 0 && (
+                    <div className="text-muted-foreground flex justify-between ps-2 text-[11px]">
+                        <span>
+                            {formatNumber(row.tier2_liters)} L ×{' '}
+                            <Syp value={row.tier2_margin_rate_syp} />
+                        </span>
+                        <span>
+                            <Syp value={row.tier2_profit_syp} />
+                        </span>
+                    </div>
+                )}
                 <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">
                         {t('earnings.margin_earnings')}
