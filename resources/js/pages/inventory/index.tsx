@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatDate, formatNumber } from '@/lib/format';
+import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
@@ -44,7 +44,11 @@ import {
     edit as editTopUp,
     store as storeTopUp,
 } from '@/routes/tank-top-ups';
-import { store as storeTransfer } from '@/routes/tank-transfers';
+import {
+    destroy as destroyTransfer,
+    edit as editTransfer,
+    store as storeTransfer,
+} from '@/routes/tank-transfers';
 import type {
     Auth,
     InventoryEntry,
@@ -173,6 +177,12 @@ export default function InventoryIndex() {
     function removeTopUp(topUp: TankTopUp) {
         if (confirm(t('common.confirm_delete'))) {
             router.delete(destroyTopUp.url(topUp.id));
+        }
+    }
+
+    function removeTransfer(transfer: TankTransfer) {
+        if (confirm(t('common.confirm_delete'))) {
+            router.delete(destroyTransfer.url(transfer.id));
         }
     }
 
@@ -439,6 +449,9 @@ export default function InventoryIndex() {
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
                                             <th className="px-4 py-2">
+                                                {t('common.date')}
+                                            </th>
+                                            <th className="px-4 py-2">
                                                 {t('inventory.from_tank')}
                                             </th>
                                             <th className="px-4 py-2">
@@ -453,6 +466,9 @@ export default function InventoryIndex() {
                                             <th className="px-4 py-2">
                                                 {t('common.notes')}
                                             </th>
+                                            {auth.isAdmin && (
+                                                <th className="px-4 py-2"></th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -461,6 +477,11 @@ export default function InventoryIndex() {
                                                 key={transfer.id}
                                                 className="border-t"
                                             >
+                                                <td className="whitespace-nowrap px-4 py-2">
+                                                    {formatDateTime(
+                                                        transfer.created_at,
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-2">
                                                     {
                                                         transfer.from_tank
@@ -487,12 +508,37 @@ export default function InventoryIndex() {
                                                 <td className="px-4 py-2">
                                                     {transfer.notes}
                                                 </td>
+                                                {auth.isAdmin && (
+                                                    <td className="space-x-2 px-4 py-2 text-end">
+                                                        <Link
+                                                            href={editTransfer(
+                                                                transfer.id,
+                                                            )}
+                                                            className="text-sm underline"
+                                                        >
+                                                            {t('common.edit')}
+                                                        </Link>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                removeTransfer(
+                                                                    transfer,
+                                                                )
+                                                            }
+                                                        >
+                                                            {t('common.delete')}
+                                                        </Button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                         {transfers.length === 0 && (
                                             <tr>
                                                 <td
-                                                    colSpan={5}
+                                                    colSpan={
+                                                        auth.isAdmin ? 7 : 6
+                                                    }
                                                     className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}

@@ -71,6 +71,9 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::patch('tank-top-ups/{topUp}', [TankTopUpController::class, 'update'])->name('tank-top-ups.update')->middleware('role:admin');
         Route::delete('tank-top-ups/{topUp}', [TankTopUpController::class, 'destroy'])->name('tank-top-ups.destroy')->middleware('role:admin');
         Route::post('tank-transfers', [TankTransferController::class, 'store'])->name('tank-transfers.store');
+        Route::get('tank-transfers/{transfer}/edit', [TankTransferController::class, 'edit'])->name('tank-transfers.edit')->middleware('role:admin');
+        Route::patch('tank-transfers/{transfer}', [TankTransferController::class, 'update'])->name('tank-transfers.update')->middleware('role:admin');
+        Route::delete('tank-transfers/{transfer}', [TankTransferController::class, 'destroy'])->name('tank-transfers.destroy')->middleware('role:admin');
 
         Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
 

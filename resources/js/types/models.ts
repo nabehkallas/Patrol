@@ -353,6 +353,7 @@ export type TankTransfer = {
     liters: string;
     date: string;
     notes: string | null;
+    created_at: string;
     from_tank?: Tank;
     to_tank?: Tank;
     recorded_by?: UserSummary;

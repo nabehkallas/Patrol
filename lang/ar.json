@@ -65,6 +65,8 @@
     "All debts settled.": "تم تسديد جميع الديون.",
     "Profile updated.": "تم تحديث الملف الشخصي.",
     "Fuel transferred between tanks.": "تم نقل الوقود بين الخزانات.",
+    "Transfer updated.": "تم تحديث النقل.",
+    "Transfer deleted.": "تم حذف النقل.",
     "Shop item created.": "تم إنشاء الصنف.",
     "Shop item deleted.": "تم حذف الصنف.",
     "This item has transaction history and cannot be deleted.": "لهذا الصنف سجل معاملات ولا يمكن حذفه.",
