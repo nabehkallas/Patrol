@@ -279,24 +279,31 @@ function ShopProfitCard({
                 {shopProfit.items.length > 0 && (
                     <>
                         <div className="my-2 border-t" />
-                        <div className="text-muted-foreground flex justify-between text-xs font-medium">
-                            <span>{t('earnings.shop_item')}</span>
-                            <span>{t('earnings.shop_item_profit')}</span>
+                        <div className="text-muted-foreground text-xs font-medium">
+                            {t('earnings.shop_item')}
                         </div>
-                        {shopProfit.items.map((item) => (
-                            <div
-                                key={item.id}
-                                className="text-muted-foreground flex justify-between text-xs"
-                            >
-                                <span>
-                                    {item.name} ({item.quantity_sold} ×{' '}
-                                    <Syp value={item.profit_per_unit_syp} />)
-                                </span>
-                                <span>
-                                    <Syp value={item.total_profit_syp} />
-                                </span>
-                            </div>
-                        ))}
+                        <div className="space-y-2">
+                            {shopProfit.items.map((item) => (
+                                <div key={item.id} className="space-y-0.5">
+                                    <div className="text-xs font-medium">
+                                        {item.name}
+                                    </div>
+                                    <div className="text-muted-foreground flex justify-between text-xs">
+                                        <span>
+                                            {item.quantity_sold} ×{' '}
+                                            <Syp
+                                                value={item.profit_per_unit_syp}
+                                            />
+                                        </span>
+                                        <span>
+                                            <Syp
+                                                value={item.total_profit_syp}
+                                            />
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </>
                 )}
             </CardContent>

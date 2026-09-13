@@ -300,6 +300,7 @@ export type ShopProfitItem = {
     id: number;
     name: string;
     quantity_sold: number;
+    cost_per_unit_syp: number;
     profit_per_unit_syp: number;
     total_profit_syp: number;
 };

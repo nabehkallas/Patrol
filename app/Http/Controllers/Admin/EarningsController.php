@@ -13,7 +13,6 @@ use App\Models\EarningsPassword;
 use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
-use App\Models\ShopItem;
 use App\Models\TankTopUp;
 use App\Models\Transaction;
 use Carbon\CarbonInterface;
@@ -38,11 +37,19 @@ class EarningsController extends Controller
 
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
+        // Every figure below is rounded exactly once, at the point it becomes a displayed leaf
+        // value (a tier, a top-up tier, an item's profit, other expenses) -- every aggregate
+        // (a card's subtotal, the fuel total, the Grand Total) is then built by summing those
+        // already-rounded leaves, never by rounding a separately-accumulated raw sum. That's
+        // deliberate: it guarantees the numbers on screen always add up by hand exactly the way
+        // a user checking the arithmetic would expect, which summing raw figures and rounding
+        // once at the very end cannot guarantee (two leaves can independently round in opposite
+        // directions and land the displayed total 1 SYP away from the displayed parts' sum).
         [$breakdown, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
 
-        [$shopProfit, $shopNetProfitSyp] = $this->shopProfitSummary($from, $to, $sypRate);
+        $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
 
-        $otherExpenseSyp = $this->otherExpensesSyp($from, $to, $sypRate);
+        $otherExpenseSyp = round($this->otherExpensesSyp($from, $to, $sypRate), 0);
 
         return Inertia::render('admin/earnings/index', [
             'locked' => false,
@@ -52,11 +59,8 @@ class EarningsController extends Controller
             ],
             'breakdown' => $breakdown,
             'shop_profit' => $shopProfit,
-            'other_expense_syp' => round($otherExpenseSyp, 0),
-            // Summed from raw, unrounded components -- summing already-rounded pieces (e.g. the
-            // shop card's own rounded net_profit_syp) can land 1 SYP off whenever two of them
-            // straddle a rounding boundary in opposite directions.
-            'total_earnings_syp' => round($totalFuelSyp + $shopNetProfitSyp - $otherExpenseSyp, 0),
+            'other_expense_syp' => $otherExpenseSyp,
+            'total_earnings_syp' => $totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp,
         ]);
     }
 
@@ -88,9 +92,9 @@ class EarningsController extends Controller
     /**
      * Per fuel type: FIFO tiered profit on sales (see FuelCostAllocationService) + top-up
      * profit, each top-up valued at the price effective on its own date. Returns the breakdown
-     * rows plus the combined SYP total across all fuel types.
+     * rows plus the combined (already-rounded) SYP total across all fuel types.
      *
-     * @return array{0: array<int, array<string, mixed>>, 1: float}
+     * @return array{0: array<int, array<string, mixed>>, 1: int}
      */
     private function fuelTypeBreakdown(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
     {
@@ -125,7 +129,7 @@ class EarningsController extends Controller
             ->with('tank:id,fuel_type_id')
             ->get(['tank_id', 'liters', 'date']);
 
-        $total = 0.0;
+        $total = 0;
 
         $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $sypRate, &$total) {
             $sales = $fuelSales->where('fuel_type_id', $fuelType->id);
@@ -199,17 +203,25 @@ class EarningsController extends Controller
                     return [
                         'price_per_liter_syp' => round($tierPriceSyp, 2),
                         'liters' => round($tierLiters, 3),
-                        'earnings_syp' => round($tierLiters * $tierPriceSyp, 0),
+                        'earnings_syp' => (int) round($tierLiters * $tierPriceSyp, 0),
                         '_effective_at' => $priceAtDate?->effective_at,
-                        '_raw_earnings' => $tierLiters * $tierPriceSyp,
                     ];
                 })
                 ->sortBy('_effective_at')
                 ->values();
 
-            $topUpEarningsSyp = (float) $topUpTiers->sum('_raw_earnings');
+            // Sum of the already-rounded per-tier figures, not a separately-rounded raw sum --
+            // see the note in index() on why every aggregate here is built this way.
+            $topUpEarningsSyp = (int) $topUpTiers->sum('earnings_syp');
 
-            $marginEarningsSyp = $tier1ProfitSyp + $tier2ProfitSyp + $legacyProfitSyp;
+            $tier1Syp = (int) round($tier1ProfitSyp, 0);
+            // Tier 2 folds in the legacy estimate (sales with no FIFO allocation -- made before
+            // the cost engine shipped, or through a path that doesn't allocate): both represent
+            // profit at essentially the current margin, with no historic batch involved, so
+            // showing them as one number avoids a third, invisible bucket that would otherwise
+            // silently eat into margin_earnings_syp without ever appearing as either tier.
+            $tier2Syp = (int) round($tier2ProfitSyp + $legacyProfitSyp, 0);
+            $marginEarningsSyp = $tier1Syp + $tier2Syp;
             $subtotal = $marginEarningsSyp + $topUpEarningsSyp;
             $total += $subtotal;
 
@@ -218,9 +230,9 @@ class EarningsController extends Controller
                 'liters_sold' => round($litersSold, 3),
                 'profit_margin_percent' => round($marginPercent, 4),
                 'profit_margin_syp' => round($marginSyp, 2),
-                'tier1_profit_syp' => round($tier1ProfitSyp, 0),
-                'tier2_profit_syp' => round($tier2ProfitSyp, 0),
-                'margin_earnings_syp' => round($marginEarningsSyp, 0),
+                'tier1_profit_syp' => $tier1Syp,
+                'tier2_profit_syp' => $tier2Syp,
+                'margin_earnings_syp' => $marginEarningsSyp,
                 'topup_liters' => round($topUpLiters, 3),
                 'price_per_liter_syp' => round($priceSyp, 2),
                 'topup_tiers' => $topUpTiers->map(fn (array $tier) => [
@@ -228,8 +240,8 @@ class EarningsController extends Controller
                     'liters' => $tier['liters'],
                     'earnings_syp' => $tier['earnings_syp'],
                 ])->all(),
-                'topup_earnings_syp' => round($topUpEarningsSyp, 0),
-                'subtotal_syp' => round($subtotal, 0),
+                'topup_earnings_syp' => $topUpEarningsSyp,
+                'subtotal_syp' => $subtotal,
             ];
         })->values()->all();
 
@@ -237,105 +249,60 @@ class EarningsController extends Controller
     }
 
     /**
-     * Total shop revenue, real COGS, and net profit across every shop item in the date filter,
-     * plus a per-item breakdown. COGS prefers FIFO against each item's actual Purchase
-     * transactions (oldest batch first, same idea as the fuel engine); any units sold beyond
-     * what recorded purchases can account for -- including items with no purchase history at
-     * all, which is common since restocks aren't always logged as a Purchase -- fall back to
-     * the item's current base_price so COGS is never silently 0 for real, costed inventory.
+     * Total shop revenue, COGS, and net profit across every shop item sold in the date filter,
+     * plus a per-item breakdown. COGS is unit-cost based -- Quantity Sold x the item's own
+     * سعر التكلفة (ShopItem::base_price, the cost price the station enters when it creates or
+     * edits the item) -- not reconstructed from Purchase/restock transactions, since those
+     * aren't reliably logged for every item and left COGS at 0 whenever they weren't. Every
+     * figure here is rounded exactly once, and net_profit_syp/average_margin_percent are built
+     * from those already-rounded totals -- see the note in index().
      *
-     * @return array{0: array{total_revenue_syp: float, total_cogs_syp: float, average_margin_percent: float, net_profit_syp: float, items: array<int, array<string, mixed>>}, 1: float}
+     * @return array{total_revenue_syp: int, total_cogs_syp: int, average_margin_percent: float, net_profit_syp: int, items: array<int, array<string, mixed>>}
      */
     private function shopProfitSummary(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
     {
         $fromDt = $from->copy()->startOfDay();
         $toDt = $to->copy()->endOfDay();
 
-        $totalRevenueSyp = 0.0;
-        $totalCogsSyp = 0.0;
+        $sales = Transaction::query()
+            ->where('type', TransactionType::OtherIncome)
+            ->whereNotNull('shop_item_id')
+            ->where('occurred_at', '>=', $fromDt)
+            ->where('occurred_at', '<=', $toDt)
+            ->with('shopItem')
+            ->get(['shop_item_id', 'quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+
+        $totalRevenueSyp = 0;
+        $totalCogsSyp = 0;
         $items = [];
 
-        foreach (ShopItem::all() as $item) {
-            $sales = Transaction::query()
-                ->where('type', TransactionType::OtherIncome)
-                ->where('shop_item_id', $item->id)
-                ->orderBy('occurred_at')
-                ->orderBy('id')
-                ->get(['quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+        foreach ($sales->groupBy('shop_item_id') as $group) {
+            $item = $group->first()->shopItem;
 
-            $salesInWindow = $sales->filter(fn (Transaction $sale) => $sale->occurred_at >= $fromDt && $sale->occurred_at <= $toDt);
-
-            $quantitySold = (int) $salesInWindow->sum('quantity');
-
-            if ($quantitySold <= 0) {
+            if (! $item) {
                 continue;
             }
 
-            $revenueSyp = (float) $salesInWindow->sum(fn (Transaction $sale) => $sale->amountInSyp($sypRate));
+            $quantitySold = (int) $group->sum('quantity');
+            $revenueSyp = (int) round((float) $group->sum(fn (Transaction $sale) => $sale->amountInSyp($sypRate)), 0);
 
-            $unitsToCost = $quantitySold;
-            $itemCogsSyp = 0.0;
-
-            // Units sold before this window were already drawn from the oldest purchase
-            // batches -- skip past that many units before costing what was sold *in* the
-            // window, so the same physical units aren't costed twice across two reports.
-            $unitsToSkip = (int) $sales
-                ->filter(fn (Transaction $sale) => $sale->occurred_at < $fromDt)
-                ->sum('quantity');
-
-            $purchases = Transaction::query()
-                ->where('type', TransactionType::Purchase)
-                ->where('shop_item_id', $item->id)
-                ->orderBy('occurred_at')
-                ->orderBy('id')
-                ->get(['quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
-
-            foreach ($purchases as $purchase) {
-                $qty = (int) $purchase->quantity;
-
-                if ($qty <= 0) {
-                    continue;
-                }
-
-                $unitCostSyp = $purchase->amountInSyp($sypRate) / $qty;
-
-                if ($unitsToSkip > 0) {
-                    $consumed = min($unitsToSkip, $qty);
-                    $unitsToSkip -= $consumed;
-                    $qty -= $consumed;
-                }
-
-                if ($qty <= 0 || $unitsToCost <= 0) {
-                    continue;
-                }
-
-                $drawn = min($qty, $unitsToCost);
-                $itemCogsSyp += $drawn * $unitCostSyp;
-                $unitsToCost -= $drawn;
-
-                if ($unitsToCost <= 0) {
-                    break;
-                }
-            }
-
-            // No (or not enough) purchase history to cost the rest of what sold -- price it at
-            // the item's current cost price instead of leaving it at 0. base_price has no
-            // historical record, same limitation as fuel's margin% (see actualProfitSyp above).
-            if ($unitsToCost > 0) {
-                $itemCogsSyp += $unitsToCost * $this->convertToSyp((float) $item->base_price, $item->currency, $sypRate);
-            }
+            // base_price has no historical record — only its current value is ever known, same
+            // limitation as fuel's margin% (see actualProfitSyp above) — so every unit sold in
+            // the window is costed at today's cost price regardless of when it sold.
+            $costPerUnitSyp = round($this->convertToSyp((float) $item->base_price, $item->currency, $sypRate), 2);
+            $cogsSyp = (int) round($quantitySold * $costPerUnitSyp, 0);
+            $itemProfitSyp = $revenueSyp - $cogsSyp;
 
             $totalRevenueSyp += $revenueSyp;
-            $totalCogsSyp += $itemCogsSyp;
-
-            $itemProfitSyp = $revenueSyp - $itemCogsSyp;
+            $totalCogsSyp += $cogsSyp;
 
             $items[] = [
                 'id' => $item->id,
                 'name' => $item->name,
                 'quantity_sold' => $quantitySold,
+                'cost_per_unit_syp' => $costPerUnitSyp,
                 'profit_per_unit_syp' => round($quantitySold > 0 ? $itemProfitSyp / $quantitySold : 0.0, 2),
-                'total_profit_syp' => round($itemProfitSyp, 0),
+                'total_profit_syp' => $itemProfitSyp,
             ];
         }
 
@@ -345,14 +312,11 @@ class EarningsController extends Controller
         $averageMarginPercent = $totalRevenueSyp > 0 ? ($netProfitSyp / $totalRevenueSyp) * 100 : 0.0;
 
         return [
-            [
-                'total_revenue_syp' => round($totalRevenueSyp, 0),
-                'total_cogs_syp' => round($totalCogsSyp, 0),
-                'average_margin_percent' => round($averageMarginPercent, 2),
-                'net_profit_syp' => round($netProfitSyp, 0),
-                'items' => $items,
-            ],
-            $netProfitSyp,
+            'total_revenue_syp' => $totalRevenueSyp,
+            'total_cogs_syp' => $totalCogsSyp,
+            'average_margin_percent' => round($averageMarginPercent, 2),
+            'net_profit_syp' => $netProfitSyp,
+            'items' => $items,
         ];
     }
 

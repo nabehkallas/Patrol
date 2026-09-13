@@ -504,7 +504,6 @@ const dictionary = {
         'earnings.shop_margin_percent': 'Average shop margin (%)',
         'earnings.shop_net_profit': 'Net shop profit',
         'earnings.shop_item': 'Item',
-        'earnings.shop_item_profit': 'Profit',
 
         'wizard.title': 'Station setup',
         'wizard.heading': 'Set up your station',
@@ -1041,7 +1040,6 @@ const dictionary = {
         'earnings.shop_margin_percent': 'متوسط هامش ربح المتجر (%)',
         'earnings.shop_net_profit': 'صافي ربح المتجر',
         'earnings.shop_item': 'الصنف',
-        'earnings.shop_item_profit': 'الربح',
 
         'wizard.title': 'إعداد المحطة',
         'wizard.heading': 'إعداد محطتك',
