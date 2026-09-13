@@ -62,6 +62,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::post('inventory', [InventoryEntryController::class, 'store'])->name('inventory.store');
         Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf');
         Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf');
+        Route::get('inventory/export-tanks-xlsx', [InventoryEntryController::class, 'exportTanksLedgerXlsx'])->name('inventory.export-tanks-xlsx');
         Route::get('inventory/entries/{entry}/edit', [InventoryEntryController::class, 'editEntry'])->name('inventory.entries.edit')->middleware('role:admin');
         Route::patch('inventory/entries/{entry}', [InventoryEntryController::class, 'updateEntry'])->name('inventory.entries.update')->middleware('role:admin');
         Route::delete('inventory/entries/{entry}', [InventoryEntryController::class, 'destroyEntry'])->name('inventory.entries.destroy')->middleware('role:admin');

@@ -251,6 +251,7 @@ const dictionary = {
         'inventory.add_liters': 'Add',
         'inventory.add_liters_placeholder': 'Liters to add (no charge)',
         'inventory.top_up_history': 'Added liters history',
+        'inventory.export_tanks_ledger': 'Tanks Ledger (Excel)',
         'inventory.transfer_fuel': 'Transfer fuel between tanks',
         'inventory.transfer_description':
             'Move fuel from one tank to another tank of the same fuel type',
@@ -781,6 +782,7 @@ const dictionary = {
         'inventory.add_liters': 'إضافة',
         'inventory.add_liters_placeholder': 'اللترات المضافة (بدون دفع)',
         'inventory.top_up_history': 'سجل اللترات المضافة',
+        'inventory.export_tanks_ledger': 'دفتر الخزانات (إكسل)',
         'inventory.transfer_fuel': 'نقل وقود بين الخزانات',
         'inventory.transfer_description':
             'نقل وقود من خزان إلى خزان آخر من نفس نوع الوقود',

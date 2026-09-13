@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
@@ -32,6 +33,7 @@ import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
 import {
     exportEntriesPdf,
+    exportTanksXlsx,
     exportTopupsPdf,
     index,
     store,
@@ -304,11 +306,22 @@ export default function InventoryIndex() {
                             ))}
                         </div>
 
-                        <DateRangePicker
-                            from={historyFrom}
-                            to={historyTo}
-                            onChange={handleHistoryRangeChange}
-                        />
+                        <div className="flex flex-wrap items-center gap-3">
+                            <DateRangePicker
+                                from={historyFrom}
+                                to={historyTo}
+                                onChange={handleHistoryRangeChange}
+                            />
+                            <GenerateXlsxButton
+                                href={exportTanksXlsx.url({
+                                    query: {
+                                        from: historyFrom,
+                                        to: historyTo,
+                                    },
+                                })}
+                                label={t('inventory.export_tanks_ledger')}
+                            />
+                        </div>
 
                         <div className="space-y-3">
                             <div className="flex items-center gap-4">
