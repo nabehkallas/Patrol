@@ -12,6 +12,7 @@ use App\Models\FuelType;
 use App\Models\PumpCounterReading;
 use App\Models\Tank;
 use App\Models\Transaction;
+use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
@@ -27,6 +28,8 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class PumpCounterReadingController extends Controller
 {
+    public function __construct(private readonly FuelCostAllocationService $allocationService) {}
+
     public function index(Request $request): Response
     {
         $date = Carbon::parse($request->input('date', today()->toDateString()));
@@ -658,6 +661,7 @@ class PumpCounterReadingController extends Controller
                     'description' => $pump->name,
                     'notes' => $notes,
                 ]);
+                $this->allocationService->allocate($transaction);
                 $transactionId = $transaction->id;
             }
 
@@ -677,6 +681,8 @@ class PumpCounterReadingController extends Controller
                     'notes' => $notes,
                     'is_governmental' => true,
                 ]);
+
+                $this->allocationService->allocate($governmentalTransaction);
 
                 $governmentalTransaction->debt()->create([
                     'debtor_id' => Debtor::government()->id,

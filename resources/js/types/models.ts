@@ -280,11 +280,20 @@ export type EarningsBreakdownRow = {
     liters_sold: number;
     profit_margin_percent: number;
     profit_margin_syp: number;
+    tier1_profit_syp: number;
+    tier2_profit_syp: number;
     margin_earnings_syp: number;
     topup_liters: number;
     price_per_liter_syp: number;
     topup_earnings_syp: number;
     subtotal_syp: number;
+};
+
+export type ShopProfitSummary = {
+    total_revenue_syp: number;
+    total_cogs_syp: number;
+    average_margin_percent: number;
+    net_profit_syp: number;
 };
 
 export type SalesChartPoint = { date: string } & Record<

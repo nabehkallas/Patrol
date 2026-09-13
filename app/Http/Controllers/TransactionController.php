@@ -15,6 +15,7 @@ use App\Models\PumpCounterReading;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +28,8 @@ use Inertia\Response;
 
 class TransactionController extends Controller
 {
+    public function __construct(private readonly FuelCostAllocationService $allocationService) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -139,6 +142,10 @@ class TransactionController extends Controller
         DB::transaction(function () use ($data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction = Transaction::create($data);
 
+            if ($transaction->type === TransactionType::FuelSale) {
+                $this->allocationService->allocate($transaction);
+            }
+
             if ($markAsDebt) {
                 $transaction->debt()->create([
                     'direction' => $debtDirection,
@@ -210,7 +217,16 @@ class TransactionController extends Controller
         unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
 
         DB::transaction(function () use ($transaction, $data, $markAsDebt, $debtDebtorId, $debtDirection) {
+            // Reversed before the update (not just when it stops being a fuel sale) since liters
+            // or fuel_type_id may also be changing -- either way the old allocation no longer
+            // matches and the transaction needs a clean re-allocation against current layers.
+            $this->allocationService->reverse($transaction);
+
             $transaction->update($data);
+
+            if ($transaction->type === TransactionType::FuelSale) {
+                $this->allocationService->allocate($transaction);
+            }
 
             $existingDebt = $transaction->debt;
 

@@ -9,6 +9,7 @@ use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -94,6 +95,11 @@ class Transaction extends Model
     public function pumpCounterReading(): HasOne
     {
         return $this->hasOne(PumpCounterReading::class, 'transaction_id');
+    }
+
+    public function costAllocations(): HasMany
+    {
+        return $this->hasMany(FuelCostAllocation::class);
     }
 
     public function isPendingDebt(): bool

@@ -9,8 +9,11 @@ use App\Http\Requests\Admin\StoreFuelPriceRequest;
 use App\Http\Requests\Admin\UpdateFuelPriceRequest;
 use App\Http\Requests\Admin\UpdateFuelTypeProfitMarginRequest;
 use App\Models\ExchangeRate;
+use App\Models\FuelCostAllocation;
+use App\Models\FuelCostLayer;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
+use App\Models\Tank;
 use App\Models\Transaction;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
@@ -67,6 +70,8 @@ class FuelPriceController extends Controller
             : now();
 
         $fuelPrice = FuelPrice::create($data);
+
+        $this->createCostLayerIfApplicable($fuelPrice);
 
         $repriced = $this->repriceTransactions($fuelPrice->fuelType, $fuelPrice->effective_at);
 
@@ -160,6 +165,78 @@ class FuelPriceController extends Controller
         }
 
         return $repriced;
+    }
+
+    /**
+     * Tags the fuel still sitting in tanks with its cost basis under the price that just got
+     * superseded, so FIFO sales against it keep earning the old margin until that batch runs
+     * out (see FuelCostAllocationService). Prospective only: this fires from store() -- a
+     * genuinely new price taking effect now or in the future -- never for a backdated
+     * correction that lands behind an already-existing later price, since that doesn't
+     * represent inventory carried forward from one price into the next.
+     */
+    private function createCostLayerIfApplicable(FuelPrice $fuelPrice): void
+    {
+        $fuelType = $fuelPrice->fuelType;
+
+        $currentPrice = $fuelType->currentPrice();
+
+        if (! $currentPrice || $currentPrice->id !== $fuelPrice->id) {
+            return;
+        }
+
+        $oldPrice = $fuelType->prices()
+            ->where('id', '!=', $fuelPrice->id)
+            ->where('effective_at', '<', $fuelPrice->effective_at)
+            ->latest('effective_at')
+            ->latest('id')
+            ->first();
+
+        if (! $oldPrice) {
+            return;
+        }
+
+        $lastLayer = FuelCostLayer::where('fuel_type_id', $fuelType->id)
+            ->latest('effective_from')
+            ->latest('id')
+            ->first();
+
+        // If nothing has sold at the current (about-to-be-superseded) cost basis since the last
+        // layer was tagged, the outstanding tank volume is still that same earlier batch -- there
+        // is no new batch to snapshot. Without this guard, two price changes in a row with no
+        // sales in between would stack a second layer on top of the first and double-count the
+        // same physical liters.
+        if ($lastLayer) {
+            $soldSinceLastLayer = FuelCostAllocation::where('fuel_type_id', $fuelType->id)
+                ->whereNull('fuel_cost_layer_id')
+                ->where('created_at', '>=', $lastLayer->created_at)
+                ->exists();
+
+            if (! $soldSinceLastLayer) {
+                return;
+            }
+        }
+
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
+        $oldCostPerLiterSyp = $oldPrice->amountInSyp($sypRate) * (1 - $marginPercent / 100);
+
+        $historicLiters = $fuelType->tanks()
+            ->where('is_active', true)
+            ->get()
+            ->sum(fn (Tank $tank) => $tank->expectedLiters());
+
+        if ($historicLiters <= 0) {
+            return;
+        }
+
+        FuelCostLayer::create([
+            'fuel_type_id' => $fuelType->id,
+            'fuel_price_id' => $fuelPrice->id,
+            'cost_per_liter_syp' => round($oldCostPerLiterSyp, 4),
+            'initial_liters' => round($historicLiters, 3),
+            'effective_from' => $fuelPrice->effective_at,
+        ]);
     }
 
     private function withRepriceNote(string $message, int $repriced): string

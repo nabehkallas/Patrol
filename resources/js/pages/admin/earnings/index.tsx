@@ -18,7 +18,7 @@ import { formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import earnings from '@/routes/admin/earnings';
-import type { EarningsBreakdownRow } from '@/types';
+import type { EarningsBreakdownRow, ShopProfitSummary } from '@/types';
 
 type LockedProps = {
     locked: true;
@@ -29,6 +29,7 @@ type UnlockedProps = {
     locked: false;
     filters: { from: string; to: string };
     breakdown: EarningsBreakdownRow[];
+    shop_profit: ShopProfitSummary;
     other_expense_syp: number;
     total_earnings_syp: number;
 };
@@ -118,7 +119,7 @@ function EarningsGate({ needsSetup }: { needsSetup: boolean }) {
             {!needsSetup && (
                 <a
                     href={EARNINGS_PASSWORD_RESET_WHATSAPP_URL}
-                    className="text-sm text-muted-foreground underline"
+                    className="text-muted-foreground text-sm underline"
                 >
                     {t('earnings.forgot_password')}
                 </a>
@@ -138,7 +139,7 @@ function DetailCard({
         <Card>
             <CardHeader>
                 <CardTitle>{row.fuel_type.name}</CardTitle>
-                <CardDescription className="text-lg font-semibold text-foreground">
+                <CardDescription className="text-foreground text-lg font-semibold">
                     {formatSyp(row.subtotal_syp)}
                 </CardDescription>
             </CardHeader>
@@ -160,6 +161,14 @@ function DetailCard({
                         {t('earnings.profit_margin')}
                     </span>
                     <span>{formatSyp(row.profit_margin_syp)}</span>
+                </div>
+                <div className="text-muted-foreground flex justify-between text-xs">
+                    <span>{t('earnings.tier1_profit')}</span>
+                    <span>{formatSyp(row.tier1_profit_syp)}</span>
+                </div>
+                <div className="text-muted-foreground flex justify-between text-xs">
+                    <span>{t('earnings.tier2_profit')}</span>
+                    <span>{formatSyp(row.tier2_profit_syp)}</span>
                 </div>
                 <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">
@@ -191,9 +200,57 @@ function DetailCard({
     );
 }
 
+function ShopProfitCard({
+    shopProfit,
+    t,
+}: {
+    shopProfit: ShopProfitSummary;
+    t: (key: TranslationKey) => string;
+}) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('earnings.shop_profit_title')}</CardTitle>
+                <CardDescription className="text-foreground text-lg font-semibold">
+                    {formatSyp(shopProfit.net_profit_syp)}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                        {t('earnings.shop_revenue')}
+                    </span>
+                    <span>{formatSyp(shopProfit.total_revenue_syp)}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                        {t('earnings.shop_cogs')}
+                    </span>
+                    <span>{formatSyp(shopProfit.total_cogs_syp)}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                        {t('earnings.shop_margin_percent')}
+                    </span>
+                    <span>
+                        {formatNumber(shopProfit.average_margin_percent, 2)}%
+                    </span>
+                </div>
+                <div className="flex justify-between font-medium">
+                    <span className="text-muted-foreground">
+                        {t('earnings.shop_net_profit')}
+                    </span>
+                    <span>{formatSyp(shopProfit.net_profit_syp)}</span>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 function EarningsReport({
     filters,
     breakdown,
+    shop_profit,
     other_expense_syp,
     total_earnings_syp,
 }: UnlockedProps) {
@@ -240,7 +297,7 @@ function EarningsReport({
                 </Card>
 
                 <div className="flex flex-wrap gap-4">
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('earnings.total_earnings')}
@@ -250,7 +307,7 @@ function EarningsReport({
                             {formatSyp(total_earnings_syp)}
                         </CardContent>
                     </Card>
-                    <Card className="max-w-xs min-w-[12rem] flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('cash_box.other_expenses')}
@@ -266,6 +323,7 @@ function EarningsReport({
                     {breakdown.map((row) => (
                         <DetailCard key={row.fuel_type.id} row={row} t={t} />
                     ))}
+                    <ShopProfitCard shopProfit={shop_profit} t={t} />
                 </div>
             </div>
         </>

@@ -13,6 +13,7 @@ use App\Models\EarningsPassword;
 use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
+use App\Models\ShopItem;
 use App\Models\TankTopUp;
 use App\Models\Transaction;
 use Carbon\CarbonInterface;
@@ -37,7 +38,9 @@ class EarningsController extends Controller
 
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
-        [$breakdown, $totalMarginAndTopUpSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
+        [$breakdown, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
+
+        $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
 
         $otherExpenseSyp = $this->otherExpensesSyp($from, $to, $sypRate);
 
@@ -48,8 +51,9 @@ class EarningsController extends Controller
                 'to' => $to->toDateString(),
             ],
             'breakdown' => $breakdown,
+            'shop_profit' => $shopProfit,
             'other_expense_syp' => round($otherExpenseSyp, 0),
-            'total_earnings_syp' => round($totalMarginAndTopUpSyp - $otherExpenseSyp, 0),
+            'total_earnings_syp' => round($totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp, 0),
         ]);
     }
 
@@ -79,8 +83,9 @@ class EarningsController extends Controller
     }
 
     /**
-     * Per fuel type: (liters sold x profit margin) + (liters topped up for free x current sale
-     * price). Returns the breakdown rows plus the combined SYP total across all fuel types.
+     * Per fuel type: FIFO tiered profit on sales (see FuelCostAllocationService) + top-up
+     * profit, each top-up valued at the price effective on its own date. Returns the breakdown
+     * rows plus the combined SYP total across all fuel types.
      *
      * @return array{0: array<int, array<string, mixed>>, 1: float}
      */
@@ -95,7 +100,8 @@ class EarningsController extends Controller
             ->where('type', TransactionType::FuelSale)
             ->where('occurred_at', '>=', $fromDt)
             ->where('occurred_at', '<=', $toDt)
-            ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+            ->with('costAllocations')
+            ->get(['id', 'fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
 
         $standaloneDebtSales = Debt::query()
             ->where('direction', DebtDirection::Receivable)
@@ -114,7 +120,7 @@ class EarningsController extends Controller
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
             ->with('tank:id,fuel_type_id')
-            ->get(['tank_id', 'liters']);
+            ->get(['tank_id', 'liters', 'date']);
 
         $total = 0.0;
 
@@ -126,13 +132,45 @@ class EarningsController extends Controller
 
             $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
 
-            // Real profit, sale by sale: what was actually charged minus the fuel type's cost
-            // basis on that specific sale's date (its official price then x (1 - margin%)) —
-            // not liters x today's margin, so a sale at a custom price, or one made before the
-            // official price has since changed, is still accounted for correctly.
-            $marginEarningsSyp = $sales->sum(fn (Transaction $sale) => $this->actualProfitSyp(
-                $fuelType, $sale->occurred_at, (float) $sale->liters, $sale->amountInSyp($sypRate), $marginPercent, $sypRate,
-            )) + $debtSales->sum(fn (Debt $debt) => $this->actualProfitSyp(
+            $tier1ProfitSyp = 0.0;
+            $tier2ProfitSyp = 0.0;
+            $legacyProfitSyp = 0.0;
+
+            foreach ($sales as $sale) {
+                if ($sale->costAllocations->isEmpty()) {
+                    // No FIFO allocation recorded for this sale (made before the cost engine
+                    // shipped, or through a path that doesn't allocate) -- fall back to the
+                    // estimate: revenue minus the cost basis implied by margin% on the sale's
+                    // own date.
+                    $legacyProfitSyp += $this->actualProfitSyp(
+                        $fuelType, $sale->occurred_at, (float) $sale->liters, $sale->amountInSyp($sypRate), $marginPercent, $sypRate,
+                    );
+
+                    continue;
+                }
+
+                $revenuePerLiterSyp = (float) $sale->liters > 0
+                    ? $sale->amountInSyp($sypRate) / (float) $sale->liters
+                    : 0.0;
+
+                foreach ($sale->costAllocations as $allocation) {
+                    $sliceProfitSyp = ($revenuePerLiterSyp - (float) $allocation->cost_per_liter_syp) * (float) $allocation->liters;
+
+                    if ($allocation->fuel_cost_layer_id !== null) {
+                        // Tier 1: drawn from a historic batch tagged at the cost basis of
+                        // whatever price governed before it -- earns the gap between today's
+                        // selling price and that old cost, not just the current margin%.
+                        $tier1ProfitSyp += $sliceProfitSyp;
+                    } else {
+                        // Tier 2: beyond any historic batch, costed at the current margin.
+                        $tier2ProfitSyp += $sliceProfitSyp;
+                    }
+                }
+            }
+
+            // Standalone liters-debts never get FIFO allocations (see
+            // FuelCostAllocationService) -- always the legacy estimate.
+            $legacyProfitSyp += $debtSales->sum(fn (Debt $debt) => $this->actualProfitSyp(
                 $fuelType, $debt->date, (float) $debt->liters, $debt->amountInSyp($sypRate), $marginPercent, $sypRate,
             ));
 
@@ -140,12 +178,19 @@ class EarningsController extends Controller
             $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
             $marginSyp = $priceSyp * ($marginPercent / 100);
 
-            $topUpLiters = (float) $topUps
-                ->filter(fn (TankTopUp $topUp) => $topUp->tank?->fuel_type_id === $fuelType->id)
-                ->sum('liters');
+            $fuelTopUps = $topUps->filter(fn (TankTopUp $topUp) => $topUp->tank?->fuel_type_id === $fuelType->id);
+            $topUpLiters = (float) $fuelTopUps->sum('liters');
 
-            $topUpEarningsSyp = $topUpLiters * $priceSyp;
+            // Valued at whatever price was actually effective on each top-up's own date, not
+            // blanket today's price -- a free/added batch logged weeks ago is worth what it was
+            // worth then, not what fuel costs today.
+            $topUpEarningsSyp = $fuelTopUps->sum(function (TankTopUp $topUp) use ($fuelType, $sypRate) {
+                $priceAtDate = $fuelType->priceAt($topUp->date);
 
+                return (float) $topUp->liters * ($priceAtDate ? $priceAtDate->amountInSyp($sypRate) : 0.0);
+            });
+
+            $marginEarningsSyp = $tier1ProfitSyp + $tier2ProfitSyp + $legacyProfitSyp;
             $subtotal = $marginEarningsSyp + $topUpEarningsSyp;
             $total += $subtotal;
 
@@ -154,6 +199,8 @@ class EarningsController extends Controller
                 'liters_sold' => round($litersSold, 3),
                 'profit_margin_percent' => round($marginPercent, 4),
                 'profit_margin_syp' => round($marginSyp, 2),
+                'tier1_profit_syp' => round($tier1ProfitSyp, 0),
+                'tier2_profit_syp' => round($tier2ProfitSyp, 0),
                 'margin_earnings_syp' => round($marginEarningsSyp, 0),
                 'topup_liters' => round($topUpLiters, 3),
                 'price_per_liter_syp' => round($priceSyp, 2),
@@ -163,6 +210,95 @@ class EarningsController extends Controller
         })->values()->all();
 
         return [$breakdown, $total];
+    }
+
+    /**
+     * Total shop revenue, real historical COGS, and net profit across every shop item in the
+     * date filter. COGS is FIFO against each item's actual Purchase transactions (oldest batch
+     * first), the same "consume real recorded cost, oldest first" idea as the fuel engine --
+     * except no separate layer table is needed here, since every purchase batch is already a
+     * real Transaction row this can walk directly.
+     *
+     * @return array{total_revenue_syp: float, total_cogs_syp: float, average_margin_percent: float, net_profit_syp: float}
+     */
+    private function shopProfitSummary(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
+    {
+        $fromDt = $from->copy()->startOfDay();
+        $toDt = $to->copy()->endOfDay();
+
+        $totalRevenueSyp = 0.0;
+        $totalCogsSyp = 0.0;
+
+        foreach (ShopItem::all() as $item) {
+            $sales = Transaction::query()
+                ->where('type', TransactionType::OtherIncome)
+                ->where('shop_item_id', $item->id)
+                ->orderBy('occurred_at')
+                ->orderBy('id')
+                ->get(['quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+
+            $salesInWindow = $sales->filter(fn (Transaction $sale) => $sale->occurred_at >= $fromDt && $sale->occurred_at <= $toDt);
+
+            $totalRevenueSyp += (float) $salesInWindow->sum(fn (Transaction $sale) => $sale->amountInSyp($sypRate));
+
+            $unitsToCost = (int) $salesInWindow->sum('quantity');
+
+            if ($unitsToCost <= 0) {
+                continue;
+            }
+
+            // Units sold before this window were already drawn from the oldest purchase
+            // batches -- skip past that many units before costing what was sold *in* the
+            // window, so the same physical units aren't costed twice across two reports.
+            $unitsToSkip = (int) $sales
+                ->filter(fn (Transaction $sale) => $sale->occurred_at < $fromDt)
+                ->sum('quantity');
+
+            $purchases = Transaction::query()
+                ->where('type', TransactionType::Purchase)
+                ->where('shop_item_id', $item->id)
+                ->orderBy('occurred_at')
+                ->orderBy('id')
+                ->get(['quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+
+            foreach ($purchases as $purchase) {
+                $qty = (int) $purchase->quantity;
+
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                $unitCostSyp = $purchase->amountInSyp($sypRate) / $qty;
+
+                if ($unitsToSkip > 0) {
+                    $consumed = min($unitsToSkip, $qty);
+                    $unitsToSkip -= $consumed;
+                    $qty -= $consumed;
+                }
+
+                if ($qty <= 0 || $unitsToCost <= 0) {
+                    continue;
+                }
+
+                $drawn = min($qty, $unitsToCost);
+                $totalCogsSyp += $drawn * $unitCostSyp;
+                $unitsToCost -= $drawn;
+
+                if ($unitsToCost <= 0) {
+                    break;
+                }
+            }
+        }
+
+        $netProfitSyp = $totalRevenueSyp - $totalCogsSyp;
+        $averageMarginPercent = $totalRevenueSyp > 0 ? ($netProfitSyp / $totalRevenueSyp) * 100 : 0.0;
+
+        return [
+            'total_revenue_syp' => round($totalRevenueSyp, 0),
+            'total_cogs_syp' => round($totalCogsSyp, 0),
+            'average_margin_percent' => round($averageMarginPercent, 2),
+            'net_profit_syp' => round($netProfitSyp, 0),
+        ];
     }
 
     /**
