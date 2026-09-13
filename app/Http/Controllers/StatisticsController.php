@@ -24,9 +24,10 @@ class StatisticsController extends Controller
         $user = $request->user();
         $isAdmin = $user->isAdmin();
 
-        // Defaults to today — this page is primarily a daily report; the date pickers still
-        // allow widening it into a longer-range summary when that's what's needed instead.
-        $from = $request->date('from') ?? now()->startOfDay();
+        // 1st of the current month through today -- the same default every other date-range
+        // report in the app uses, so a fresh visit here isn't the one place that opens narrower
+        // than everywhere else. The pickers still allow narrowing back down to a single day.
+        $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
 
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
@@ -233,7 +234,7 @@ class StatisticsController extends Controller
         $isAdmin = $user->isAdmin();
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
-        $from = $request->date('from') ?? now()->startOfDay();
+        $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 

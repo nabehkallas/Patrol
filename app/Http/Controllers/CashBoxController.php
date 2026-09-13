@@ -29,15 +29,19 @@ class CashBoxController extends Controller
 
     public function index(Request $request): Response
     {
-        // "Today" and "Custom Range" are kept as two distinct, explicit modes rather than
-        // inferring one from from/to (e.g. from === to === today) -- the picker only ever
-        // writes from/to, so an explicit mode is what lets the "Today" tab stay selected/
+        // "Today", "Yesterday", and "Custom Range" are kept as distinct, explicit modes rather
+        // than inferring one from from/to (e.g. from === to === today) -- the picker only ever
+        // writes from/to, so an explicit mode is what lets a quick-filter tab stay selected/
         // reproducible on reload without accidentally matching a genuine one-day custom range.
-        $mode = $request->string('mode')->value() === 'custom' ? 'custom' : 'today';
+        $mode = $request->string('mode')->value();
+        $mode = in_array($mode, ['custom', 'yesterday'], true) ? $mode : 'today';
 
         if ($mode === 'custom' && $request->filled('from')) {
             $from = $request->date('from');
             $to = $request->date('to') ?? now();
+        } elseif ($mode === 'yesterday') {
+            $from = now()->subDay()->startOfDay();
+            $to = now()->subDay()->endOfDay();
         } else {
             $mode = 'today';
             $from = now()->startOfDay();

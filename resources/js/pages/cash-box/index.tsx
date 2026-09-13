@@ -43,7 +43,11 @@ import type {
 } from '@/types';
 
 type PageProps = {
-    filters: { mode: 'today' | 'custom'; from: string; to: string };
+    filters: {
+        mode: 'today' | 'yesterday' | 'custom';
+        from: string;
+        to: string;
+    };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
     history: CashBoxHistoryEntry[];
@@ -456,10 +460,29 @@ export default function CashBoxIndex() {
         router.get(index.url(), { mode: 'today' }, { preserveState: false });
     }
 
+    function showYesterday() {
+        setMode('yesterday');
+        router.get(
+            index.url(),
+            { mode: 'yesterday' },
+            { preserveState: false },
+        );
+    }
+
     function showCustomRange() {
         // Only flips the local UI into "custom" mode -- reveals the date picker + Apply
         // button -- without navigating yet, so picking dates never briefly re-fetches
         // "today" data first. Apply below is what actually commits the custom range.
+        // Seeds the picker to the app-wide default (1st of the current month through today)
+        // rather than leaving whatever Today/Yesterday had last set fromVal/toVal to, unless
+        // the user is switching back to a custom range they'd already picked themselves.
+        if (mode !== 'custom') {
+            const now = new Date();
+            const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+            setFromVal(startOfMonth);
+            setToVal(now.toISOString().slice(0, 10));
+        }
+
         setMode('custom');
     }
 
@@ -492,6 +515,16 @@ export default function CashBoxIndex() {
                                 onClick={showToday}
                             >
                                 {t('cash_box.today')}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    mode === 'yesterday' ? 'default' : 'ghost'
+                                }
+                                onClick={showYesterday}
+                            >
+                                {t('cash_box.yesterday')}
                             </Button>
                             <Button
                                 type="button"

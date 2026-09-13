@@ -143,9 +143,13 @@ export default function DebtsIndex() {
     }
 
     const [showSettleFiltered, setShowSettleFiltered] = useState(false);
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .slice(0, 10);
+    const today = now.toISOString().slice(0, 10);
     const settleFilteredForm = useForm({
-        from: today,
+        from: startOfMonth,
         to: today,
     });
 
@@ -227,13 +231,13 @@ export default function DebtsIndex() {
                     />
                     <Link
                         href={create()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('debts.new')}
                     </Link>
                 </div>
 
-                <div className="flex flex-wrap gap-4 [&>*]:max-w-xs [&>*]:min-w-[12rem] [&>*]:flex-1">
+                <div className="flex flex-wrap gap-4 [&>*]:min-w-[12rem] [&>*]:max-w-xs [&>*]:flex-1">
                     <CurrencyCard
                         label={t('debts.total_unpaid')}
                         breakdown={totals.outstanding}
@@ -417,7 +421,7 @@ export default function DebtsIndex() {
                                                     )}{' '}
                                                     {debt.currency}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
+                                                <div className="text-muted-foreground text-xs">
                                                     {t('debts.original_amount')}
                                                     :{' '}
                                                     {formatNumber(debt.amount)}{' '}
@@ -499,7 +503,7 @@ export default function DebtsIndex() {
                                 <tr>
                                     <td
                                         colSpan={8}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>
@@ -636,7 +640,7 @@ export default function DebtsIndex() {
                     }}
                 >
                     <DialogTitle>{t('debts.settle_filtered')}</DialogTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('debts.settle_filtered_description')}
                     </p>
 

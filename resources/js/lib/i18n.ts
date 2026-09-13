@@ -383,6 +383,7 @@ const dictionary = {
         'cash_box.cash_out': 'Cash Out',
         'cash_box.view_breakdown': 'View breakdown',
         'cash_box.today': 'Today',
+        'cash_box.yesterday': 'Yesterday',
         'cash_box.custom_range': 'Custom Range',
 
         'nav.statistics': 'Statistics',
@@ -912,6 +913,7 @@ const dictionary = {
         'cash_box.cash_out': 'صرف / سحب',
         'cash_box.view_breakdown': 'عرض التفاصيل',
         'cash_box.today': 'اليوم',
+        'cash_box.yesterday': 'الأمس',
         'cash_box.custom_range': 'نطاق مخصص',
 
         'nav.statistics': 'الإحصائيات',

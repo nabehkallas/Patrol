@@ -37,8 +37,12 @@ class InventoryEntryController extends Controller
             ->orderBy('name')
             ->get();
 
-        $from = Carbon::parse($request->input('from', today()->toDateString()));
-        $to = Carbon::parse($request->input('to', today()->toDateString()));
+        // Default range: 1st of the current month through today, matching every other
+        // date-range report in the app -- this previously defaulted to today-only, which
+        // made a fresh visit to Inventory look emptier than Cash Box/Sadcop/Statistics did
+        // for the exact same station on the exact same day.
+        $from = $request->filled('from') ? Carbon::parse($request->input('from')) : now()->startOfMonth();
+        $to = $request->filled('to') ? Carbon::parse($request->input('to')) : now();
 
         return Inertia::render('inventory/index', [
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),

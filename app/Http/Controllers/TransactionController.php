@@ -253,7 +253,13 @@ class TransactionController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction deleted.')]);
 
-        return to_route('transactions.index');
+        // This route is shared by more than just the Transactions page -- Shop's sale/purchase
+        // log deletes through it too -- so a hardcoded to_route('transactions.index') always
+        // bounced a Shop deletion over to /transactions. back() returns to wherever the delete
+        // request actually came from (Inertia sets Referer to the current page), which also
+        // preserves any active filters/pagination on the Transactions page itself rather than
+        // resetting them.
+        return back();
     }
 
     /**
