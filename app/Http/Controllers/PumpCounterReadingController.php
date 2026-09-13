@@ -712,6 +712,7 @@ class PumpCounterReadingController extends Controller
                 'name' => $tank->name,
                 'fuel_type_id' => $tank->fuel_type_id,
                 'fuel_type_name' => $tank->fuelType->name,
+                'is_active' => $tank->is_active,
             ]);
     }
 }

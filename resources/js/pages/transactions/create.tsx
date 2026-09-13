@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index, store } from '@/routes/transactions';
 import type {
     Currency,
@@ -97,15 +98,17 @@ export default function TransactionCreate() {
         ? (requestedType as TransactionType)
         : 'fuel_sale';
 
+    const initialTank = selectableTanks(tanks)[0];
+
     const form = useForm({
         type: initialType,
-        tank_id: String(tanks[0]?.id ?? ''),
+        tank_id: String(initialTank?.id ?? ''),
         pump_id: String(pumps[0]?.id ?? ''),
         liters: '',
-        price_per_liter: tanks[0]?.currentPrice?.price_per_liter ?? '',
+        price_per_liter: initialTank?.currentPrice?.price_per_liter ?? '',
         description: '',
         amount: '',
-        currency: (tanks[0]?.currentPrice?.currency ?? 'SYP') as Currency,
+        currency: (initialTank?.currentPrice?.currency ?? 'SYP') as Currency,
         to_currency: 'USD' as Currency,
         to_amount: '',
         exchange_rate_to_usd: '',
@@ -138,17 +141,18 @@ export default function TransactionCreate() {
         [pumps, form.data.pump_id],
     );
 
-    const availableTanks = useMemo(
-        () =>
+    const availableTanks = useMemo(() => {
+        const byFuelType =
             form.data.type === 'fuel_sale' &&
             selectedPump &&
             selectedPump.fuel_type_ids.length > 0
                 ? tanks.filter((tank) =>
                       selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
-                : tanks,
-        [tanks, selectedPump, form.data.type],
-    );
+                : tanks;
+
+        return selectableTanks(byFuelType, form.data.tank_id);
+    }, [tanks, selectedPump, form.data.type, form.data.tank_id]);
 
     function handleTankChange(id: string) {
         const tank = tanks.find((item) => item.id === Number(id));
@@ -171,7 +175,7 @@ export default function TransactionCreate() {
                       pump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
                 : tanks;
-        const nextTank = nextTanks[0];
+        const nextTank = selectableTanks(nextTanks)[0];
 
         form.setData((data) => ({
             ...data,

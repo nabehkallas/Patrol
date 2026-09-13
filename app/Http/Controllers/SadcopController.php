@@ -544,6 +544,7 @@ class SadcopController extends Controller
                 'name' => $tank->name,
                 'fuel_type_id' => $tank->fuel_type_id,
                 'fuel_type_name' => $tank->fuelType->name,
+                'is_active' => $tank->is_active,
                 'remaining_liters' => round($tank->remainingCapacity(), 3),
                 'default_cost_price_per_liter' => $this->defaultCostPricePerLiter($tank, $sypRate),
             ]);

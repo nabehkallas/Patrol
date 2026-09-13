@@ -16,6 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index, update } from '@/routes/pump-counters';
 
 type Reading = {
@@ -41,6 +42,7 @@ type TankOption = {
     name: string;
     fuel_type_id: number;
     fuel_type_name: string;
+    is_active: boolean;
 };
 
 type PageProps = {
@@ -55,7 +57,7 @@ export default function PumpCounterReadingEdit() {
 
     const form = useForm({
         pump_id: String(reading.pump_id),
-        tank_id: String(reading.tank_id ?? tanks[0]?.id ?? ''),
+        tank_id: String(reading.tank_id ?? selectableTanks(tanks)[0]?.id ?? ''),
         date: reading.date,
         reading_value: reading.reading_value,
         governmental_liters: reading.governmental_liters ?? '',
@@ -67,24 +69,27 @@ export default function PumpCounterReadingEdit() {
         (pump) => String(pump.id) === form.data.pump_id,
     );
 
-    const availableTanks = useMemo(
-        () =>
+    const availableTanks = useMemo(() => {
+        const byFuelType =
             selectedPump && selectedPump.fuel_type_ids.length > 0
                 ? tanks.filter((tank) =>
                       selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
-                : tanks,
-        [tanks, selectedPump],
-    );
+                : tanks;
+
+        return selectableTanks(byFuelType, form.data.tank_id);
+    }, [tanks, selectedPump, form.data.tank_id]);
 
     function handlePumpChange(pumpId: string) {
         const pump = pumps.find((p) => String(p.id) === pumpId);
-        const nextTanks =
+        const nextTanks = selectableTanks(
             pump && pump.fuel_type_ids.length > 0
                 ? tanks.filter((tank) =>
                       pump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
-                : tanks;
+                : tanks,
+            form.data.tank_id,
+        );
 
         form.setData((data) => ({
             ...data,
@@ -111,7 +116,7 @@ export default function PumpCounterReadingEdit() {
                 />
 
                 {reading.liters_sold !== null && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('pump_counters.liters_sold')}:{' '}
                         <span className="font-medium">
                             {formatNumber(reading.liters_sold)} L

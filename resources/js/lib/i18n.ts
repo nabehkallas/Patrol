@@ -265,6 +265,9 @@ const dictionary = {
         'tanks.new': 'New tank',
         'tanks.edit': 'Edit tank',
         'tanks.capacity_liters': 'Capacity (liters)',
+        'tanks.status': 'Status',
+        'tanks.active': 'Active',
+        'tanks.inactive': 'Inactive',
 
         'debts.title': 'Debts',
         'debts.description':
@@ -791,6 +794,9 @@ const dictionary = {
         'tanks.new': 'خزان جديد',
         'tanks.edit': 'تعديل الخزان',
         'tanks.capacity_liters': 'السعة (لتر)',
+        'tanks.status': 'الحالة',
+        'tanks.active': 'نشط',
+        'tanks.inactive': 'غير نشط',
 
         'debts.title': 'الديون',
         'debts.description':

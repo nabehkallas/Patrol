@@ -18,6 +18,9 @@ class TankController extends Controller
         $this->authorize('viewAny', Tank::class);
 
         return Inertia::render('admin/tanks/index', [
+            // Soft-deleted tanks are excluded automatically (SoftDeletes' global scope) --
+            // inactive ones stay listed here since this is the admin control panel itself,
+            // just filtered out of every operational selector elsewhere in the app.
             'tanks' => Tank::with('fuelType')
                 ->orderBy('fuel_type_id')
                 ->orderBy('name')
@@ -27,6 +30,7 @@ class TankController extends Controller
                     'fuel_type_id' => $tank->fuel_type_id,
                     'name' => $tank->name,
                     'capacity_liters' => $tank->capacity_liters,
+                    'is_active' => $tank->is_active,
                     'fuel_type' => $tank->fuelType->only(['id', 'name']),
                 ]),
         ]);
@@ -57,7 +61,7 @@ class TankController extends Controller
         $this->authorize('update', $tank);
 
         return Inertia::render('admin/tanks/edit', [
-            'tank' => $tank->only(['id', 'fuel_type_id', 'name', 'capacity_liters']),
+            'tank' => $tank->only(['id', 'fuel_type_id', 'name', 'capacity_liters', 'is_active']),
             'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -73,18 +77,33 @@ class TankController extends Controller
         return to_route('admin.tanks.index');
     }
 
+    /**
+     * Flips is_active from the tanks list itself -- a quick operational switch, separate from
+     * the full edit form. Inactive just means "not offered for new assignments"; existing pumps/
+     * readings/transfers that already reference this tank are completely unaffected.
+     */
+    public function toggleActive(Tank $tank): RedirectResponse
+    {
+        $this->authorize('update', $tank);
+
+        $tank->update(['is_active' => ! $tank->is_active]);
+
+        $message = $tank->is_active ? __('Tank activated.') : __('Tank deactivated.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return back();
+    }
+
     public function destroy(Tank $tank): RedirectResponse
     {
         $this->authorize('delete', $tank);
 
-        // tank_transfers.from_tank_id/to_tank_id are restrictOnDelete() at the DB level (a
-        // transfer must always point at two real tanks) -- without this check, deleting a tank
-        // with transfer history throws an uncaught SQLite FOREIGN KEY constraint violation
-        // (500) instead of a normal validation error.
-        if ($tank->transfersIn()->exists() || $tank->transfersOut()->exists()) {
-            return back()->withErrors(['tank' => __('This tank has transfer history and cannot be deleted.')]);
-        }
-
+        // A real delete would hit tank_transfers.from_tank_id/to_tank_id's restrictOnDelete()
+        // (or silently cascade/null-out transactions, readings, top-ups, inventory entries) --
+        // soft-deleting instead leaves every historical row's tank_id pointing at a real,
+        // still-resolvable row (see the withTrashed() relations on those models), so nothing
+        // breaks and no FK constraint ever fires. The tank itself disappears from every normal
+        // query (active lists, dashboards, selectors) via SoftDeletes' global scope.
         $tank->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Tank deleted.')]);

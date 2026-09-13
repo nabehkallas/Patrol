@@ -7,14 +7,18 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['fuel_type_id', 'name', 'capacity_liters'])]
+#[Fillable(['fuel_type_id', 'name', 'capacity_liters', 'is_active'])]
 class Tank extends Model
 {
+    use SoftDeletes;
+
     protected function casts(): array
     {
         return [
             'capacity_liters' => 'decimal:3',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -82,6 +86,7 @@ class Tank extends Model
             'id' => $this->id,
             'name' => $this->name,
             'capacity_liters' => $this->capacity_liters,
+            'is_active' => $this->is_active,
             'fuel_type' => $this->fuelType->only(['id', 'name']),
             'expected_liters' => round($expected, 3),
             'latest_reading' => $latest?->only(['date', 'quantity_liters']),

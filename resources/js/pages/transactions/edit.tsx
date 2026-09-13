@@ -18,6 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index, update } from '@/routes/transactions';
 import type {
     Currency,
@@ -82,7 +83,9 @@ export default function TransactionEdit() {
 
     const form = useForm({
         type: transaction.type,
-        tank_id: String(transaction.tank_id ?? tanks[0]?.id ?? ''),
+        tank_id: String(
+            transaction.tank_id ?? selectableTanks(tanks)[0]?.id ?? '',
+        ),
         pump_id: String(transaction.pump_id ?? pumps[0]?.id ?? ''),
         liters: transaction.liters ?? '',
         price_per_liter: transaction.price_per_liter ?? '',
@@ -125,17 +128,18 @@ export default function TransactionEdit() {
         [pumps, form.data.pump_id],
     );
 
-    const availableTanks = useMemo(
-        () =>
+    const availableTanks = useMemo(() => {
+        const byFuelType =
             form.data.type === 'fuel_sale' &&
             selectedPump &&
             selectedPump.fuel_type_ids.length > 0
                 ? tanks.filter((tank) =>
                       selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
-                : tanks,
-        [tanks, selectedPump, form.data.type],
-    );
+                : tanks;
+
+        return selectableTanks(byFuelType, form.data.tank_id);
+    }, [tanks, selectedPump, form.data.type, form.data.tank_id]);
 
     // The transaction being edited is already counted in the tank's expected stock, so if it's
     // an existing delivery into this same tank, add its own liters back to get the true ceiling.
@@ -173,7 +177,7 @@ export default function TransactionEdit() {
                       pump.fuel_type_ids.includes(tank.fuel_type_id),
                   )
                 : tanks;
-        const nextTank = nextTanks[0];
+        const nextTank = selectableTanks(nextTanks)[0];
 
         form.setData((data) => ({
             ...data,

@@ -17,6 +17,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/sadcop';
 import { update } from '@/routes/sadcop/entries';
 import type { SadcopLedgerEntryType, SadcopTankOption } from '@/types';
@@ -46,7 +47,7 @@ export default function SadcopEntryEdit() {
     const isOpening = entry.type === 'opening';
 
     const form = useForm({
-        tank_id: String(entry.tank_id ?? tanks[0]?.id ?? ''),
+        tank_id: String(entry.tank_id ?? selectableTanks(tanks)[0]?.id ?? ''),
         liters: entry.liters ?? '',
         price_per_liter: entry.price_per_liter ?? '',
         amount: entry.amount,
@@ -114,7 +115,10 @@ export default function SadcopEntryEdit() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {tanks.map((tank) => (
+                                    {selectableTanks(
+                                        tanks,
+                                        form.data.tank_id,
+                                    ).map((tank) => (
                                         <SelectItem
                                             key={tank.id}
                                             value={String(tank.id)}

@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/sadcop';
 import { store } from '@/routes/sadcop/deliveries';
 import type { SadcopTankOption } from '@/types';
@@ -34,11 +35,12 @@ export default function SadcopDeliveryCreate() {
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
 
+    const activeTanks = selectableTanks(tanks);
     const defaultTankId =
         lastUsedTankId !== null &&
-        tanks.some((tank) => tank.id === lastUsedTankId)
+        activeTanks.some((tank) => tank.id === lastUsedTankId)
             ? lastUsedTankId
-            : (tanks[0]?.id ?? '');
+            : (activeTanks[0]?.id ?? '');
 
     const form = useForm({
         tank_id: String(defaultTankId),
@@ -147,14 +149,16 @@ export default function SadcopDeliveryCreate() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {tanks.map((tank) => (
-                                    <SelectItem
-                                        key={tank.id}
-                                        value={String(tank.id)}
-                                    >
-                                        {tank.fuel_type_name} — {tank.name}
-                                    </SelectItem>
-                                ))}
+                                {selectableTanks(tanks, form.data.tank_id).map(
+                                    (tank) => (
+                                        <SelectItem
+                                            key={tank.id}
+                                            value={String(tank.id)}
+                                        >
+                                            {tank.fuel_type_name} — {tank.name}
+                                        </SelectItem>
+                                    ),
+                                )}
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />

@@ -4,7 +4,14 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { create, destroy, edit, index } from '@/routes/admin/tanks';
+import { cn } from '@/lib/utils';
+import {
+    create,
+    destroy,
+    edit,
+    index,
+    toggleActive,
+} from '@/routes/admin/tanks';
 import type { Tank } from '@/types';
 
 type PageProps = {
@@ -25,6 +32,10 @@ export default function TanksIndex() {
                 },
             });
         }
+    }
+
+    function toggle(tank: Tank) {
+        router.patch(toggleActive.url(tank.id), {}, { preserveScroll: true });
     }
 
     return (
@@ -59,6 +70,9 @@ export default function TanksIndex() {
                                 <th className="px-4 py-2">
                                     {t('tanks.capacity_liters')}
                                 </th>
+                                <th className="px-4 py-2">
+                                    {t('tanks.status')}
+                                </th>
                                 <th className="px-4 py-2"></th>
                             </tr>
                         </thead>
@@ -71,6 +85,22 @@ export default function TanksIndex() {
                                     <td className="px-4 py-2">{tank.name}</td>
                                     <td className="px-4 py-2">
                                         {formatNumber(tank.capacity_liters)}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggle(tank)}
+                                            className={cn(
+                                                'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                                                tank.is_active
+                                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/25'
+                                                    : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700',
+                                            )}
+                                        >
+                                            {tank.is_active
+                                                ? t('tanks.active')
+                                                : t('tanks.inactive')}
+                                        </button>
                                     </td>
                                     <td className="space-x-2 px-4 py-2 text-end">
                                         <Link
@@ -92,7 +122,7 @@ export default function TanksIndex() {
                             {tanks.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={4}
+                                        colSpan={5}
                                         className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}

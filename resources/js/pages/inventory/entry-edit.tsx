@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/inventory';
 import { update } from '@/routes/inventory/entries';
 
@@ -30,6 +31,7 @@ type TankOption = {
     name: string;
     fuel_type_id: number;
     fuel_type_name: string;
+    is_active: boolean;
 };
 
 type PageProps = {
@@ -73,14 +75,16 @@ export default function InventoryEntryEdit() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {tanks.map((tank) => (
-                                    <SelectItem
-                                        key={tank.id}
-                                        value={String(tank.id)}
-                                    >
-                                        {tank.fuel_type_name} — {tank.name}
-                                    </SelectItem>
-                                ))}
+                                {selectableTanks(tanks, form.data.tank_id).map(
+                                    (tank) => (
+                                        <SelectItem
+                                            key={tank.id}
+                                            value={String(tank.id)}
+                                        >
+                                            {tank.fuel_type_name} — {tank.name}
+                                        </SelectItem>
+                                    ),
+                                )}
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />

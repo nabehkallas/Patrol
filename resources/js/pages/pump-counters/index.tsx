@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
 import {
     destroy,
@@ -38,6 +39,7 @@ type TankOption = {
     name: string;
     fuel_type_id: number;
     fuel_type_name: string;
+    is_active: boolean;
 };
 
 type FuelTypeTotal = {
@@ -81,20 +83,23 @@ function defaultTankFor(pump: PumpSummary | undefined, options: TankOption[]) {
 
 // Tanks matching the pump's configured fuel type(s). If none match (e.g. the pump's fuel
 // type has no tank yet, a configuration gap), falls back to every tank rather than leaving
-// the select with nothing to choose from at all.
+// the select with nothing to choose from at all. Inactive tanks are never offered here --
+// this only ever builds options for a *new* reading, never an existing one to preserve.
 function tanksFor(
     pump: PumpSummary | undefined,
     tanks: TankOption[],
 ): TankOption[] {
+    const active = selectableTanks(tanks);
+
     if (!pump || pump.fuel_type_ids.length === 0) {
-        return tanks;
+        return active;
     }
 
-    const matching = tanks.filter((tank) =>
+    const matching = active.filter((tank) =>
         pump.fuel_type_ids.includes(tank.fuel_type_id),
     );
 
-    return matching.length > 0 ? matching : tanks;
+    return matching.length > 0 ? matching : active;
 }
 
 export default function PumpCountersIndex() {

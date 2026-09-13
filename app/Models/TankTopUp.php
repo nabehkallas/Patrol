@@ -20,7 +20,9 @@ class TankTopUp extends Model
 
     public function tank(): BelongsTo
     {
-        return $this->belongsTo(Tank::class);
+        // withTrashed(): a soft-deleted tank must keep resolving here for historical top-ups
+        // that still reference it -- see Tank::historicalName().
+        return $this->belongsTo(Tank::class)->withTrashed();
     }
 
     public function recordedBy(): BelongsTo

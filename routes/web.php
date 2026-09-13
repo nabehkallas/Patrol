@@ -122,6 +122,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::resource('users', UserController::class)->except('show');
         Route::resource('fuel-types', FuelTypeController::class)->except('show');
         Route::resource('tanks', TankController::class)->except('show');
+        Route::patch('tanks/{tank}/toggle-active', [TankController::class, 'toggleActive'])->name('tanks.toggle-active');
 
         Route::get('fuel-prices', [FuelPriceController::class, 'index'])->name('fuel-prices.index');
         Route::post('fuel-prices', [FuelPriceController::class, 'store'])->name('fuel-prices.store');

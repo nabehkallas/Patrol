@@ -18,6 +18,7 @@ class UpdateTankRequest extends FormRequest
                 Rule::unique('tanks')->where('fuel_type_id', $this->input('fuel_type_id'))->ignore($this->route('tank')),
             ],
             'capacity_liters' => ['required', 'numeric', 'min:0.001'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

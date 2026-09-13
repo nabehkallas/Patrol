@@ -30,6 +30,8 @@
     "Tank created.": "تم إنشاء الخزان.",
     "Tank updated.": "تم تحديث الخزان.",
     "Tank deleted.": "تم حذف الخزان.",
+    "Tank activated.": "تم تفعيل الخزان.",
+    "Tank deactivated.": "تم إيقاف تفعيل الخزان.",
     "Inventory recorded.": "تم تسجيل المخزون.",
     "Fuel type created.": "تم إنشاء نوع الوقود.",
     "Fuel type updated.": "تم تحديث نوع الوقود.",

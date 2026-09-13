@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
 import {
     exportEntriesPdf,
@@ -74,14 +75,14 @@ export default function InventoryIndex() {
     const [showTransferForm, setShowTransferForm] = useState(false);
 
     const form = useForm({
-        tank_id: String(tanks[0]?.id ?? ''),
+        tank_id: String(selectableTanks(tanks)[0]?.id ?? ''),
         date: defaultEntryDate,
         quantity_liters: '',
         notes: '',
     });
 
     const transferForm = useForm({
-        from_tank_id: String(tanks[0]?.id ?? ''),
+        from_tank_id: String(selectableTanks(tanks)[0]?.id ?? ''),
         to_tank_id: '',
         liters: '',
         date: defaultEntryDate,
@@ -91,18 +92,23 @@ export default function InventoryIndex() {
     const transferFromTank = tanks.find(
         (tank) => String(tank.id) === transferForm.data.from_tank_id,
     );
-    const transferDestinationOptions = tanks.filter(
-        (tank) =>
-            tank.fuel_type.id === transferFromTank?.fuel_type.id &&
-            String(tank.id) !== transferForm.data.from_tank_id,
+    const transferDestinationOptions = selectableTanks(
+        tanks.filter(
+            (tank) =>
+                tank.fuel_type.id === transferFromTank?.fuel_type.id &&
+                String(tank.id) !== transferForm.data.from_tank_id,
+        ),
+        transferForm.data.to_tank_id,
     );
 
     function handleTransferFromChange(tankId: string) {
         const nextFromTank = tanks.find((tank) => String(tank.id) === tankId);
-        const nextDestinations = tanks.filter(
-            (tank) =>
-                tank.fuel_type.id === nextFromTank?.fuel_type.id &&
-                String(tank.id) !== tankId,
+        const nextDestinations = selectableTanks(
+            tanks.filter(
+                (tank) =>
+                    tank.fuel_type.id === nextFromTank?.fuel_type.id &&
+                    String(tank.id) !== tankId,
+            ),
         );
 
         transferForm.setData((data) => ({
@@ -583,7 +589,10 @@ export default function InventoryIndex() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {tanks.map((tank) => (
+                                                {selectableTanks(
+                                                    tanks,
+                                                    form.data.tank_id,
+                                                ).map((tank) => (
                                                     <SelectItem
                                                         key={tank.id}
                                                         value={String(tank.id)}
@@ -775,7 +784,10 @@ export default function InventoryIndex() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {tanks.map((tank) => (
+                                    {selectableTanks(
+                                        tanks,
+                                        transferForm.data.from_tank_id,
+                                    ).map((tank) => (
                                         <SelectItem
                                             key={tank.id}
                                             value={String(tank.id)}

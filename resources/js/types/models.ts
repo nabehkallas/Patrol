@@ -55,6 +55,7 @@ export type Tank = {
     fuel_type_id: number;
     name: string;
     capacity_liters: string;
+    is_active: boolean;
     fuel_type?: { id: number; name: string };
 };
 
@@ -63,6 +64,7 @@ export type TankOption = {
     name: string;
     fuel_type_id: number;
     fuel_type_name: string;
+    is_active: boolean;
     currentPrice: FuelPriceSnapshot;
     remaining_liters: number;
 };
@@ -72,6 +74,7 @@ export type SadcopTankOption = {
     name: string;
     fuel_type_id: number;
     fuel_type_name: string;
+    is_active: boolean;
     remaining_liters: number;
     default_cost_price_per_liter: number;
 };
@@ -80,6 +83,7 @@ export type TankSummary = {
     id: number;
     name: string;
     capacity_liters: string;
+    is_active: boolean;
     fuel_type: { id: number; name: string };
     expected_liters: number;
     latest_reading: { date: string; quantity_liters: string } | null;
