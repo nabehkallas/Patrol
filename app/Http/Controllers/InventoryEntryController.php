@@ -150,10 +150,12 @@ class InventoryEntryController extends Controller
     /**
      * One side-by-side block per active tank on a single sheet -- each block is its own
      * self-contained daily ledger (Date, Current Balance, Sold, Received, Returned,
-     * Differences, Transfer), separated by blank spacer columns. Current Balance is a live
-     * formula from the second data row onward (previous row's balance + that row's inflows -
-     * that row's Sold); the first data row seeds it as a plain computed number, since there's
-     * no earlier row in the sheet to build on.
+     * Differences, Transfer), separated by blank spacer columns. Current Balance at row N is a
+     * live formula (row N-1's balance + row N-1's own inflows - row N-1's Sold, e.g.
+     * B3=B2+D2+E2+F2+G2-C2) from the third row onward; the second row (the very first day
+     * shown) has no earlier row to draw on, so it's seeded as a plain computed number carried
+     * in from all history before the report's date range -- that day's own flows only take
+     * effect on the *next* row's balance, once they're themselves "the previous row".
      */
     public function exportTanksLedgerXlsx(Request $request): HttpResponse
     {
@@ -342,9 +344,11 @@ class InventoryEntryController extends Controller
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
         $sheet->getStyle($headerRange)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
 
-        // Data rows.
-        $runningPrior = $priorBalance;
-
+        // Data rows. Balance at row N is seeded (row N-1's flows applied to row N-1's own
+        // balance) for every row except the very first, which has no earlier row to draw on --
+        // it's seeded directly as the cumulative balance from all history before this report's
+        // range (that day's own flows only take effect on the *next* row's balance, once
+        // they're themselves the "previous row").
         foreach ($days as $i => $day) {
             $row = $firstDataRow + $i;
             $key = $day->toDateString();
@@ -359,10 +363,10 @@ class InventoryEntryController extends Controller
 
             if ($row === $firstDataRow) {
                 // No earlier row in the sheet to reference -- seeded as a plain computed number.
-                $sheet->setCellValue([$balanceCol, $row], round($runningPrior + $received + $returned + $differences + $transfer - $sold));
+                $sheet->setCellValue([$balanceCol, $row], round($priorBalance));
             } else {
                 $prevRow = $row - 1;
-                $sheet->setCellValue([$balanceCol, $row], "={$balanceLetter}{$prevRow}+{$receivedLetter}{$row}+{$returnedLetter}{$row}+{$differencesLetter}{$row}+{$transferLetter}{$row}-{$soldLetter}{$row}");
+                $sheet->setCellValue([$balanceCol, $row], "={$balanceLetter}{$prevRow}+{$receivedLetter}{$prevRow}+{$returnedLetter}{$prevRow}+{$differencesLetter}{$prevRow}+{$transferLetter}{$prevRow}-{$soldLetter}{$prevRow}");
             }
 
             $sheet->setCellValue([$soldCol, $row], round($sold));
