@@ -20,6 +20,16 @@ import type { TranslationKey } from '@/lib/i18n';
 import earnings from '@/routes/admin/earnings';
 import type { EarningsBreakdownRow, ShopProfitSummary } from '@/types';
 
+/**
+ * Isolates a money figure from the surrounding RTL paragraph direction (via <bdi>) and lets
+ * formatSyp embed the sign directly in the number, instead of a separate leading "-" text node
+ * next to it -- the combination is what the Arabic UI needs to keep a negative amount's minus
+ * sign on the correct (leading) side instead of drifting to the visual end of the string.
+ */
+function Syp({ value }: { value: number }) {
+    return <bdi>{formatSyp(value)}</bdi>;
+}
+
 type LockedProps = {
     locked: true;
     needsSetup: boolean;
@@ -140,7 +150,7 @@ function DetailCard({
             <CardHeader>
                 <CardTitle>{row.fuel_type.name}</CardTitle>
                 <CardDescription className="text-foreground text-lg font-semibold">
-                    {formatSyp(row.subtotal_syp)}
+                    <Syp value={row.subtotal_syp} />
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
@@ -160,21 +170,29 @@ function DetailCard({
                     <span className="text-muted-foreground">
                         {t('earnings.profit_margin')}
                     </span>
-                    <span>{formatSyp(row.profit_margin_syp)}</span>
+                    <span>
+                        <Syp value={row.profit_margin_syp} />
+                    </span>
                 </div>
                 <div className="text-muted-foreground flex justify-between text-xs">
                     <span>{t('earnings.tier1_profit')}</span>
-                    <span>{formatSyp(row.tier1_profit_syp)}</span>
+                    <span>
+                        <Syp value={row.tier1_profit_syp} />
+                    </span>
                 </div>
                 <div className="text-muted-foreground flex justify-between text-xs">
                     <span>{t('earnings.tier2_profit')}</span>
-                    <span>{formatSyp(row.tier2_profit_syp)}</span>
+                    <span>
+                        <Syp value={row.tier2_profit_syp} />
+                    </span>
                 </div>
                 <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">
                         {t('earnings.margin_earnings')}
                     </span>
-                    <span>{formatSyp(row.margin_earnings_syp)}</span>
+                    <span>
+                        <Syp value={row.margin_earnings_syp} />
+                    </span>
                 </div>
                 <div className="my-2 border-t" />
                 <div className="flex justify-between">
@@ -183,17 +201,27 @@ function DetailCard({
                     </span>
                     <span>{formatNumber(row.topup_liters)} L</span>
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                        {t('earnings.sale_price')}
-                    </span>
-                    <span>{formatSyp(row.price_per_liter_syp)}</span>
-                </div>
+                {row.topup_tiers.map((tier, index) => (
+                    <div
+                        key={index}
+                        className="text-muted-foreground flex justify-between text-xs"
+                    >
+                        <span>
+                            {formatNumber(tier.liters)} L ×{' '}
+                            <Syp value={tier.price_per_liter_syp} />
+                        </span>
+                        <span>
+                            <Syp value={tier.earnings_syp} />
+                        </span>
+                    </div>
+                ))}
                 <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">
                         {t('earnings.topup_earnings')}
                     </span>
-                    <span>{formatSyp(row.topup_earnings_syp)}</span>
+                    <span>
+                        <Syp value={row.topup_earnings_syp} />
+                    </span>
                 </div>
             </CardContent>
         </Card>
@@ -212,7 +240,7 @@ function ShopProfitCard({
             <CardHeader>
                 <CardTitle>{t('earnings.shop_profit_title')}</CardTitle>
                 <CardDescription className="text-foreground text-lg font-semibold">
-                    {formatSyp(shopProfit.net_profit_syp)}
+                    <Syp value={shopProfit.net_profit_syp} />
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
@@ -220,13 +248,17 @@ function ShopProfitCard({
                     <span className="text-muted-foreground">
                         {t('earnings.shop_revenue')}
                     </span>
-                    <span>{formatSyp(shopProfit.total_revenue_syp)}</span>
+                    <span>
+                        <Syp value={shopProfit.total_revenue_syp} />
+                    </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">
                         {t('earnings.shop_cogs')}
                     </span>
-                    <span>{formatSyp(shopProfit.total_cogs_syp)}</span>
+                    <span>
+                        <Syp value={shopProfit.total_cogs_syp} />
+                    </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">
@@ -240,8 +272,33 @@ function ShopProfitCard({
                     <span className="text-muted-foreground">
                         {t('earnings.shop_net_profit')}
                     </span>
-                    <span>{formatSyp(shopProfit.net_profit_syp)}</span>
+                    <span>
+                        <Syp value={shopProfit.net_profit_syp} />
+                    </span>
                 </div>
+                {shopProfit.items.length > 0 && (
+                    <>
+                        <div className="my-2 border-t" />
+                        <div className="text-muted-foreground flex justify-between text-xs font-medium">
+                            <span>{t('earnings.shop_item')}</span>
+                            <span>{t('earnings.shop_item_profit')}</span>
+                        </div>
+                        {shopProfit.items.map((item) => (
+                            <div
+                                key={item.id}
+                                className="text-muted-foreground flex justify-between text-xs"
+                            >
+                                <span>
+                                    {item.name} ({item.quantity_sold} ×{' '}
+                                    <Syp value={item.profit_per_unit_syp} />)
+                                </span>
+                                <span>
+                                    <Syp value={item.total_profit_syp} />
+                                </span>
+                            </div>
+                        ))}
+                    </>
+                )}
             </CardContent>
         </Card>
     );
@@ -304,7 +361,7 @@ function EarningsReport({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-2xl font-semibold">
-                            {formatSyp(total_earnings_syp)}
+                            <Syp value={total_earnings_syp} />
                         </CardContent>
                     </Card>
                     <Card className="min-w-[12rem] max-w-xs flex-1">
@@ -314,7 +371,7 @@ function EarningsReport({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-2xl font-semibold">
-                            -{formatSyp(other_expense_syp)}
+                            <Syp value={-other_expense_syp} />
                         </CardContent>
                     </Card>
                 </div>

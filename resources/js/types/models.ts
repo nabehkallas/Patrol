@@ -275,6 +275,12 @@ export type CashBoxHistoryEntry = {
     currency: Currency;
 };
 
+export type EarningsTopUpTier = {
+    price_per_liter_syp: number;
+    liters: number;
+    earnings_syp: number;
+};
+
 export type EarningsBreakdownRow = {
     fuel_type: { id: number; name: string };
     liters_sold: number;
@@ -285,8 +291,17 @@ export type EarningsBreakdownRow = {
     margin_earnings_syp: number;
     topup_liters: number;
     price_per_liter_syp: number;
+    topup_tiers: EarningsTopUpTier[];
     topup_earnings_syp: number;
     subtotal_syp: number;
+};
+
+export type ShopProfitItem = {
+    id: number;
+    name: string;
+    quantity_sold: number;
+    profit_per_unit_syp: number;
+    total_profit_syp: number;
 };
 
 export type ShopProfitSummary = {
@@ -294,6 +309,7 @@ export type ShopProfitSummary = {
     total_cogs_syp: number;
     average_margin_percent: number;
     net_profit_syp: number;
+    items: ShopProfitItem[];
 };
 
 export type SalesChartPoint = { date: string } & Record<
