@@ -248,12 +248,32 @@ class EarningsController extends Controller
                 $addMargin($key, $debtLiters, $rateSyp, $priceAtSale?->effective_at);
             }
 
+            // Two buckets can legitimately share the exact same displayed rate -- e.g. a real
+            // FIFO layer's old rate and an unrelated Tier-2/legacy bucket that both happen to be
+            // priced off the same historical FuelPrice. Shown separately they'd read as a
+            // confusing duplicate, so merge any that round to the identical 3-decimal rate into
+            // one line -- summing their already-rounded earnings, not re-deriving from a raw
+            // sum, so the merge never disturbs the page-wide "every total is a sum of rounded
+            // leaves" invariant.
             $marginTiers = collect($marginBuckets)
                 ->map(fn (array $bucket) => [
                     'margin_rate_syp' => round($bucket['rate'], 3),
                     'liters' => round($bucket['liters'], 3),
                     'earnings_syp' => (int) round($bucket['liters'] * $bucket['rate'], 0),
                     '_sort_key' => $bucket['sort_key'],
+                ])
+                // A string key, not the bare float -- Collection::groupBy() uses the group
+                // value directly as a PHP array key, and PHP array keys silently TRUNCATE a
+                // float to its integer part (a documented, deprecated-but-still-happening
+                // behavior). Grouping on the raw float would wrongly merge two genuinely
+                // different rates that happen to share the same integer part (4.389 and 4.876
+                // would both collapse to key "4").
+                ->groupBy(fn (array $tier) => number_format($tier['margin_rate_syp'], 3))
+                ->map(fn ($group) => [
+                    'margin_rate_syp' => $group->first()['margin_rate_syp'],
+                    'liters' => round((float) $group->sum('liters'), 3),
+                    'earnings_syp' => (int) $group->sum('earnings_syp'),
+                    '_sort_key' => $group->min('_sort_key'),
                 ])
                 ->sortBy('_sort_key')
                 ->values();
