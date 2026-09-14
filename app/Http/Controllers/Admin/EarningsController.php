@@ -202,8 +202,19 @@ class EarningsController extends Controller
                     $sliceLiters = (float) $allocation->liters;
 
                     if ($allocation->fuel_cost_layer_id === null) {
-                        // Tier 2: beyond any historic batch, costed (and margined) at today's price.
-                        $addMargin('current', $sliceLiters, $marginSyp, $currentPrice?->effective_at);
+                        // Tier 2: beyond any historic batch, costed at whatever price was
+                        // actually current AT THE MOMENT this allocation was made -- reverse-
+                        // derived from its own frozen cost_per_liter_syp, the same way a Tier-1
+                        // layer's old rate is derived below, rather than re-reading today's
+                        // *current* price. Those can differ: if a further price change has
+                        // happened since this allocation was created (live) or since the sale it
+                        // covers actually happened (backfilled), re-reading today's price would
+                        // silently re-price an old sale at a rate it was never actually sold at.
+                        $tier2CostSyp = (float) $allocation->cost_per_liter_syp;
+                        $tier2PriceSyp = $marginPercent < 100 ? $tier2CostSyp / (1 - $marginPercent / 100) : 0.0;
+                        $tier2RateSyp = $tier2PriceSyp - $tier2CostSyp;
+
+                        $addMargin('tier2_'.round($tier2CostSyp, 4), $sliceLiters, $tier2RateSyp, $allocation->created_at);
 
                         continue;
                     }
