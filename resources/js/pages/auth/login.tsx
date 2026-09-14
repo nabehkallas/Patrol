@@ -32,7 +32,9 @@ export default function Login({ status, canResetPassword }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">{t('common.email_address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('common.email_address')}
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -48,7 +50,9 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">{t('common.password')}</Label>
+                                    <Label htmlFor="password">
+                                        {t('common.password')}
+                                    </Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -76,7 +80,9 @@ export default function Login({ status, canResetPassword }: Props) {
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">{t('common.remember_me')}</Label>
+                                <Label htmlFor="remember">
+                                    {t('common.remember_me')}
+                                </Label>
                             </div>
 
                             <Button
@@ -95,7 +101,7 @@ export default function Login({ status, canResetPassword }: Props) {
             </Form>
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                <div className="text-success mb-4 text-center text-sm font-medium">
                     {status}
                 </div>
             )}

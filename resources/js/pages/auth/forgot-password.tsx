@@ -18,7 +18,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
             <Head title={t('auth.forgot_password.title')} />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                <div className="text-success mb-4 text-center text-sm font-medium">
                     {status}
                 </div>
             )}
@@ -28,7 +28,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">{t('common.email_address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('common.email_address')}
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -57,7 +59,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     )}
                 </Form>
 
-                <div className="space-x-1 text-center text-sm text-muted-foreground">
+                <div className="text-muted-foreground space-x-1 text-center text-sm">
                     <span>{t('auth.return_to')}</span>
                     <TextLink href={login()}>{t('auth.log_in_link')}</TextLink>
                 </div>

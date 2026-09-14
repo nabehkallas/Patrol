@@ -14,13 +14,16 @@ import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { SalesChartData } from '@/types';
 
+// CSS custom properties, not literal hex values, so each line automatically follows the
+// active theme's chart palette (and switches instantly on light/dark toggle) via normal CSS
+// inheritance -- SVG presentation attributes like `stroke` resolve var() the same as any
+// other CSS <color> value.
 const COLORS = [
-    '#2563eb',
-    '#f97316',
-    '#16a34a',
-    '#dc2626',
-    '#9333ea',
-    '#0891b2',
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
 ];
 
 type Range = '7' | '30';
@@ -49,7 +52,7 @@ export function SalesChart({ chart }: { chart: SalesChartData }) {
             <CardHeader className="flex flex-row items-start justify-between gap-4">
                 <div>
                     <CardTitle>{t('dashboard.sales_chart_title')}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {t('dashboard.sales_chart_description')}
                     </p>
                 </div>

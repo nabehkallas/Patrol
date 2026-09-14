@@ -40,6 +40,23 @@
 
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
+    --color-destructive-soft: var(--destructive-soft);
+    --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-success-soft: var(--success-soft);
+    --color-success-soft-foreground: var(--success-soft-foreground);
+
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-soft-foreground: var(--warning-soft-foreground);
+
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-info-soft: var(--info-soft);
+    --color-info-soft-foreground: var(--info-soft-foreground);
 
     --color-border: var(--border);
     --color-input: var(--input);
@@ -61,75 +78,126 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/*
+ * Patrol brand palette -- Navy + Orange. These anchors are the single source of truth for
+ * both themes below; every role (background, sidebar, badges, buttons...) is assigned from
+ * this fixed set rather than picked ad hoc, so the two themes stay visually related instead
+ * of just both "happening to be blue".
+ */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    --brand-navy: #172b45;
+    --brand-navy-dark: #0f1f33;
+    --brand-navy-deep: #081525;
+    --brand-orange: #f59e0b;
+    --brand-orange-dark: #d97706;
+    --brand-orange-light: #fef3c7;
+    --brand-green: #16a34a;
+    --brand-green-light: #dcfce7;
+    --brand-red: #dc2626;
+    --brand-red-light: #fee2e2;
+    --brand-blue: #2563eb;
+    --brand-blue-light: #dbeafe;
+
+    /* Navy Light theme -- deliberately NOT pure white: a soft blue-gray wash behind white
+       cards, so the app reads as "navy product" even in its light mode. */
+    --background: #eef3f8;
+    --foreground: #172033;
+    --card: #ffffff;
+    --card-foreground: #172033;
+    --popover: #ffffff;
+    --popover-foreground: #172033;
+    --primary: var(--brand-orange);
+    --primary-foreground: var(--brand-navy);
+    --secondary: #e6edf5;
+    --secondary-foreground: var(--brand-navy);
+    --muted: #e6edf5;
+    --muted-foreground: #64748b;
+    --accent: #e6edf5;
+    --accent-foreground: var(--brand-navy);
+    --destructive: var(--brand-red);
+    --destructive-foreground: #ffffff;
+    --destructive-soft: var(--brand-red-light);
+    --destructive-soft-foreground: var(--brand-red);
+    --success: var(--brand-green);
+    --success-foreground: #ffffff;
+    --success-soft: var(--brand-green-light);
+    --success-soft-foreground: var(--brand-green);
+    --warning: var(--brand-orange);
+    --warning-foreground: var(--brand-navy);
+    --warning-soft: var(--brand-orange-light);
+    --warning-soft-foreground: var(--brand-orange-dark);
+    --info: var(--brand-blue);
+    --info-foreground: #ffffff;
+    --info-soft: var(--brand-blue-light);
+    --info-soft-foreground: var(--brand-blue);
+    --border: #d5dfea;
+    --input: #d5dfea;
+    --ring: var(--brand-orange);
+    --chart-1: var(--brand-orange);
+    --chart-2: var(--brand-blue);
+    --chart-3: var(--brand-green);
+    --chart-4: #9333ea;
+    --chart-5: var(--brand-navy);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    --sidebar: var(--brand-navy);
+    --sidebar-foreground: #f1f5f9;
+    --sidebar-primary: #213b5a;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #213b5a;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #213b5a;
+    --sidebar-ring: var(--brand-orange);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    /* Navy Dark theme -- a true dark navy, never pure black, so it stays legible and warm
+       enough for long sessions instead of reading as a generic "OS dark mode" gray/black. */
+    --background: #081525;
+    --foreground: #f1f5f9;
+    --card: #10243a;
+    --card-foreground: #f1f5f9;
+    --popover: #142b43;
+    --popover-foreground: #f1f5f9;
+    --primary: var(--brand-orange);
+    --primary-foreground: var(--brand-navy-deep);
+    --secondary: #0b1b2e;
+    --secondary-foreground: #f1f5f9;
+    --muted: #0b1b2e;
+    --muted-foreground: #94a3b8;
+    --accent: #142b43;
+    --accent-foreground: #f1f5f9;
+    --destructive: var(--brand-red);
+    --destructive-foreground: #ffffff;
+    --destructive-soft: color-mix(in oklab, var(--brand-red) 20%, transparent);
+    --destructive-soft-foreground: #fca5a5;
+    --success: #22c55e;
+    --success-foreground: #052e14;
+    --success-soft: color-mix(in oklab, var(--brand-green) 22%, transparent);
+    --success-soft-foreground: #86efac;
+    --warning: var(--brand-orange);
+    --warning-foreground: var(--brand-navy-deep);
+    --warning-soft: color-mix(in oklab, var(--brand-orange) 20%, transparent);
+    --warning-soft-foreground: #fcd34d;
+    --info: #3b82f6;
+    --info-foreground: #08213e;
+    --info-soft: color-mix(in oklab, var(--brand-blue) 22%, transparent);
+    --info-soft-foreground: #93c5fd;
+    --border: #243b53;
+    --input: #243b53;
+    --ring: var(--brand-orange);
+    --chart-1: var(--brand-orange);
+    --chart-2: #3b82f6;
+    --chart-3: #22c55e;
+    --chart-4: #a855f7;
+    --chart-5: #94a3b8;
+    --sidebar: #06111f;
+    --sidebar-foreground: #f1f5f9;
+    --sidebar-primary: var(--brand-navy);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #10243a;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1e344d;
+    --sidebar-ring: var(--brand-orange);
 }
 
 @layer base {

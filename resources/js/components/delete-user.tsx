@@ -28,9 +28,11 @@ export default function DeleteUser() {
                 title={t('settings.delete.title')}
                 description={t('settings.delete.description')}
             />
-            <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
-                    <p className="font-medium">{t('settings.delete.warning_title')}</p>
+            <div className="border-destructive/20 bg-destructive-soft space-y-4 rounded-lg border p-4">
+                <div className="text-destructive-soft-foreground relative space-y-0.5">
+                    <p className="font-medium">
+                        {t('settings.delete.warning_title')}
+                    </p>
                     <p className="text-sm">
                         {t('settings.delete.warning_description')}
                     </p>

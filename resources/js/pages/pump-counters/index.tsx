@@ -474,8 +474,7 @@ export default function PumpCountersIndex() {
                                 <div
                                     className={cn(
                                         'font-medium',
-                                        total.liters_sold > 0 &&
-                                            'text-green-600 dark:text-green-400',
+                                        total.liters_sold > 0 && 'text-success',
                                     )}
                                 >
                                     {formatNumber(total.liters_sold)} L
@@ -494,8 +493,7 @@ export default function PumpCountersIndex() {
                                 <div
                                     className={cn(
                                         'font-medium',
-                                        total.liters_sold > 0 &&
-                                            'text-green-600 dark:text-green-400',
+                                        total.liters_sold > 0 && 'text-success',
                                     )}
                                 >
                                     {formatNumber(total.liters_sold)} L
@@ -526,7 +524,7 @@ export default function PumpCountersIndex() {
                                     <span
                                         className={cn(
                                             pump.daily_liters_sold > 0 &&
-                                                'text-green-600 dark:text-green-400',
+                                                'text-success',
                                         )}
                                     >
                                         {formatNumber(pump.daily_liters_sold)} L

@@ -93,8 +93,8 @@ export default function TanksIndex() {
                                             className={cn(
                                                 'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
                                                 tank.is_active
-                                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/25'
-                                                    : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700',
+                                                    ? 'bg-success-soft text-success-soft-foreground hover:bg-success-soft/80'
+                                                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
                                             )}
                                         >
                                             {tank.is_active

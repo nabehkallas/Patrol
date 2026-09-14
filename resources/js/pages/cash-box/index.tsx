@@ -33,6 +33,7 @@ import {
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { exportPdf, exportXlsx, index } from '@/routes/cash-box';
 import { create as createTransaction } from '@/routes/transactions';
 import type {
@@ -80,14 +81,17 @@ function otherCurrencies(
 
 type Accent = 'blue' | 'green' | 'red' | 'amber';
 
-/** Solid fill for each summary card -- deliberately hardcoded (not the app's theme tokens)
- * per an explicit design spec calling for solid colored cards with white text, distinct from
- * the rest of the page which still follows the theme's light/dark surface colors. */
-const ACCENT_BG: Record<Accent, string> = {
-    blue: 'bg-blue-600 dark:bg-blue-700',
-    green: 'bg-green-600 dark:bg-green-700',
-    red: 'bg-red-600 dark:bg-red-700',
-    amber: 'bg-amber-600 dark:bg-amber-700',
+/** Neutral card + colored icon + a thin colored accent bar (not a solid colored fill) --
+ * matches the rest of the page's light/dark surface colors and keeps the number itself in
+ * the main text color, using color only as a small semantic accent. */
+const ACCENT_TOKENS: Record<Accent, { icon: string; bar: string }> = {
+    blue: { icon: 'bg-info-soft text-info', bar: 'bg-info' },
+    green: { icon: 'bg-success-soft text-success', bar: 'bg-success' },
+    red: {
+        icon: 'bg-destructive-soft text-destructive',
+        bar: 'bg-destructive',
+    },
+    amber: { icon: 'bg-warning-soft text-warning', bar: 'bg-warning' },
 };
 
 function StatCard({
@@ -110,14 +114,19 @@ function StatCard({
     children?: ReactNode;
 }) {
     const { t } = useTranslation();
+    const tokens = ACCENT_TOKENS[accent];
 
     return (
-        <Card
-            className={`overflow-hidden rounded-xl border-0 py-0 ${ACCENT_BG[accent]}`}
-        >
+        <Card className="relative overflow-hidden py-0">
+            <div className={cn('absolute inset-x-0 top-0 h-1', tokens.bar)} />
             <CardContent className="space-y-3 pt-5">
                 <div className="flex items-start justify-between gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+                    <div
+                        className={cn(
+                            'flex size-10 shrink-0 items-center justify-center rounded-lg',
+                            tokens.icon,
+                        )}
+                    >
                         {icon}
                     </div>
                     {breakdown && (
@@ -125,7 +134,7 @@ function StatCard({
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    className="text-xs text-white/80 underline decoration-dotted underline-offset-4 hover:text-white"
+                                    className="text-muted-foreground hover:text-foreground text-xs underline decoration-dotted underline-offset-4"
                                 >
                                     {t('cash_box.view_breakdown')}
                                 </button>
@@ -144,10 +153,10 @@ function StatCard({
                 </div>
 
                 <div>
-                    <p className="text-sm text-white">{label}</p>
-                    <p className="text-2xl font-bold text-white">{value}</p>
+                    <p className="text-muted-foreground text-sm">{label}</p>
+                    <p className="text-2xl font-bold">{value}</p>
                     {subtitle && (
-                        <p className="mt-0.5 text-xs text-white/80">
+                        <p className="text-muted-foreground mt-0.5 text-xs">
                             {subtitle}
                         </p>
                     )}
@@ -198,10 +207,7 @@ function ItemRow({
     tone: 'income' | 'expense';
 }) {
     const sign = tone === 'income' ? '+' : '-';
-    const toneClass =
-        tone === 'income'
-            ? 'text-emerald-600 dark:text-emerald-400'
-            : 'text-rose-600 dark:text-rose-400';
+    const toneClass = tone === 'income' ? 'text-success' : 'text-destructive';
 
     return (
         <div className="flex items-start justify-between gap-3">
@@ -392,9 +398,9 @@ function CashBoxHistory({
                                     <td
                                         className={`px-4 py-2 font-medium ${
                                             isPositive
-                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                ? 'text-success'
                                                 : isNegative
-                                                  ? 'text-rose-600 dark:text-rose-400'
+                                                  ? 'text-destructive'
                                                   : ''
                                         }`}
                                     >
@@ -703,12 +709,12 @@ export default function CashBoxIndex() {
                         label={t('cash_box.current_balance')}
                         value={formatSyp(openingBalance.SYP + totals.net.SYP)}
                     >
-                        <div className="space-y-1 border-t border-white/25 pt-2">
+                        <div className="border-border space-y-1 border-t pt-2">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-white/80">
+                                <span className="text-muted-foreground">
                                     {t('dashboard.debts')}
                                 </span>
-                                <span className="font-medium text-white">
+                                <span className="font-medium">
                                     {formatSyp(totals.debts.SYP)}
                                 </span>
                             </div>
@@ -724,7 +730,8 @@ export default function CashBoxIndex() {
 
                 <div className="flex items-center gap-3 rounded-xl border p-3">
                     <Button
-                        className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                        variant="success"
+                        className="gap-2"
                         onClick={() =>
                             router.get(
                                 createTransaction.url({
@@ -737,7 +744,8 @@ export default function CashBoxIndex() {
                         {t('cash_box.cash_in')}
                     </Button>
                     <Button
-                        className="gap-2 bg-rose-600 text-white hover:bg-rose-700"
+                        variant="destructive"
+                        className="gap-2"
                         onClick={() =>
                             router.get(
                                 createTransaction.url({
