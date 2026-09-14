@@ -494,8 +494,6 @@ const dictionary = {
         'earnings.profit_margin_percent': 'Profit margin (%)',
         'earnings.profit_margin': 'Profit margin / liter',
         'earnings.margin_earnings': 'Margin earnings',
-        'earnings.tier1_profit': 'Tier 1 profit (historic batch)',
-        'earnings.tier2_profit': 'Tier 2 profit (current margin)',
         'earnings.topup_liters': 'Free top-up liters',
         'earnings.topup_earnings': 'Top-up earnings',
         'earnings.shop_profit_title': 'Shop profit overview',
@@ -504,6 +502,7 @@ const dictionary = {
         'earnings.shop_margin_percent': 'Average shop margin (%)',
         'earnings.shop_net_profit': 'Net shop profit',
         'earnings.shop_item': 'Item',
+        'earnings.revaluation_title': 'Revaluation profit',
 
         'wizard.title': 'Station setup',
         'wizard.heading': 'Set up your station',
@@ -1030,8 +1029,6 @@ const dictionary = {
         'earnings.profit_margin_percent': 'هامش الربح (%)',
         'earnings.profit_margin': 'هامش الربح / لتر',
         'earnings.margin_earnings': 'أرباح الهامش',
-        'earnings.tier1_profit': 'ربح الشريحة الأولى (الدفعة القديمة)',
-        'earnings.tier2_profit': 'ربح الشريحة الثانية (الهامش الحالي)',
         'earnings.topup_liters': 'لترات الإضافة المجانية',
         'earnings.topup_earnings': 'أرباح الإضافة',
         'earnings.shop_profit_title': 'نظرة عامة على أرباح المتجر',
@@ -1040,6 +1037,7 @@ const dictionary = {
         'earnings.shop_margin_percent': 'متوسط هامش ربح المتجر (%)',
         'earnings.shop_net_profit': 'صافي ربح المتجر',
         'earnings.shop_item': 'الصنف',
+        'earnings.revaluation_title': 'أرباح فارق السعر',
 
         'wizard.title': 'إعداد المحطة',
         'wizard.heading': 'إعداد محطتك',

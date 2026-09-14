@@ -18,7 +18,11 @@ import { formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import earnings from '@/routes/admin/earnings';
-import type { EarningsBreakdownRow, ShopProfitSummary } from '@/types';
+import type {
+    EarningsBreakdownRow,
+    EarningsRevaluation,
+    ShopProfitSummary,
+} from '@/types';
 
 /**
  * Isolates a money figure from the surrounding RTL paragraph direction (via <bdi>) and lets
@@ -30,6 +34,13 @@ function Syp({ value }: { value: number }) {
     return <bdi>{formatSyp(value)}</bdi>;
 }
 
+/** Same RTL-safe wrapping as <Syp>, but at 3 decimal places -- for a per-liter margin RATE,
+ * where the exact multiplication factor behind margin_earnings_syp needs to stay visible
+ * (e.g. 4.542 SYP, not a rounded-looking 4.5 SYP). */
+function SypRate({ value }: { value: number }) {
+    return <bdi>{formatNumber(value, 3)} SYP</bdi>;
+}
+
 type LockedProps = {
     locked: true;
     needsSetup: boolean;
@@ -39,6 +50,7 @@ type UnlockedProps = {
     locked: false;
     filters: { from: string; to: string };
     breakdown: EarningsBreakdownRow[];
+    revaluation: EarningsRevaluation;
     shop_profit: ShopProfitSummary;
     other_expense_syp: number;
     total_earnings_syp: number;
@@ -171,46 +183,9 @@ function DetailCard({
                         {t('earnings.profit_margin')}
                     </span>
                     <span>
-                        <Syp value={row.profit_margin_syp} />
+                        <SypRate value={row.profit_margin_syp} />
                     </span>
                 </div>
-                <div className="text-muted-foreground flex justify-between text-xs">
-                    <span>{t('earnings.tier1_profit')}</span>
-                    <span>
-                        <Syp value={row.tier1_profit_syp} />
-                    </span>
-                </div>
-                {row.tier1_tiers.map((tier, index) => (
-                    <div
-                        key={index}
-                        className="text-muted-foreground flex justify-between ps-2 text-[11px]"
-                    >
-                        <span>
-                            {formatNumber(tier.liters)} L ×{' '}
-                            <Syp value={tier.margin_rate_syp} />
-                        </span>
-                        <span>
-                            <Syp value={tier.profit_syp} />
-                        </span>
-                    </div>
-                ))}
-                <div className="text-muted-foreground flex justify-between text-xs">
-                    <span>{t('earnings.tier2_profit')}</span>
-                    <span>
-                        <Syp value={row.tier2_profit_syp} />
-                    </span>
-                </div>
-                {row.tier2_liters > 0 && (
-                    <div className="text-muted-foreground flex justify-between ps-2 text-[11px]">
-                        <span>
-                            {formatNumber(row.tier2_liters)} L ×{' '}
-                            <Syp value={row.tier2_margin_rate_syp} />
-                        </span>
-                        <span>
-                            <Syp value={row.tier2_profit_syp} />
-                        </span>
-                    </div>
-                )}
                 <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">
                         {t('earnings.margin_earnings')}
@@ -336,9 +311,54 @@ function ShopProfitCard({
     );
 }
 
+/**
+ * A one-time gain from selling inventory that was bought/valued before the fuel type's price
+ * was last raised -- not repeatable operational margin, so it's deliberately kept out of the
+ * Petrol/Diesel cards above and shown here on its own instead.
+ */
+function RevaluationCard({
+    revaluation,
+    t,
+}: {
+    revaluation: EarningsRevaluation;
+    t: (key: TranslationKey) => string;
+}) {
+    if (revaluation.items.length === 0) {
+        return null;
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('earnings.revaluation_title')}</CardTitle>
+                <CardDescription className="text-foreground text-lg font-semibold">
+                    <Syp value={revaluation.total_syp} />
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                {revaluation.items.map((item) => (
+                    <div
+                        key={item.fuel_type.id}
+                        className="flex justify-between"
+                    >
+                        <span className="text-muted-foreground">
+                            {item.fuel_type.name} ({formatNumber(item.liters)}{' '}
+                            L)
+                        </span>
+                        <span>
+                            <Syp value={item.profit_syp} />
+                        </span>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+}
+
 function EarningsReport({
     filters,
     breakdown,
+    revaluation,
     shop_profit,
     other_expense_syp,
     total_earnings_syp,
@@ -413,6 +433,7 @@ function EarningsReport({
                         <DetailCard key={row.fuel_type.id} row={row} t={t} />
                     ))}
                     <ShopProfitCard shopProfit={shop_profit} t={t} />
+                    <RevaluationCard revaluation={revaluation} t={t} />
                 </div>
             </div>
         </>

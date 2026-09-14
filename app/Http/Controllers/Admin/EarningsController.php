@@ -45,7 +45,7 @@ class EarningsController extends Controller
         // a user checking the arithmetic would expect, which summing raw figures and rounding
         // once at the very end cannot guarantee (two leaves can independently round in opposite
         // directions and land the displayed total 1 SYP away from the displayed parts' sum).
-        [$breakdown, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
+        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
 
         $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
 
@@ -58,6 +58,7 @@ class EarningsController extends Controller
                 'to' => $to->toDateString(),
             ],
             'breakdown' => $breakdown,
+            'revaluation' => $revaluation,
             'shop_profit' => $shopProfit,
             'other_expense_syp' => $otherExpenseSyp,
             'total_earnings_syp' => $totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp,
@@ -90,11 +91,14 @@ class EarningsController extends Controller
     }
 
     /**
-     * Per fuel type: FIFO tiered profit on sales (see FuelCostAllocationService) + top-up
-     * profit, each top-up valued at the price effective on its own date. Returns the breakdown
-     * rows plus the combined (already-rounded) SYP total across all fuel types.
+     * Per fuel type: a simple, flat operational margin (liters sold x the current fixed margin
+     * rate -- no per-sale historical price tiering) + top-up profit, each top-up valued at the
+     * price effective on its own date. Any extra profit from selling old, already-owned
+     * inventory at a newly raised price is deliberately NOT part of this -- it's a one-time
+     * revaluation/windfall gain, not repeatable operational margin, and is reported separately
+     * (see the second element of the return tuple, built from the same sales in the same pass).
      *
-     * @return array{0: array<int, array<string, mixed>>, 1: int}
+     * @return array{0: array<int, array<string, mixed>>, 1: array{total_syp: int, items: array<int, array<string, mixed>>}, 2: int}
      */
     private function fuelTypeBreakdown(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
     {
@@ -130,8 +134,10 @@ class EarningsController extends Controller
             ->get(['tank_id', 'liters', 'date']);
 
         $total = 0;
+        $revaluationTotal = 0;
+        $revaluationItems = [];
 
-        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $sypRate, &$total) {
+        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $sypRate, &$total, &$revaluationTotal, &$revaluationItems) {
             $sales = $fuelSales->where('fuel_type_id', $fuelType->id);
             $debtSales = $standaloneDebtSales->where('fuel_type_id', $fuelType->id);
 
@@ -141,37 +147,28 @@ class EarningsController extends Controller
 
             $currentPrice = $fuelType->currentPrice();
             $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
+            // Kept at full precision for the actual math below -- only rounded for the
+            // 3-decimal-place *display* value, never for the multiplication itself, so a
+            // rounded display figure never introduces drift into liters_sold x margin_rate.
             $marginSyp = $priceSyp * ($marginPercent / 100);
 
-            // Every liter of profit gets bucketed by the FuelPrice it was actually costed
-            // against -- 'current' for anything costed against today's price (a Tier-2 FIFO
-            // allocation, or a legacy sale that happens to have occurred under the
-            // still-current price), otherwise the id of whichever earlier price it was really
-            // costed against. This is what makes Tier 1 correct: a sale made weeks ago, before
-            // the last price change, is priced (and margined) at that OLD price whether it went
-            // through the new FIFO engine or the legacy per-sale fallback -- it belongs in
-            // Tier 1 either way, not folded into "current margin" just because it has no FIFO
-            // allocation row.
-            $buckets = [];
+            // Operational margin: every liter sold, at ONE fixed rate (today's official
+            // margin) -- deliberately not tiered by which price a given liter actually sold
+            // under, since that produced a wall of slightly-different per-batch decimal rates
+            // that made the card unreadable. See legacyProfitSyp()/FuelCostAllocationService
+            // for the OTHER half of the real economics, captured separately below.
+            $marginEarningsSyp = $litersSold * $marginSyp;
 
-            // The caller decides the key explicitly -- a FIFO Tier-2 slice is unconditionally
-            // 'current' (it has no price row at all, just currentCostPerLiterSyp(), so there is
-            // nothing to "match" against currentPrice's id); everything else is keyed by
-            // whichever price id it was actually costed against, or 'current' if that price
-            // happens to be the fuel type's current one.
-            $addToBucket = function (string $key, float $liters, float $profitSyp) use (&$buckets) {
-                $buckets[$key] ??= ['liters' => 0.0, 'profit_syp' => 0.0];
-                $buckets[$key]['liters'] += $liters;
-                $buckets[$key]['profit_syp'] += $profitSyp;
-            };
-
-            $bucketKeyForPrice = function (?FuelPrice $price) use ($currentPrice) {
-                if ($price === null) {
-                    return 'price_none';
-                }
-
-                return ($currentPrice && $price->id === $currentPrice->id) ? 'current' : 'price_'.$price->id;
-            };
+            // Liters that came from inventory bought/valued before the fuel type's current
+            // price took effect -- a real FIFO historic-layer allocation, or a legacy sale
+            // (no FIFO allocation at all) priced under a superseded FuelPrice on its own date.
+            // Their TRUE profit (revenue minus that old cost basis) is almost always more than
+            // the flat margin above already credited them for, because the price rose while
+            // they sat in the tank. $revaluationLiters/$revaluationRawProfitSyp accumulate that
+            // true profit; the flat-margin share is subtracted out below so this card and the
+            // one above never double-count the same liters.
+            $revaluationLiters = 0.0;
+            $revaluationRawProfitSyp = 0.0;
 
             foreach ($sales as $sale) {
                 $saleLiters = (float) $sale->liters;
@@ -182,16 +179,14 @@ class EarningsController extends Controller
 
                 if ($sale->costAllocations->isEmpty()) {
                     // No FIFO allocation recorded for this sale (made before the cost engine
-                    // shipped, or through a path that doesn't allocate) -- fall back to the
-                    // estimate: revenue minus the cost basis implied by margin% on the sale's
-                    // own historical date, bucketed under whichever price actually governed it.
+                    // shipped, or through a path that doesn't allocate) -- only counts toward
+                    // revaluation if it was genuinely priced under an OLDER, superseded price.
                     $priceAtSale = $this->priceAtSaleFor($fuelType, $sale->occurred_at);
 
-                    $addToBucket(
-                        $bucketKeyForPrice($priceAtSale),
-                        $saleLiters,
-                        $this->legacyProfitSyp($priceAtSale, $saleLiters, $sale->amountInSyp($sypRate), $marginPercent, $sypRate),
-                    );
+                    if ($priceAtSale && $currentPrice && $priceAtSale->id !== $currentPrice->id) {
+                        $revaluationLiters += $saleLiters;
+                        $revaluationRawProfitSyp += $this->legacyProfitSyp($priceAtSale, $saleLiters, $sale->amountInSyp($sypRate), $marginPercent, $sypRate);
+                    }
 
                     continue;
                 }
@@ -199,25 +194,19 @@ class EarningsController extends Controller
                 $revenuePerLiterSyp = $sale->amountInSyp($sypRate) / $saleLiters;
 
                 foreach ($sale->costAllocations as $allocation) {
-                    $sliceLiters = (float) $allocation->liters;
-                    $sliceProfitSyp = ($revenuePerLiterSyp - (float) $allocation->cost_per_liter_syp) * $sliceLiters;
-
                     if ($allocation->fuel_cost_layer_id === null) {
-                        // Tier 2: beyond any historic batch, costed at the current margin --
-                        // always 'current', regardless of what today's currentPrice() resolves to.
-                        $addToBucket('current', $sliceLiters, $sliceProfitSyp);
-                    } else {
-                        // Tier 1: drawn from a historic layer, bucketed under the price that
-                        // layer itself was tagged with when it was created (see
-                        // FuelPriceController::createCostLayerIfApplicable).
-                        $layerPriceId = $allocation->fuelCostLayer?->fuel_price_id;
-                        $addToBucket($layerPriceId !== null ? 'price_'.$layerPriceId : 'layer_'.$allocation->fuel_cost_layer_id, $sliceLiters, $sliceProfitSyp);
+                        // Beyond any historic batch, costed at the current margin -- not revaluation.
+                        continue;
                     }
+
+                    $sliceLiters = (float) $allocation->liters;
+                    $revaluationLiters += $sliceLiters;
+                    $revaluationRawProfitSyp += ($revenuePerLiterSyp - (float) $allocation->cost_per_liter_syp) * $sliceLiters;
                 }
             }
 
             // Standalone liters-debts never get FIFO allocations (see
-            // FuelCostAllocationService) -- always the legacy estimate, same bucketing as above.
+            // FuelCostAllocationService) -- same "only if genuinely under an older price" check.
             foreach ($debtSales as $debt) {
                 $debtLiters = (float) $debt->liters;
 
@@ -227,28 +216,24 @@ class EarningsController extends Controller
 
                 $priceAtSale = $this->priceAtSaleFor($fuelType, $debt->date);
 
-                $addToBucket(
-                    $bucketKeyForPrice($priceAtSale),
-                    $debtLiters,
-                    $this->legacyProfitSyp($priceAtSale, $debtLiters, $debt->amountInSyp($sypRate), $marginPercent, $sypRate),
-                );
+                if ($priceAtSale && $currentPrice && $priceAtSale->id !== $currentPrice->id) {
+                    $revaluationLiters += $debtLiters;
+                    $revaluationRawProfitSyp += $this->legacyProfitSyp($priceAtSale, $debtLiters, $debt->amountInSyp($sypRate), $marginPercent, $sypRate);
+                }
             }
 
-            $currentBucket = $buckets['current'] ?? ['liters' => 0.0, 'profit_syp' => 0.0];
-            unset($buckets['current']);
+            // The excess over what the flat margin above already credited those same liters
+            // for -- purely additive, so Grand Total = margin + revaluation never double-counts.
+            $revaluationProfitSyp = (int) round($revaluationRawProfitSyp - ($revaluationLiters * $marginSyp), 0);
 
-            // One line per historic price this fuel type has actually sold under during the
-            // filtered range -- each with its own effective margin rate (profit ÷ liters for
-            // that batch), not the fuel type's current margin, so a range spanning more than
-            // one price change shows each batch's real rate instead of one misleading number.
-            $tier1Tiers = collect($buckets)
-                ->map(fn (array $bucket) => [
-                    'liters' => round($bucket['liters'], 3),
-                    'margin_rate_syp' => round($bucket['liters'] > 0 ? $bucket['profit_syp'] / $bucket['liters'] : 0.0, 4),
-                    'profit_syp' => (int) round($bucket['profit_syp'], 0),
-                ])
-                ->sortByDesc('profit_syp')
-                ->values();
+            if ($revaluationProfitSyp !== 0) {
+                $revaluationTotal += $revaluationProfitSyp;
+                $revaluationItems[] = [
+                    'fuel_type' => ['id' => $fuelType->id, 'name' => $fuelType->name],
+                    'liters' => round($revaluationLiters, 3),
+                    'profit_syp' => $revaluationProfitSyp,
+                ];
+            }
 
             $fuelTopUps = $topUps->filter(fn (TankTopUp $topUp) => $topUp->tank?->fuel_type_id === $fuelType->id);
             $topUpLiters = (float) $fuelTopUps->sum('liters');
@@ -278,28 +263,19 @@ class EarningsController extends Controller
             // Sum of the already-rounded per-tier figures, not a separately-rounded raw sum --
             // see the note in index() on why every aggregate here is built this way.
             $topUpEarningsSyp = (int) $topUpTiers->sum('earnings_syp');
-            $tier1Syp = (int) $tier1Tiers->sum('profit_syp');
-            $tier2Syp = (int) round($currentBucket['profit_syp'], 0);
-            // The actually-realized rate for Tier 2 (profit ÷ liters), not profit_margin_syp --
-            // that's the fuel type's theoretical margin at today's list price, which can differ
-            // slightly from what Tier 2 sales actually realized (e.g. a custom-priced sale), so
-            // reusing it here could show a rate that doesn't quite multiply out to tier2_profit_syp.
-            $tier2MarginRateSyp = round($currentBucket['liters'] > 0 ? $currentBucket['profit_syp'] / $currentBucket['liters'] : 0.0, 4);
-            $marginEarningsSyp = $tier1Syp + $tier2Syp;
-            $subtotal = $marginEarningsSyp + $topUpEarningsSyp;
-            $total += $subtotal;
+            $marginEarningsSypRounded = (int) round($marginEarningsSyp, 0);
+            $subtotal = $marginEarningsSypRounded + $topUpEarningsSyp;
+            $total += $subtotal + $revaluationProfitSyp;
 
             return [
                 'fuel_type' => ['id' => $fuelType->id, 'name' => $fuelType->name],
                 'liters_sold' => round($litersSold, 3),
                 'profit_margin_percent' => round($marginPercent, 4),
-                'profit_margin_syp' => round($marginSyp, 2),
-                'tier1_profit_syp' => $tier1Syp,
-                'tier1_tiers' => $tier1Tiers->all(),
-                'tier2_profit_syp' => $tier2Syp,
-                'tier2_liters' => round($currentBucket['liters'], 3),
-                'tier2_margin_rate_syp' => $tier2MarginRateSyp,
-                'margin_earnings_syp' => $marginEarningsSyp,
+                // 3 decimal places, deliberately more precise than every other SYP figure on
+                // this page, so the exact per-liter multiplication factor behind
+                // margin_earnings_syp is always visible (e.g. 4.542, not a rounded 4.5).
+                'profit_margin_syp' => round($marginSyp, 3),
+                'margin_earnings_syp' => $marginEarningsSypRounded,
                 'topup_liters' => round($topUpLiters, 3),
                 'price_per_liter_syp' => round($priceSyp, 2),
                 'topup_tiers' => $topUpTiers->map(fn (array $tier) => [
@@ -312,7 +288,11 @@ class EarningsController extends Controller
             ];
         })->values()->all();
 
-        return [$breakdown, $total];
+        return [
+            $breakdown,
+            ['total_syp' => $revaluationTotal, 'items' => $revaluationItems],
+            $total,
+        ];
     }
 
     /**
