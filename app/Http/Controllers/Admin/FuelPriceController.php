@@ -65,9 +65,7 @@ class FuelPriceController extends Controller
 
         $data = $request->validated();
         $data['set_by_id'] = $request->user()->id;
-        $data['effective_at'] = isset($data['effective_at'])
-            ? Carbon::parse($data['effective_at'])->startOfDay()
-            : now();
+        $data['effective_at'] = $this->resolveEffectiveAt($data['effective_at'] ?? null, now());
 
         $fuelPrice = FuelPrice::create($data);
 
@@ -88,9 +86,7 @@ class FuelPriceController extends Controller
         $oldFuelType = $fuelPrice->fuelType;
         $oldEffectiveAt = $fuelPrice->effective_at;
 
-        $data['effective_at'] = isset($data['effective_at'])
-            ? Carbon::parse($data['effective_at'])->startOfDay()
-            : $oldEffectiveAt;
+        $data['effective_at'] = $this->resolveEffectiveAt($data['effective_at'] ?? null, $oldEffectiveAt);
 
         $fuelPrice->update($data);
         $fuelPrice->refresh();
@@ -109,6 +105,28 @@ class FuelPriceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $this->withRepriceNote(__('Fuel price updated.'), $repriced)]);
 
         return to_route('admin.fuel-prices.index');
+    }
+
+    /**
+     * The date field on this form has no time component, so a submission dated TODAY doesn't
+     * actually tell us "effective from midnight" -- it means "effective starting right now".
+     * Treating it as midnight was a real bug: the app's timezone is UTC, but a station running
+     * ahead of UTC would see every same-day price change silently apply a couple of hours
+     * earlier than the admin actually made it, and any sale recorded between real local
+     * midnight and the actual submission would get incorrectly repriced under the NEW price.
+     * Only an explicit BACKDATE (a date strictly before today) still anchors to startOfDay() --
+     * there's no real submission moment to use for a day that's already over, and "the price
+     * took effect from the start of that day" is the only sensible convention left.
+     */
+    private function resolveEffectiveAt(?string $submittedDate, CarbonInterface $noDateFallback): CarbonInterface
+    {
+        if (! $submittedDate) {
+            return $noDateFallback;
+        }
+
+        $date = Carbon::parse($submittedDate);
+
+        return $date->isSameDay(now()) ? now() : $date->startOfDay();
     }
 
     public function destroy(FuelPrice $fuelPrice): RedirectResponse

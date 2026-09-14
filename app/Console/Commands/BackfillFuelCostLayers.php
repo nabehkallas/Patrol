@@ -267,16 +267,26 @@ class BackfillFuelCostLayers extends Command
             return null;
         }
 
+        // A backdated FuelPrice's own effective_at is exact midnight (the date field has no
+        // time component -- see FuelPriceController::resolveEffectiveAt()). Anchoring the
+        // layer to that exact same instant risks a same-timestamp tie against anything else
+        // also dated at midnight; nudging it one second later guarantees every sale actually
+        // recorded that day (which will have a real time-of-day, never 00:00:00 itself) sorts
+        // strictly after the price change that governs it, with no ambiguity either way.
+        $layerTimestamp = $fuelPrice->effective_at->format('H:i:s') === '00:00:00'
+            ? $fuelPrice->effective_at->copy()->addSecond()
+            : $fuelPrice->effective_at;
+
         $layer = new FuelCostLayer([
             'fuel_type_id' => $fuelType->id,
             'fuel_price_id' => $fuelPrice->id,
             'cost_per_liter_syp' => round($oldCostPerLiterSyp, 4),
             'initial_liters' => round($historicLiters, 3),
-            'effective_from' => $fuelPrice->effective_at,
+            'effective_from' => $layerTimestamp,
         ]);
         $layer->timestamps = false;
-        $layer->created_at = $fuelPrice->effective_at;
-        $layer->updated_at = $fuelPrice->effective_at;
+        $layer->created_at = $layerTimestamp;
+        $layer->updated_at = $layerTimestamp;
         $layer->save();
 
         return $layer;
