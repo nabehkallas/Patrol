@@ -25,20 +25,22 @@ import type {
 } from '@/types';
 
 /**
- * Isolates a money figure from the surrounding RTL paragraph direction (via <bdi>) and lets
- * formatSyp embed the sign directly in the number, instead of a separate leading "-" text node
- * next to it -- the combination is what the Arabic UI needs to keep a negative amount's minus
- * sign on the correct (leading) side instead of drifting to the visual end of the string.
+ * Isolates a money figure from the surrounding RTL paragraph direction and lets formatSyp embed
+ * the sign directly in the number, instead of a separate leading "-" text node next to it -- the
+ * combination is what the Arabic UI needs to keep a negative amount's minus sign on the correct
+ * (leading) side instead of drifting to the visual end of the string. dir="ltr" is explicit
+ * (not left to <bdi>'s own auto-detected-from-content heuristic) so the sign position never
+ * depends on which character in the string happens to be the first "strong" one.
  */
 function Syp({ value }: { value: number }) {
-    return <bdi>{formatSyp(value)}</bdi>;
+    return <bdi dir="ltr">{formatSyp(value)}</bdi>;
 }
 
 /** Same RTL-safe wrapping as <Syp>, but at 3 decimal places -- for a per-liter margin RATE,
  * where the exact multiplication factor behind margin_earnings_syp needs to stay visible
  * (e.g. 4.542 SYP, not a rounded-looking 4.5 SYP). */
 function SypRate({ value }: { value: number }) {
-    return <bdi>{formatNumber(value, 3)} SYP</bdi>;
+    return <bdi dir="ltr">{formatNumber(value, 3)} SYP</bdi>;
 }
 
 type LockedProps = {
@@ -328,7 +330,9 @@ function ShopProfitCard({
 /**
  * A one-time gain from selling inventory that was bought/valued before the fuel type's price
  * was last raised -- not repeatable operational margin, so it's deliberately kept out of the
- * Petrol/Diesel cards above and shown here on its own instead.
+ * Petrol/Diesel cards above and shown here on its own instead. Each tier is one historic price
+ * batch, spelled out as the full formula (volume x price difference = profit) so the
+ * multiplication is fully traceable rather than a single opaque total.
  */
 function RevaluationCard({
     revaluation,
@@ -349,19 +353,30 @@ function RevaluationCard({
                     <Syp value={revaluation.total_syp} />
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 text-sm">
                 {revaluation.items.map((item) => (
-                    <div
-                        key={item.fuel_type.id}
-                        className="flex justify-between"
-                    >
-                        <span className="text-muted-foreground">
-                            {item.fuel_type.name} ({formatNumber(item.liters)}{' '}
-                            L)
-                        </span>
-                        <span>
-                            <Syp value={item.profit_syp} />
-                        </span>
+                    <div key={item.fuel_type.id} className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-medium">
+                            <span>{item.fuel_type.name}</span>
+                            <span>
+                                <Syp value={item.subtotal_syp} />
+                            </span>
+                        </div>
+                        {item.tiers.map((tier, index) => (
+                            <div
+                                key={index}
+                                dir="ltr"
+                                className="text-muted-foreground text-xs leading-relaxed"
+                            >
+                                {formatNumber(tier.liters)} L × (
+                                {formatSyp(tier.new_price_syp)} −{' '}
+                                {formatSyp(tier.old_price_syp)} ={' '}
+                                {formatSyp(tier.price_diff_syp)}/L) ={' '}
+                                <span className="text-foreground font-medium">
+                                    {formatSyp(tier.profit_syp)}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 ))}
             </CardContent>

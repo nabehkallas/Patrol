@@ -301,10 +301,18 @@ export type EarningsBreakdownRow = {
     subtotal_syp: number;
 };
 
+export type EarningsRevaluationTier = {
+    liters: number;
+    old_price_syp: number;
+    new_price_syp: number;
+    price_diff_syp: number;
+    profit_syp: number;
+};
+
 export type EarningsRevaluationItem = {
     fuel_type: { id: number; name: string };
-    liters: number;
-    profit_syp: number;
+    tiers: EarningsRevaluationTier[];
+    subtotal_syp: number;
 };
 
 export type EarningsRevaluation = {

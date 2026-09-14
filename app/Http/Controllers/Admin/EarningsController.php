@@ -91,16 +91,18 @@ class EarningsController extends Controller
     }
 
     /**
-     * Per fuel type: margin profit tiered exactly like top-up profit below -- every sale (and
-     * standalone liters-debt) grouped by whichever price actually governed it on its own date,
-     * each tier valued at that price's own official margin rate (price x margin%, a fixed
-     * number for that price -- never a realized-average that drifts with actual sale amounts,
-     * which is what produced a wall of confusing near-duplicate decimals the first time this
-     * was tried). A range spanning a price change shows two clean tiers instead of one blended
-     * number. Any extra profit from selling old, already-owned inventory at a newly raised
-     * price is deliberately NOT part of this -- it's a one-time revaluation/windfall gain, not
-     * repeatable operational margin, and is reported separately (see the second element of the
-     * return tuple, built from the same sales in the same pass).
+     * Per fuel type: margin profit tiered exactly like top-up profit below, but attributed by
+     * which BATCH a liter physically came from, not which date it sold on -- a liter drawn from
+     * legacy (pre-price-change) stock earns that batch's OLD margin rate here, no matter when it
+     * actually sells, and the price appreciation on it is reported separately, in full, in the
+     * Revaluation card below (see that card's own docs for why splitting it this way is what
+     * makes both numbers add up to the liter's true profit with nothing double-counted or lost).
+     * Liters from post-change stock (or legacy sales that have no batch to attribute at all --
+     * made before this cost engine shipped) are grouped by whichever price actually governed
+     * their own sale date, same idea as the top-up tiers below. Each tier's rate is a fixed
+     * number for that batch/price (price x margin%) -- never a realized-average that drifts with
+     * actual sale amounts, which is what produced a wall of confusing near-duplicate decimals
+     * the first time this was tried.
      *
      * @return array{0: array<int, array<string, mixed>>, 1: array{total_syp: int, items: array<int, array<string, mixed>>}, 2: int}
      */
@@ -115,7 +117,7 @@ class EarningsController extends Controller
             ->where('type', TransactionType::FuelSale)
             ->where('occurred_at', '>=', $fromDt)
             ->where('occurred_at', '<=', $toDt)
-            ->with('costAllocations.fuelCostLayer')
+            ->with('costAllocations.fuelCostLayer.fuelPrice')
             ->get(['id', 'fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
 
         $standaloneDebtSales = Debt::query()
@@ -153,79 +155,139 @@ class EarningsController extends Controller
             $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
             $marginSyp = $priceSyp * ($marginPercent / 100);
 
-            // Every sale (and standalone liters-debt) grouped by whichever FuelPrice actually
-            // governed it on its own date -- same idea as the top-up tiers below, just for
-            // margin instead of free liters. Each group's rate is that price's own margin
-            // (price x margin%), a fixed number, so two sales under the same historical price
-            // always show the identical clean rate rather than each drifting slightly based on
-            // its own actual revenue.
-            $marginTiers = $sales
-                ->map(fn (Transaction $sale) => ['liters' => (float) $sale->liters, 'date' => $sale->occurred_at])
-                ->concat($debtSales->map(fn (Debt $debt) => ['liters' => (float) $debt->liters, 'date' => $debt->date]))
-                ->filter(fn (array $event) => $event['liters'] > 0)
-                ->groupBy(fn (array $event) => $this->priceAtSaleFor($fuelType, $event['date'])?->id ?? 0)
-                ->map(function ($group) use ($fuelType, $sypRate, $marginPercent) {
-                    $priceAtDate = $this->priceAtSaleFor($fuelType, $group->first()['date']);
-                    $tierPriceSyp = $priceAtDate ? $priceAtDate->amountInSyp($sypRate) : 0.0;
-                    $tierRateSyp = $tierPriceSyp * ($marginPercent / 100);
-                    $tierLiters = (float) $group->sum('liters');
+            // Margin buckets, keyed so a real FIFO historic layer gets its OWN bucket (its old
+            // batch's own margin rate), a Tier-2/no-allocation slice buckets as 'current', and a
+            // legacy (no FIFO allocation at all) sale/debt buckets by whichever price governed
+            // its own date -- see the class docblock above for why batch origin wins over sale
+            // date whenever a real batch is known.
+            $marginBuckets = [];
 
-                    return [
-                        'margin_rate_syp' => round($tierRateSyp, 3),
-                        'liters' => round($tierLiters, 3),
-                        'earnings_syp' => (int) round($tierLiters * $tierRateSyp, 0),
-                        '_effective_at' => $priceAtDate?->effective_at,
-                    ];
-                })
-                ->sortBy('_effective_at')
-                ->values();
+            $addMargin = function (string $key, float $liters, float $rateSyp, ?CarbonInterface $sortKey) use (&$marginBuckets) {
+                $marginBuckets[$key] ??= ['liters' => 0.0, 'rate' => $rateSyp, 'sort_key' => $sortKey];
+                $marginBuckets[$key]['liters'] += $liters;
+            };
 
-            // Liters actually drawn from a real FIFO historic-cost layer (fuel_cost_layer_id
-            // set) -- physically old, already-owned inventory. Because a layer only exists
-            // once its price has already been superseded, the SALE that draws from it is
-            // necessarily dated after that price change, so it already landed in the tier
-            // above valued at the CURRENT price's margin rate. Revaluation captures only the
-            // excess beyond that: (revenue minus the layer's frozen old cost) minus the flat
-            // current-margin share those same liters already received above -- so this card
-            // and the tiers above never double-count the same liters. A legacy sale actually
-            // priced (and sold) under an older price has no such excess -- both its revenue and
-            // its cost basis reference that same old price, so its whole profit is already
-            // exactly its old-tier margin above; it does not belong here at all.
-            $revaluationLiters = 0.0;
-            $revaluationRawProfitSyp = 0.0;
+            // Revaluation buckets, one per historic layer actually drawn from -- liters, the
+            // batch's own old selling price (reverse-derived from the layer's frozen cost basis:
+            // cost = old_price x (1 - margin%), so old_price = cost / (1 - margin%); margin% has
+            // no historical record, same limitation noted throughout this file, so this uses
+            // today's value), and the revenue actually collected for those liters (so the
+            // "new price" shown is the true weighted-average price they actually sold at, correct
+            // even if a later price change happened while this same layer was still being drawn
+            // down).
+            $revaluationBuckets = [];
 
             foreach ($sales as $sale) {
                 $saleLiters = (float) $sale->liters;
 
-                if ($saleLiters <= 0 || $sale->costAllocations->isEmpty()) {
+                if ($saleLiters <= 0) {
+                    continue;
+                }
+
+                if ($sale->costAllocations->isEmpty()) {
+                    // No FIFO allocation recorded for this sale (made before the cost engine
+                    // shipped, or through a path that doesn't allocate) -- no batch to attribute,
+                    // so fall back to whichever price actually governed its own sale date.
+                    $priceAtSale = $this->priceAtSaleFor($fuelType, $sale->occurred_at);
+                    $rateSyp = $priceAtSale ? $priceAtSale->amountInSyp($sypRate) * ($marginPercent / 100) : 0.0;
+                    $key = $priceAtSale ? 'price_'.$priceAtSale->id : 'price_none';
+                    $addMargin($key, $saleLiters, $rateSyp, $priceAtSale?->effective_at);
+
                     continue;
                 }
 
                 $revenuePerLiterSyp = $sale->amountInSyp($sypRate) / $saleLiters;
 
                 foreach ($sale->costAllocations as $allocation) {
+                    $sliceLiters = (float) $allocation->liters;
+
                     if ($allocation->fuel_cost_layer_id === null) {
-                        // Beyond any historic batch, costed at the current margin -- not revaluation.
+                        // Tier 2: beyond any historic batch, costed (and margined) at today's price.
+                        $addMargin('current', $sliceLiters, $marginSyp, $currentPrice?->effective_at);
+
                         continue;
                     }
 
-                    $sliceLiters = (float) $allocation->liters;
-                    $revaluationLiters += $sliceLiters;
-                    $revaluationRawProfitSyp += ($revenuePerLiterSyp - (float) $allocation->cost_per_liter_syp) * $sliceLiters;
+                    $layer = $allocation->fuelCostLayer;
+                    $layerCostSyp = (float) $allocation->cost_per_liter_syp;
+                    $oldPriceSyp = $marginPercent < 100 ? $layerCostSyp / (1 - $marginPercent / 100) : 0.0;
+                    $oldMarginRateSyp = $oldPriceSyp - $layerCostSyp;
+
+                    $addMargin('layer_'.$allocation->fuel_cost_layer_id, $sliceLiters, $oldMarginRateSyp, $layer?->effective_from);
+
+                    $bucketKey = $allocation->fuel_cost_layer_id;
+                    $revaluationBuckets[$bucketKey] ??= ['liters' => 0.0, 'old_price_syp' => $oldPriceSyp, 'revenue_syp' => 0.0, 'sort_key' => $layer?->effective_from];
+                    $revaluationBuckets[$bucketKey]['liters'] += $sliceLiters;
+                    $revaluationBuckets[$bucketKey]['revenue_syp'] += $revenuePerLiterSyp * $sliceLiters;
                 }
             }
 
-            // The excess over what the current-price margin tier above already credited those
-            // same liters for -- purely additive, so Grand Total = margin tiers + revaluation
-            // never double-counts.
-            $revaluationProfitSyp = (int) round($revaluationRawProfitSyp - ($revaluationLiters * $marginSyp), 0);
+            // Standalone liters-debts never get FIFO allocations (see
+            // FuelCostAllocationService) -- always attributed by their own sale date's price.
+            foreach ($debtSales as $debt) {
+                $debtLiters = (float) $debt->liters;
 
-            if ($revaluationProfitSyp !== 0) {
+                if ($debtLiters <= 0) {
+                    continue;
+                }
+
+                $priceAtSale = $this->priceAtSaleFor($fuelType, $debt->date);
+                $rateSyp = $priceAtSale ? $priceAtSale->amountInSyp($sypRate) * ($marginPercent / 100) : 0.0;
+                $key = $priceAtSale ? 'price_'.$priceAtSale->id : 'price_none';
+                $addMargin($key, $debtLiters, $rateSyp, $priceAtSale?->effective_at);
+            }
+
+            $marginTiers = collect($marginBuckets)
+                ->map(fn (array $bucket) => [
+                    'margin_rate_syp' => round($bucket['rate'], 3),
+                    'liters' => round($bucket['liters'], 3),
+                    'earnings_syp' => (int) round($bucket['liters'] * $bucket['rate'], 0),
+                    '_sort_key' => $bucket['sort_key'],
+                ])
+                ->sortBy('_sort_key')
+                ->values();
+
+            // Volume Sold x (New Price - Old Price) = Revaluation Profit -- the full price
+            // appreciation on legacy stock, not reduced by any margin share, since that margin
+            // share is already fully and separately credited above via the batch's own old rate.
+            // Capped automatically: a bucket's liters can never exceed what
+            // FuelCostAllocationService actually allocated against that layer, which itself is
+            // capped at the layer's initial_liters snapshot -- once a layer is exhausted, further
+            // sales fall to the 'current' margin bucket above and stop contributing here.
+            $revaluationTiers = collect($revaluationBuckets)
+                ->map(function (array $bucket) {
+                    $liters = $bucket['liters'];
+                    $newPriceSyp = $liters > 0 ? $bucket['revenue_syp'] / $liters : 0.0;
+                    $priceDiffSyp = $newPriceSyp - $bucket['old_price_syp'];
+
+                    return [
+                        'liters' => round($liters, 3),
+                        'old_price_syp' => round($bucket['old_price_syp'], 2),
+                        'new_price_syp' => round($newPriceSyp, 2),
+                        'price_diff_syp' => round($priceDiffSyp, 2),
+                        'profit_syp' => (int) round($liters * $priceDiffSyp, 0),
+                        '_sort_key' => $bucket['sort_key'],
+                    ];
+                })
+                ->sortBy('_sort_key')
+                ->values();
+
+            // Sum of the already-rounded per-tier figures, not a separately-rounded raw sum --
+            // see the note in index() on why every aggregate here is built this way.
+            $revaluationProfitSyp = (int) $revaluationTiers->sum('profit_syp');
+
+            if ($revaluationTiers->isNotEmpty()) {
                 $revaluationTotal += $revaluationProfitSyp;
                 $revaluationItems[] = [
                     'fuel_type' => ['id' => $fuelType->id, 'name' => $fuelType->name],
-                    'liters' => round($revaluationLiters, 3),
-                    'profit_syp' => $revaluationProfitSyp,
+                    'tiers' => $revaluationTiers->map(fn (array $tier) => [
+                        'liters' => $tier['liters'],
+                        'old_price_syp' => $tier['old_price_syp'],
+                        'new_price_syp' => $tier['new_price_syp'],
+                        'price_diff_syp' => $tier['price_diff_syp'],
+                        'profit_syp' => $tier['profit_syp'],
+                    ])->all(),
+                    'subtotal_syp' => $revaluationProfitSyp,
                 ];
             }
 
