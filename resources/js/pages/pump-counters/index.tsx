@@ -353,11 +353,13 @@ export default function PumpCountersIndex() {
                                     {selectedPump?.latest_reading && (
                                         <span className="text-muted-foreground ms-2 text-sm font-normal">
                                             ({t('pump_counters.previous')}:{' '}
-                                            {formatNumber(
-                                                selectedPump.latest_reading
-                                                    .reading_value,
-                                                0,
-                                            )}
+                                            <span className="text-foreground font-bold">
+                                                {formatNumber(
+                                                    selectedPump.latest_reading
+                                                        .reading_value,
+                                                    0,
+                                                )}
+                                            </span>
                                             )
                                         </span>
                                     )}
