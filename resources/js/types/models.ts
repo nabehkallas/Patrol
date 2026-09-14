@@ -281,11 +281,18 @@ export type EarningsTopUpTier = {
     earnings_syp: number;
 };
 
+export type EarningsMarginTier = {
+    margin_rate_syp: number;
+    liters: number;
+    earnings_syp: number;
+};
+
 export type EarningsBreakdownRow = {
     fuel_type: { id: number; name: string };
     liters_sold: number;
     profit_margin_percent: number;
     profit_margin_syp: number;
+    margin_tiers: EarningsMarginTier[];
     margin_earnings_syp: number;
     topup_liters: number;
     price_per_liter_syp: number;
