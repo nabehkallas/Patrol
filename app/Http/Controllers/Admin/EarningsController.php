@@ -242,7 +242,12 @@ class EarningsController extends Controller
                     continue;
                 }
 
-                $priceAtSale = $this->priceAtSaleFor($fuelType, $debt->date);
+                // $debt->date has no time component (cast as 'date', always midnight) -- resolved
+                // as of the END of that day, not the exact midnight instant, so a same-day price
+                // change (which now stores its real submission time, not midnight -- see
+                // FuelPriceController::resolveEffectiveAt()) is still correctly picked up instead
+                // of silently falling back to whatever price was effective the day before.
+                $priceAtSale = $this->priceAtSaleFor($fuelType, $debt->date->copy()->endOfDay());
                 $rateSyp = $priceAtSale ? $priceAtSale->amountInSyp($sypRate) * ($marginPercent / 100) : 0.0;
                 $key = $priceAtSale ? 'price_'.$priceAtSale->id : 'price_none';
                 $addMargin($key, $debtLiters, $rateSyp, $priceAtSale?->effective_at);
@@ -329,11 +334,16 @@ class EarningsController extends Controller
             // blanket today's price -- a free/added batch logged weeks ago is worth what it was
             // worth then. A range that spans a price change ends up with more than one tier here,
             // each shown with its own historical price rather than one misleading "current price"
-            // figure next to a total that was never computed from it.
+            // figure next to a total that was never computed from it. $topUp->date has no time
+            // component (cast as 'date', always midnight), so it's resolved as of the END of that
+            // day -- otherwise a same-day price change (stored at its real submission time, not
+            // midnight, since FuelPriceController::resolveEffectiveAt()) would look like it hadn't
+            // happened yet and every top-up logged that day would wrongly fall back to the
+            // previous price.
             $topUpTiers = $fuelTopUps
-                ->groupBy(fn (TankTopUp $topUp) => $fuelType->priceAt($topUp->date)?->id ?? 0)
+                ->groupBy(fn (TankTopUp $topUp) => $fuelType->priceAt($topUp->date->copy()->endOfDay())?->id ?? 0)
                 ->map(function ($group) use ($fuelType, $sypRate) {
-                    $priceAtDate = $fuelType->priceAt($group->first()->date);
+                    $priceAtDate = $fuelType->priceAt($group->first()->date->copy()->endOfDay());
                     $tierPriceSyp = $priceAtDate ? $priceAtDate->amountInSyp($sypRate) : 0.0;
                     $tierLiters = (float) $group->sum('liters');
 
