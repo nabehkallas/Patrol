@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\TenantUserDirectory;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,6 +59,18 @@ class UserController extends Controller
 
         $user->syncRoles([$data['role']]);
 
+        // The central-only routing table login checks first to find which tenant database a
+        // login email belongs to (see FortifyServiceProvider::authenticateUsing()) -- without
+        // this, a freshly-created tenant user can never log in: their password is correct, but
+        // the login flow has no way to know which station's database to even check it against.
+        // updateOrCreate rather than create: a user deleted before this sync existed could have
+        // left a stale orphaned directory row behind for this same email (destroy() now cleans
+        // this up going forward, but a row from before that fix may still be sitting here).
+        TenantUserDirectory::updateOrCreate(
+            ['email' => $user->email],
+            ['tenant_id' => tenant('id')],
+        );
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User created.')]);
 
         return to_route('admin.users.index');
@@ -83,6 +96,7 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $data = $request->validated();
+        $oldEmail = $user->email;
 
         $user->fill([
             'name' => $data['name'],
@@ -97,6 +111,18 @@ class UserController extends Controller
 
         $user->syncRoles([$data['role']]);
 
+        // Not just "if the email changed" -- a user saved before this directory sync existed
+        // (or one whose row was otherwise lost) has no directory entry at all yet, so re-saving
+        // them with an unchanged email needs to create one too, not just skip.
+        if ($user->email !== $oldEmail) {
+            TenantUserDirectory::where('email', $oldEmail)->delete();
+        }
+
+        TenantUserDirectory::updateOrCreate(
+            ['email' => $user->email],
+            ['tenant_id' => tenant('id')],
+        );
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User updated.')]);
 
         return to_route('admin.users.index');
@@ -107,6 +133,8 @@ class UserController extends Controller
         $this->authorize('delete', $user);
 
         $user->delete();
+
+        TenantUserDirectory::where('email', $user->email)->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User deleted.')]);
 
