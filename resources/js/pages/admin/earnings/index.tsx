@@ -2,6 +2,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -17,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { formatNumber, formatSyp } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
-import earnings from '@/routes/admin/earnings';
+import earnings, { exportXlsx } from '@/routes/admin/earnings';
 import type {
     EarningsBreakdownRow,
     EarningsRevaluation,
@@ -430,6 +431,11 @@ function EarningsReport({
                             <Button onClick={apply}>
                                 {t('statistics.apply')}
                             </Button>
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({
+                                    query: { from: fromVal, to: toVal },
+                                })}
+                            />
                         </div>
                     </CardContent>
                 </Card>

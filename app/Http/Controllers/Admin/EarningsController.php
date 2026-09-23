@@ -15,9 +15,11 @@ use App\Models\FuelPrice;
 use App\Models\FuelType;
 use App\Models\TankTopUp;
 use App\Models\Transaction;
+use App\Services\XlsxTableExporter;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -88,6 +90,176 @@ class EarningsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Earnings password set.')]);
 
         return to_route('admin.earnings.index');
+    }
+
+    /**
+     * Mirrors the on-screen report as one section per card: a table per fuel type (margin tiers,
+     * then free-liters tiers, then that fuel type's subtotal), Revaluation, Shop Profit, then a
+     * final Summary section -- rather than flattening everything into a single table, since the
+     * page itself is a stack of distinct breakdowns, not one list. Gated the same way the page
+     * itself is (session('earnings_unlocked')) -- the route sits behind role:admin already, but
+     * that only proves the requester is an admin, not that they've entered the separate Earnings
+     * password this page guards behind.
+     */
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        abort_unless(session('earnings_unlocked'), 403);
+
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now();
+
+        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+
+        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
+        $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
+        $otherExpenseSyp = round($this->otherExpensesSyp($from, $to, $sypRate), 0);
+        $totalEarningsSyp = $totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp;
+
+        $isAr = app()->getLocale() === 'ar';
+        $l = $isAr ? [
+            'title' => 'الأرباح',
+            'summary' => 'الملخص',
+            'total_earnings' => 'إجمالي الأرباح',
+            'other_expenses' => 'مصاريف أخرى',
+            'grand_total' => 'الإجمالي الكلي',
+            'rate' => 'السعر (ل.س/لتر)',
+            'liters' => 'اللترات',
+            'earnings' => 'الأرباح (ل.س)',
+            'margin_earnings' => 'أرباح الهامش',
+            'topup_earnings' => 'أرباح الإضافة',
+            'subtotal' => 'المجموع الفرعي',
+            'revaluation' => 'أرباح فارق السعر',
+            'fuel_type' => 'نوع الوقود',
+            'old_price' => 'السعر القديم',
+            'new_price' => 'السعر الجديد',
+            'price_diff' => 'الفارق',
+            'profit' => 'الربح',
+            'total' => 'الإجمالي',
+            'shop_profit' => 'أرباح المتجر',
+            'shop_revenue' => 'إجمالي الإيرادات',
+            'shop_cogs' => 'تكلفة البضاعة المباعة',
+            'net_profit' => 'صافي الربح',
+            'item' => 'الصنف',
+            'qty_sold' => 'الكمية المباعة',
+            'cost_per_unit' => 'تكلفة الوحدة',
+            'profit_per_unit' => 'ربح الوحدة',
+            'total_profit' => 'إجمالي الربح',
+        ] : [
+            'title' => 'Earnings',
+            'summary' => 'Summary',
+            'total_earnings' => 'Total earnings',
+            'other_expenses' => 'Other expenses',
+            'grand_total' => 'Grand total',
+            'rate' => 'Rate (SYP/L)',
+            'liters' => 'Liters',
+            'earnings' => 'Earnings (SYP)',
+            'margin_earnings' => 'Margin earnings',
+            'topup_earnings' => 'Top-up earnings',
+            'subtotal' => 'Subtotal',
+            'revaluation' => 'Revaluation Profit',
+            'fuel_type' => 'Fuel Type',
+            'old_price' => 'Old Price',
+            'new_price' => 'New Price',
+            'price_diff' => 'Price Diff',
+            'profit' => 'Profit',
+            'total' => 'Total',
+            'shop_profit' => 'Shop Profit',
+            'shop_revenue' => 'Total Revenue',
+            'shop_cogs' => 'Total COGS',
+            'net_profit' => 'Net Profit',
+            'item' => 'Item',
+            'qty_sold' => 'Qty Sold',
+            'cost_per_unit' => 'Cost/Unit',
+            'profit_per_unit' => 'Profit/Unit',
+            'total_profit' => 'Total Profit',
+        ];
+
+        $sections = [];
+
+        $sections[] = [
+            'heading' => $l['summary'],
+            'headers' => [$l['title'], $l['earnings']],
+            'rows' => [
+                [$l['total_earnings'], $totalEarningsSyp],
+                [$l['other_expenses'], -$otherExpenseSyp],
+            ],
+            'columnFormats' => [1 => '#,##0'],
+        ];
+
+        foreach ($breakdown as $row) {
+            $rows = [];
+
+            foreach ($row['margin_tiers'] as $tier) {
+                $rows[] = [$tier['margin_rate_syp'], $tier['liters'], $tier['earnings_syp']];
+            }
+            $rows[] = [$l['margin_earnings'], null, $row['margin_earnings_syp']];
+
+            foreach ($row['topup_tiers'] as $tier) {
+                $rows[] = [$tier['price_per_liter_syp'], $tier['liters'], $tier['earnings_syp']];
+            }
+            $rows[] = [$l['topup_earnings'], null, $row['topup_earnings_syp']];
+
+            $rows[] = [$l['subtotal'], null, $row['subtotal_syp']];
+
+            $sections[] = [
+                'heading' => $row['fuel_type']['name'],
+                'headers' => [$l['rate'], $l['liters'], $l['earnings']],
+                'rows' => $rows,
+                'columnFormats' => [0 => '#,##0.000', 1 => '#,##0.000', 2 => '#,##0'],
+            ];
+        }
+
+        if ($revaluation['items'] !== []) {
+            $rows = [];
+
+            foreach ($revaluation['items'] as $item) {
+                foreach ($item['tiers'] as $tier) {
+                    $rows[] = [
+                        $item['fuel_type']['name'], $tier['liters'],
+                        $tier['old_price_syp'], $tier['new_price_syp'], $tier['price_diff_syp'], $tier['profit_syp'],
+                    ];
+                }
+            }
+            $rows[] = [$l['total'], null, null, null, null, $revaluation['total_syp']];
+
+            $sections[] = [
+                'heading' => $l['revaluation'],
+                'headers' => [$l['fuel_type'], $l['liters'], $l['old_price'], $l['new_price'], $l['price_diff'], $l['profit']],
+                'rows' => $rows,
+                'columnFormats' => [1 => '#,##0.000', 2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0.00', 5 => '#,##0'],
+            ];
+        }
+
+        $shopRows = [
+            [$l['shop_revenue'], $shopProfit['total_revenue_syp']],
+            [$l['shop_cogs'], $shopProfit['total_cogs_syp']],
+            [$l['net_profit'], $shopProfit['net_profit_syp']],
+        ];
+        $sections[] = [
+            'heading' => $l['shop_profit'],
+            'headers' => [$l['title'], $l['earnings']],
+            'rows' => $shopRows,
+            'columnFormats' => [1 => '#,##0'],
+        ];
+
+        if ($shopProfit['items'] !== []) {
+            $sections[] = [
+                'heading' => null,
+                'headers' => [$l['item'], $l['qty_sold'], $l['cost_per_unit'], $l['profit_per_unit'], $l['total_profit']],
+                'rows' => array_map(fn (array $item) => [
+                    $item['name'], $item['quantity_sold'], $item['cost_per_unit_syp'], $item['profit_per_unit_syp'], $item['total_profit_syp'],
+                ], $shopProfit['items']),
+                'columnFormats' => [2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0'],
+            ];
+        }
+
+        return $exporter->downloadMultiSection(
+            filename: 'earnings-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
+            title: $l['title'],
+            subtitle: $from->toDateString().' — '.$to->toDateString(),
+            sections: $sections,
+            direction: 'ltr',
+        );
     }
 
     /**

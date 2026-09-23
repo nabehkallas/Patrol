@@ -141,6 +141,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::prefix('earnings')->name('earnings.')->group(function () {
             Route::get('/', [EarningsController::class, 'index'])->name('index');
+            Route::get('export-xlsx', [EarningsController::class, 'exportXlsx'])->name('export-xlsx');
             Route::post('unlock', [EarningsController::class, 'unlock'])->name('unlock')->middleware('throttle:5,1');
             Route::post('setup', [EarningsController::class, 'setup'])->name('setup');
         });
