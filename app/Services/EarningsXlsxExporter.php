@@ -3,20 +3,32 @@
 namespace App\Services;
 
 use Illuminate\Http\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Style\Style;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * A colored, dashboard-style .xlsx for the Earnings report -- built to a specific visual
- * reference the station requested (color-blocked sections, fuel types placed side by side)
- * rather than XlsxTableExporter's plain stacked title+table sections, which is why this doesn't
- * reuse that service: every section here needs its own fill color and the fuel-type sections
- * need side-by-side column placement, neither of which that shared exporter supports.
+ * A colored, dashboard-style, LIVE .xlsx for the Earnings report -- built to a specific visual
+ * reference the station requested (color-blocked sections, fuel types placed side by side,
+ * clear sub-headers, and real Excel formulas instead of pre-computed numbers, so editing a rate
+ * or a liters figure recalculates every total that depends on it). Doesn't reuse
+ * XlsxTableExporter's plain stacked title+table sections: every section here needs its own fill
+ * color, the fuel-type sections need side-by-side column placement, and most cells here are
+ * formulas, not literal values, none of which that shared exporter supports.
+ *
+ * Every "total" cell in this sheet is a formula referencing the specific cells that produce it
+ * (=A15*B15, =SUM(C10:C14), a summary cell referencing another summary cell, ...) rather than a
+ * value computed once in PHP and pasted in -- the one exception is a handful of true leaves that
+ * have nothing further to compute from within this sheet (a tier's own rate/price, a shop item's
+ * cost price, the liters actually sold, other expenses, the exchange rate): those are real
+ * numbers read live from the database, just not formulas, because there's no cell-level
+ * breakdown of them on this sheet to reference.
  */
 class EarningsXlsxExporter
 {
@@ -30,9 +42,19 @@ class EarningsXlsxExporter
 
     private const RED = 'E06666';
 
-    private const FUEL_BLOCK_WIDTH = 3; // rate/label, liters, earnings
+    private const GREY = 'E5E7EB';
+
+    private const FUEL_BLOCK_WIDTH = 3; // rate/price, liters, total (SYP)
 
     private const FUEL_BLOCK_GAP = 1;
+
+    private const FMT_MONEY = '#,##0';
+
+    private const FMT_RATE = '#,##0.00';
+
+    private const FMT_USD = '"$"#,##0.00';
+
+    private Worksheet $sheet;
 
     /**
      * @param  list<array{label: string, price_syp: float}>  $priceReference
@@ -57,143 +79,45 @@ class EarningsXlsxExporter
     ): Response {
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle($this->safeSheetTitle($title));
-        $sheet->setRightToLeft($direction === 'rtl');
+        $this->sheet = $spreadsheet->getActiveSheet();
+        $this->sheet->setTitle($this->safeSheetTitle($title));
+        // Always LTR regardless of locale -- same convention as every other export in this app
+        // (see XlsxTableExporter): columns/numbers stay in a predictable left-to-right layout in
+        // Excel even when the labels themselves are Arabic.
+        $this->sheet->setRightToLeft($direction === 'rtl');
 
         $row = 1;
-        $sheet->setCellValue([1, $row], $title);
-        $sheet->getStyle([1, $row])->getFont()->setBold(true)->setSize(16);
+        $this->setValue(1, $row, $title)->getFont()->setBold(true)->setSize(16);
         $row++;
-
-        $sheet->setCellValue([1, $row], $subtitle);
-        $sheet->getStyle([1, $row])->getFont()->setItalic(true);
+        $this->setValue(1, $row, $subtitle)->getFont()->setItalic(true);
         $row += 2;
 
         $maxCol = 1;
 
-        // --- Price reference ---
         if ($priceReference !== []) {
-            $row = $this->writeBlock($sheet, $row, 1, self::YELLOW, $labels['price_reference'], [$labels['item'], $labels['price']], array_map(
-                fn (array $p) => [$p['label'], $p['price_syp']],
-                $priceReference,
-            ), columnFormats: [1 => '#,##0.00']);
-            $maxCol = max($maxCol, 2);
+            [$row, $endCol] = $this->writePriceReference($row, $priceReference, $labels);
+            $maxCol = max($maxCol, $endCol);
             $row++;
         }
 
-        // --- Fuel type blocks, side by side ---
-        $fuelBlockStartRow = $row;
-        $fuelBlockEndRow = $row;
-
-        foreach ($fuelBreakdown as $i => $fuelRow) {
-            $startCol = 1 + $i * (self::FUEL_BLOCK_WIDTH + self::FUEL_BLOCK_GAP);
-
-            $rows = [[$labels['liters_sold'], $fuelRow['liters_sold'], null]];
-
-            foreach ($fuelRow['margin_tiers'] as $tier) {
-                $rows[] = [$tier['margin_rate_syp'], $tier['liters'], $tier['earnings_syp']];
-            }
-            $rows[] = [$labels['margin_earnings'], null, $fuelRow['margin_earnings_syp']];
-
-            foreach ($fuelRow['topup_tiers'] as $tier) {
-                $rows[] = [$tier['price_per_liter_syp'], $tier['liters'], $tier['earnings_syp']];
-            }
-            $rows[] = [$labels['topup_earnings'], null, $fuelRow['topup_earnings_syp']];
-            $rows[] = [$labels['subtotal'], null, $fuelRow['subtotal_syp']];
-
-            $endRow = $this->writeBlock(
-                $sheet, $fuelBlockStartRow, $startCol, self::BLUE, $fuelRow['fuel_type']['name'],
-                [$labels['rate'], $labels['liters'], $labels['earnings']], $rows,
-                columnFormats: [0 => '#,##0.000', 1 => '#,##0.000', 2 => '#,##0'],
-            );
-
-            $fuelBlockEndRow = max($fuelBlockEndRow, $endRow);
-            $maxCol = max($maxCol, $startCol + self::FUEL_BLOCK_WIDTH - 1);
-        }
-
+        [$fuelBlockEndRow, $fuelSubtotalRefs, $maxCol] = $this->writeFuelBlocks($row, $fuelBreakdown, $labels, $maxCol);
         $row = $fuelBlockEndRow + 1;
 
-        // --- Revaluation ---
+        $revaluationTotalRef = null;
+
         if ($revaluation['items'] !== []) {
-            $rows = [];
-
-            foreach ($revaluation['items'] as $item) {
-                foreach ($item['tiers'] as $tier) {
-                    $rows[] = [
-                        $item['fuel_type']['name'], $tier['liters'],
-                        $tier['old_price_syp'], $tier['new_price_syp'], $tier['price_diff_syp'], $tier['profit_syp'],
-                    ];
-                }
-            }
-            $rows[] = [$labels['total'], null, null, null, null, $revaluation['total_syp']];
-
-            $row = $this->writeBlock(
-                $sheet, $row, 1, self::GREEN, $labels['revaluation'],
-                [$labels['fuel_type'], $labels['liters'], $labels['old_price'], $labels['new_price'], $labels['price_diff'], $labels['profit']],
-                $rows,
-                columnFormats: [1 => '#,##0.000', 2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0.00', 5 => '#,##0'],
-            );
-            $maxCol = max($maxCol, 6);
+            [$row, $revaluationTotalRef, $endCol] = $this->writeRevaluation($row, $revaluation, $labels);
+            $maxCol = max($maxCol, $endCol);
             $row++;
         }
 
-        // --- Shop profit ---
-        $shopSummaryRows = [
-            [$labels['shop_revenue'], $shopProfit['total_revenue_syp']],
-            [$labels['shop_cogs'], $shopProfit['total_cogs_syp']],
-            [$labels['net_profit'], $shopProfit['net_profit_syp']],
-        ];
-        $row = $this->writeBlock($sheet, $row, 1, self::PEACH, $labels['shop_profit'], [$labels['item'], $labels['earnings']], $shopSummaryRows, columnFormats: [1 => '#,##0']);
+        [$row, $shopNetProfitRef, $endCol] = $this->writeShopProfit($row, $shopProfit, $labels);
+        $maxCol = max($maxCol, $endCol);
         $row++;
 
-        if ($shopProfit['items'] !== []) {
-            $row = $this->writeBlock(
-                $sheet, $row, 1, self::PEACH, null,
-                [$labels['item'], $labels['qty_sold'], $labels['cost_per_unit'], $labels['profit_per_unit'], $labels['total_profit']],
-                array_map(fn (array $item) => [
-                    $item['name'], $item['quantity_sold'], $item['cost_per_unit_syp'], $item['profit_per_unit_syp'], $item['total_profit_syp'],
-                ], $shopProfit['items']),
-                columnFormats: [1 => '#,##0', 2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0'],
-            );
-            $maxCol = max($maxCol, 5);
-            $row++;
-        }
+        $this->writeGrandTotal($row, $fuelSubtotalRefs, $revaluationTotalRef, $shopNetProfitRef, $otherExpenseSyp, $sypRate, $labels);
 
-        // --- Grand total ---
-        $usdTotal = $sypRate > 0 ? $totalEarningsSyp / $sypRate : 0.0;
-
-        $row++;
-        $sheet->setCellValue([1, $row], $labels['total_earnings']);
-        $sheet->setCellValue([2, $row], $totalEarningsSyp);
-        $sheet->getStyle([2, $row])->getNumberFormat()->setFormatCode('#,##0');
-        $row++;
-
-        $sheet->setCellValue([1, $row], $labels['other_expenses']);
-        $sheet->setCellValue([2, $row], -$otherExpenseSyp);
-        $sheet->getStyle([2, $row])->getNumberFormat()->setFormatCode('#,##0');
-        $row++;
-
-        $grandTotalRow = $row;
-        $sheet->setCellValue([1, $row], $labels['grand_total']);
-        $sheet->setCellValue([2, $row], $totalEarningsSyp);
-        $this->fillRange($sheet, [1, $row, 2, $row], self::RED);
-        $sheet->getStyle([1, $grandTotalRow, 2, $grandTotalRow])->getFont()->setBold(true)->setSize(13);
-        $sheet->getStyle([2, $row])->getNumberFormat()->setFormatCode('#,##0');
-        $row++;
-
-        $sheet->setCellValue([1, $row], $labels['exchange_rate']);
-        $sheet->setCellValue([2, $row], $sypRate);
-        $sheet->getStyle([2, $row])->getNumberFormat()->setFormatCode('#,##0.00');
-        $row++;
-
-        $sheet->setCellValue([1, $row], $labels['grand_total_usd']);
-        $sheet->setCellValue([2, $row], $usdTotal);
-        $this->fillRange($sheet, [1, $row, 2, $row], self::GREEN);
-        $sheet->getStyle([2, $row])->getNumberFormat()->setFormatCode('"$"#,##0.00');
-        $sheet->getStyle([1, $row, 2, $row])->getFont()->setBold(true);
-
-        $this->autoSizeColumns($sheet, $maxCol);
+        $this->autoSizeColumns($maxCol);
 
         $resource = fopen('php://temp', 'r+');
         IOFactory::createWriter($spreadsheet, 'Xlsx')->save($resource);
@@ -208,81 +132,346 @@ class EarningsXlsxExporter
     }
 
     /**
-     * Writes one colored heading+table block starting at ($startRow, $startCol) and returns the
-     * row just after its last data row (so callers can stack the next block beneath it).
-     *
-     * @param  string[]  $headers
-     * @param  list<array<int, string|int|float|null>>  $rows
-     * @param  array<int, string>  $columnFormats  0-indexed column (relative to $startCol) => format code
+     * @return array{0: int, 1: int} next free row, last used column
      */
-    private function writeBlock(
-        Worksheet $sheet,
-        int $startRow,
-        int $startCol,
-        string $color,
-        ?string $heading,
-        array $headers,
-        array $rows,
-        array $columnFormats = [],
-    ): int {
-        $row = $startRow;
-        $lastCol = $startCol + count($headers) - 1;
-
-        if ($heading !== null) {
-            $sheet->setCellValue([$startCol, $row], $heading);
-            $sheet->mergeCells([$startCol, $row, $lastCol, $row]);
-            $sheet->getStyle([$startCol, $row])->getFont()->setBold(true)->setSize(13);
-            $sheet->getStyle([$startCol, $row])->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $this->fillRange($sheet, [$startCol, $row, $lastCol, $row], $color);
-            $row++;
-        }
-
-        foreach ($headers as $i => $header) {
-            $sheet->setCellValue([$startCol + $i, $row], $header);
-        }
-        $sheet->getStyle([$startCol, $row, $lastCol, $row])->getFont()->setBold(true);
-        $this->fillRange($sheet, [$startCol, $row, $lastCol, $row], $color);
-        $row++;
-
+    private function writePriceReference(int $row, array $priceReference, array $labels): array
+    {
+        $startRow = $row;
+        $row = $this->writeHeading($row, 1, 2, $labels['price_reference'], self::YELLOW);
+        $row = $this->writeColumnHeaders($row, 1, [$labels['item'], $labels['price']], self::YELLOW);
         $firstDataRow = $row;
 
-        foreach ($rows as $rowData) {
-            foreach ($rowData as $i => $value) {
-                $sheet->setCellValue([$startCol + $i, $row], $value);
-            }
+        foreach ($priceReference as $p) {
+            $this->setValue(1, $row, $p['label']);
+            $this->setClean(2, $row, $p['price_syp']);
             $row++;
+        }
+
+        $this->shadeAndBorder($startRow, 1, $row - 1, 2, self::YELLOW, $firstDataRow);
+
+        return [$row, 2];
+    }
+
+    /**
+     * Fuel types are placed side by side, each in its own FUEL_BLOCK_WIDTH-column block, with a
+     * clear sub-heading + its own column headers above the margin tiers, and another above the
+     * top-up tiers -- the exact "clear sub-headers directly above these numbers" the station
+     * asked for, instead of one shared header row covering two differently-shaped tables.
+     *
+     * @return array{0: int, 1: array<int, string>, 2: int} last row used by any block, [fuel_type_id => subtotal cell ref], last used column
+     */
+    private function writeFuelBlocks(int $startRow, array $fuelBreakdown, array $labels, int $maxCol): array
+    {
+        $blockEndRow = $startRow;
+        $subtotalRefs = [];
+
+        foreach ($fuelBreakdown as $i => $fuelRow) {
+            $startCol = 1 + $i * (self::FUEL_BLOCK_WIDTH + self::FUEL_BLOCK_GAP);
+            $lastCol = $startCol + self::FUEL_BLOCK_WIDTH - 1;
+            $row = $startRow;
+
+            $row = $this->writeHeading($row, $startCol, $lastCol, $fuelRow['fuel_type']['name'], self::BLUE);
+
+            $this->setValue($startCol, $row, $labels['liters_sold']);
+            $this->setClean($startCol + 1, $row, $fuelRow['liters_sold']);
+            $litersSoldRow = $row;
+            $row++;
+            $this->shadeAndBorder($litersSoldRow, $startCol, $litersSoldRow, $lastCol, self::BLUE, $litersSoldRow);
+            $row++;
+
+            // --- Margin Profits sub-block ---
+            $row = $this->writeSubHeading($row, $startCol, $lastCol, $labels['margin_profits'], self::BLUE);
+            $row = $this->writeColumnHeaders($row, $startCol, [$labels['rate_margin'], $labels['sold_liters'], $labels['total_syp']], self::BLUE);
+            $marginFirstRow = $row;
+
+            foreach ($fuelRow['margin_tiers'] as $tier) {
+                $this->writeTierRow($row, $startCol, $tier['margin_rate_syp'], $tier['liters']);
+                $row++;
+            }
+
+            $marginLastRow = $row - 1;
+            $marginEarningsRow = $row;
+
+            if ($marginLastRow >= $marginFirstRow) {
+                $this->setValue($startCol, $row, $labels['margin_earnings']);
+                $this->setFormula($startCol + 2, $row, 'SUM('.$this->range($startCol + 2, $marginFirstRow, $startCol + 2, $marginLastRow).')')
+                    ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            } else {
+                $this->setValue($startCol, $row, $labels['margin_earnings']);
+                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            }
+            $this->shadeAndBorder($marginFirstRow - 1, $startCol, $row, $lastCol, self::BLUE, $marginFirstRow);
+            $row++;
+            $row++;
+
+            // --- Free Liters (top-up) sub-block ---
+            $row = $this->writeSubHeading($row, $startCol, $lastCol, $labels['free_liters'], self::BLUE);
+            $row = $this->writeColumnHeaders($row, $startCol, [$labels['price'], $labels['sold_liters'], $labels['total_syp']], self::BLUE);
+            $topupFirstRow = $row;
+
+            foreach ($fuelRow['topup_tiers'] as $tier) {
+                $this->writeTierRow($row, $startCol, $tier['price_per_liter_syp'], $tier['liters']);
+                $row++;
+            }
+
+            $topupLastRow = $row - 1;
+            $topupEarningsRow = $row;
+
+            if ($topupLastRow >= $topupFirstRow) {
+                $this->setValue($startCol, $row, $labels['topup_earnings']);
+                $this->setFormula($startCol + 2, $row, 'SUM('.$this->range($startCol + 2, $topupFirstRow, $startCol + 2, $topupLastRow).')')
+                    ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            } else {
+                $this->setValue($startCol, $row, $labels['topup_earnings']);
+                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            }
+            $this->shadeAndBorder($topupFirstRow - 1, $startCol, $row, $lastCol, self::BLUE, $topupFirstRow);
+            $row++;
+
+            // --- Subtotal: margin earnings + top-up earnings, a live formula referencing both
+            // subtotal cells just written above ---
+            $this->setValue($startCol, $row, $labels['subtotal']);
+            $subtotalCell = $this->setFormula(
+                $startCol + 2, $row,
+                $this->ref($startCol + 2, $marginEarningsRow).'+'.$this->ref($startCol + 2, $topupEarningsRow),
+            );
+            $subtotalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            $subtotalCell->getFont()->setBold(true);
+            $this->shadeAndBorder($row, $startCol, $row, $lastCol, self::BLUE, $row);
+
+            $subtotalRefs[] = $this->ref($startCol + 2, $row);
+
+            $blockEndRow = max($blockEndRow, $row);
+            $maxCol = max($maxCol, $lastCol);
+        }
+
+        return [$blockEndRow, $subtotalRefs, $maxCol];
+    }
+
+    /**
+     * One tier row: [rate/price] | [liters] | =RateCell*LitersCell -- a real formula, so editing
+     * either input cell in Excel recalculates this row's total live.
+     */
+    private function writeTierRow(int $row, int $startCol, float $rate, float $liters): void
+    {
+        $this->setClean($startCol, $row, $rate);
+        $this->setClean($startCol + 1, $row, $liters);
+        $this->setFormula($startCol + 2, $row, $this->ref($startCol, $row).'*'.$this->ref($startCol + 1, $row))
+            ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+    }
+
+    /**
+     * @return array{0: int, 1: string, 2: int} next free row, the Total cell's reference, last used column
+     */
+    private function writeRevaluation(int $row, array $revaluation, array $labels): array
+    {
+        $startRow = $row;
+        $row = $this->writeHeading($row, 1, 6, $labels['revaluation'], self::GREEN);
+        $row = $this->writeColumnHeaders($row, 1, [
+            $labels['fuel_type'], $labels['liters'], $labels['old_price'], $labels['new_price'], $labels['price_diff'], $labels['profit'],
+        ], self::GREEN);
+        $firstDataRow = $row;
+
+        foreach ($revaluation['items'] as $item) {
+            foreach ($item['tiers'] as $tier) {
+                $this->setValue(1, $row, $item['fuel_type']['name']);
+                $this->setClean(2, $row, $tier['liters']);
+                $this->setValue(3, $row, $tier['old_price_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
+                $this->setValue(4, $row, $tier['new_price_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
+                $this->setFormula(5, $row, $this->ref(4, $row).'-'.$this->ref(3, $row))->getNumberFormat()->setFormatCode(self::FMT_RATE);
+                $this->setFormula(6, $row, $this->ref(2, $row).'*'.$this->ref(5, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $row++;
+            }
         }
 
         $lastDataRow = $row - 1;
+        $totalRow = $row;
+        $this->setValue(1, $row, $labels['total'])->getFont()->setBold(true);
+        $totalCell = $this->setFormula(6, $row, 'SUM('.$this->range(6, $firstDataRow, 6, $lastDataRow).')');
+        $totalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $totalCell->getFont()->setBold(true);
 
-        if ($lastDataRow >= $firstDataRow) {
-            foreach ($columnFormats as $i => $format) {
-                $sheet->getStyle([$startCol + $i, $firstDataRow, $startCol + $i, $lastDataRow])
-                    ->getNumberFormat()->setFormatCode($format);
-            }
+        $this->shadeAndBorder($startRow, 1, $row, 6, self::GREEN, $firstDataRow);
 
-            $this->fillRange($sheet, [$startCol, $firstDataRow, $lastCol, $lastDataRow], $color, light: true);
-        }
-
-        $sheet->getStyle([$startCol, $startRow, $lastCol, $lastDataRow])
-            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BFBFBF');
-
-        return $row;
+        return [$row + 1, $this->ref(6, $totalRow), 6];
     }
 
-    private function fillRange(Worksheet $sheet, array $range, string $rgb, bool $light = false): void
+    /**
+     * Item table first (Qty Sold, Cost/Unit, and Revenue read live from the database -- real
+     * recorded sales, not invented numbers -- with COGS and Profit as formulas), then a summary
+     * block whose own totals are SUM formulas over that table, so nothing here is a number
+     * computed once in PHP and pasted in.
+     *
+     * @return array{0: int, 1: string, 2: int} next free row, the Net Profit cell's reference, last used column
+     */
+    private function writeShopProfit(int $row, array $shopProfit, array $labels): array
+    {
+        $revenueRef = null;
+        $cogsRef = null;
+        $maxCol = 2;
+
+        if ($shopProfit['items'] !== []) {
+            $startRow = $row;
+            $row = $this->writeHeading($row, 1, 6, $labels['shop_profit'], self::PEACH);
+            $row = $this->writeColumnHeaders($row, 1, [
+                $labels['item'], $labels['qty_sold'], $labels['cost_per_unit'], $labels['revenue'], $labels['cogs'], $labels['profit'],
+            ], self::PEACH);
+            $firstDataRow = $row;
+
+            foreach ($shopProfit['items'] as $item) {
+                $this->setValue(1, $row, $item['name']);
+                $this->setValue(2, $row, $item['quantity_sold'])->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setValue(3, $row, $item['cost_per_unit_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
+                $this->setValue(4, $row, $item['revenue_syp'])->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setFormula(5, $row, $this->ref(2, $row).'*'.$this->ref(3, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setFormula(6, $row, $this->ref(4, $row).'-'.$this->ref(5, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $row++;
+            }
+
+            $lastDataRow = $row - 1;
+            $this->shadeAndBorder($startRow, 1, $lastDataRow, 6, self::PEACH, $firstDataRow);
+            $revenueRef = $this->range(4, $firstDataRow, 4, $lastDataRow);
+            $cogsRef = $this->range(5, $firstDataRow, 5, $lastDataRow);
+            $maxCol = 6;
+            $row++;
+        }
+
+        $summaryStartRow = $row;
+        $row = $this->writeHeading($row, 1, 2, $labels['shop_profit_summary'], self::PEACH);
+
+        $this->setValue(1, $row, $labels['shop_revenue']);
+        $revenueCell = $revenueRef
+            ? $this->setFormula(2, $row, 'SUM('.$revenueRef.')')
+            : $this->setValue(2, $row, 0);
+        $revenueCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $revenueSummaryRow = $row;
+        $row++;
+
+        $this->setValue(1, $row, $labels['shop_cogs']);
+        $cogsCell = $cogsRef
+            ? $this->setFormula(2, $row, 'SUM('.$cogsRef.')')
+            : $this->setValue(2, $row, 0);
+        $cogsCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $cogsSummaryRow = $row;
+        $row++;
+
+        $this->setValue(1, $row, $labels['net_profit'])->getFont()->setBold(true);
+        $netProfitCell = $this->setFormula(2, $row, $this->ref(2, $revenueSummaryRow).'-'.$this->ref(2, $cogsSummaryRow));
+        $netProfitCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $netProfitCell->getFont()->setBold(true);
+        $netProfitRow = $row;
+
+        $this->shadeAndBorder($summaryStartRow, 1, $row, 2, self::PEACH, $revenueSummaryRow);
+
+        return [$row + 1, $this->ref(2, $netProfitRow), $maxCol];
+    }
+
+    /**
+     * @param  array<int, string>  $fuelSubtotalRefs
+     */
+    private function writeGrandTotal(int $row, array $fuelSubtotalRefs, ?string $revaluationTotalRef, string $shopNetProfitRef, float $otherExpenseSyp, float $sypRate, array $labels): void
+    {
+        $terms = $fuelSubtotalRefs;
+
+        if ($revaluationTotalRef) {
+            $terms[] = $revaluationTotalRef;
+        }
+
+        $terms[] = $shopNetProfitRef;
+
+        $this->setValue(1, $row, $labels['total_earnings']);
+        $totalEarningsCell = $this->setFormula(2, $row, implode('+', $terms));
+        $totalEarningsCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $totalEarningsRow = $row;
+        $row++;
+
+        // A real number read live from expense records, not a formula -- this sheet has no
+        // itemized expense breakdown to sum, so there's nothing further to compute it from here.
+        $this->setValue(1, $row, $labels['other_expenses']);
+        $this->setValue(2, $row, -$otherExpenseSyp)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $otherExpensesRow = $row;
+        $row++;
+
+        $this->setValue(1, $row, $labels['grand_total'])->getFont()->setBold(true)->setSize(13);
+        $grandTotalCell = $this->setFormula(2, $row, $this->ref(2, $totalEarningsRow).'+'.$this->ref(2, $otherExpensesRow));
+        $grandTotalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $grandTotalCell->getFont()->setBold(true)->setSize(13);
+        $this->fillRange(1, $row, 2, $row, self::RED);
+        $grandTotalRow = $row;
+        $row++;
+
+        // Read live from Admin > Exchange Rates -- not hardcoded. If no rate has ever been set
+        // for this station, ExchangeRate::currentRateFor() falls back to 1.0 (so SYP and USD
+        // read the same until a real rate is entered); that fallback is the app's own documented
+        // behavior, not something this export invents.
+        $this->setValue(1, $row, $labels['exchange_rate']);
+        $this->setValue(2, $row, $sypRate)->getNumberFormat()->setFormatCode(self::FMT_RATE);
+        $exchangeRateRow = $row;
+        $row++;
+
+        $this->setValue(1, $row, $labels['grand_total_usd'])->getFont()->setBold(true);
+        // Live formula: Grand Total (SYP) / Exchange Rate -- editing either cell in Excel
+        // recalculates this automatically.
+        $usdCell = $this->setFormula(2, $row, $this->ref(2, $grandTotalRow).'/'.$this->ref(2, $exchangeRateRow));
+        $usdCell->getNumberFormat()->setFormatCode(self::FMT_USD);
+        $usdCell->getFont()->setBold(true);
+        $this->fillRange(1, $row, 2, $row, self::GREEN);
+    }
+
+    private function writeHeading(int $row, int $startCol, int $endCol, string $text, string $color): int
+    {
+        $this->setValue($startCol, $row, $text);
+        $this->sheet->mergeCells($this->range($startCol, $row, $endCol, $row));
+        $this->sheet->getStyle($this->range($startCol, $row, $endCol, $row))->getFont()->setBold(true)->setSize(13);
+        $this->sheet->getStyle([$startCol, $row])->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $this->fillRange($startCol, $row, $endCol, $row, $color);
+
+        return $row + 1;
+    }
+
+    private function writeSubHeading(int $row, int $startCol, int $endCol, string $text, string $color): int
+    {
+        $this->setValue($startCol, $row, $text);
+        $this->sheet->mergeCells($this->range($startCol, $row, $endCol, $row));
+        $this->sheet->getStyle($this->range($startCol, $row, $endCol, $row))->getFont()->setBold(true)->setItalic(true);
+        $this->fillRange($startCol, $row, $endCol, $row, $this->lighten($color));
+
+        return $row + 1;
+    }
+
+    /**
+     * @param  string[]  $headers
+     */
+    private function writeColumnHeaders(int $row, int $startCol, array $headers, string $color): int
+    {
+        foreach ($headers as $i => $header) {
+            $this->setValue($startCol + $i, $row, $header);
+        }
+        $range = $this->range($startCol, $row, $startCol + count($headers) - 1, $row);
+        $this->sheet->getStyle($range)->getFont()->setBold(true);
+        $this->fillRange($startCol, $row, $startCol + count($headers) - 1, $row, self::GREY);
+
+        return $row + 1;
+    }
+
+    private function shadeAndBorder(int $startRow, int $startCol, int $endRow, int $endCol, string $color, int $dataStartRow): void
+    {
+        if ($endRow >= $dataStartRow) {
+            $this->fillRange($startCol, $dataStartRow, $endCol, $endRow, $color, light: true);
+        }
+
+        $this->sheet->getStyle($this->range($startCol, $startRow, $endCol, $endRow))
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BFBFBF');
+    }
+
+    private function fillRange(int $startCol, int $startRow, int $endCol, int $endRow, string $rgb, bool $light = false): void
     {
         $color = $light ? $this->lighten($rgb) : $rgb;
-        $sheet->getStyle($range)->getFill()
+        $this->sheet->getStyle($this->range($startCol, $startRow, $endCol, $endRow))->getFill()
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB($color);
     }
 
-    /**
-     * A block's header keeps its full color; its data rows get a lighter tint of the same color
-     * so the section still reads as one visual group without the data looking as heavy as the
-     * heading.
-     */
     private function lighten(string $rgb): string
     {
         [$r, $g, $b] = array_map(fn (string $hex) => hexdec($hex), str_split($rgb, 2));
@@ -291,14 +480,54 @@ class EarningsXlsxExporter
         return sprintf('%02X%02X%02X', $blend($r), $blend($g), $blend($b));
     }
 
-    private function autoSizeColumns(Worksheet $sheet, int $maxCol): void
+    private function setValue(int $col, int $row, mixed $value): Style
     {
-        $highestRow = $sheet->getHighestRow();
+        $this->sheet->setCellValue([$col, $row], $value);
+
+        return $this->sheet->getStyle([$col, $row]);
+    }
+
+    /**
+     * A liters/rate/price figure: up to 3 decimals when the value actually has a fraction, none
+     * when it doesn't -- chosen per-value in PHP rather than relying on a single "#,##0.###"
+     * format code's optional-digit placeholders, since PhpSpreadsheet's own (simplified) string
+     * formatter doesn't suppress those trailing zeros the way real Excel is supposed to, and this
+     * way the file is guaranteed to render correctly everywhere regardless of that ambiguity.
+     */
+    private function setClean(int $col, int $row, float $value): Style
+    {
+        $this->sheet->setCellValue([$col, $row], $value);
+        $isWhole = abs($value - round($value)) < 0.0005;
+        $this->sheet->getStyle([$col, $row])->getNumberFormat()->setFormatCode($isWhole ? self::FMT_MONEY : '#,##0.000');
+
+        return $this->sheet->getStyle([$col, $row]);
+    }
+
+    private function setFormula(int $col, int $row, string $formula): Style
+    {
+        $this->sheet->setCellValue([$col, $row], '='.$formula);
+
+        return $this->sheet->getStyle([$col, $row]);
+    }
+
+    private function ref(int $col, int $row): string
+    {
+        return Coordinate::stringFromColumnIndex($col).$row;
+    }
+
+    private function range(int $startCol, int $startRow, int $endCol, int $endRow): string
+    {
+        return $this->ref($startCol, $startRow).':'.$this->ref($endCol, $endRow);
+    }
+
+    private function autoSizeColumns(int $maxCol): void
+    {
+        $highestRow = $this->sheet->getHighestRow();
         $widths = array_fill(1, $maxCol, 0);
 
         for ($r = 1; $r <= $highestRow; $r++) {
             for ($col = 1; $col <= $maxCol; $col++) {
-                $cell = $sheet->getCell([$col, $r]);
+                $cell = $this->sheet->getCell([$col, $r]);
                 $value = $cell->getCalculatedValue();
 
                 if ($value === null || $value === '') {
@@ -314,7 +543,7 @@ class EarningsXlsxExporter
         }
 
         foreach ($widths as $col => $longest) {
-            $sheet->getColumnDimensionByColumn($col)->setWidth($longest + 3);
+            $this->sheet->getColumnDimensionByColumn($col)->setWidth($longest + 3);
         }
     }
 
