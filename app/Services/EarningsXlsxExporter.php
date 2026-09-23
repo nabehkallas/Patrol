@@ -53,7 +53,7 @@ class EarningsXlsxExporter
         float $totalEarningsSyp,
         float $sypRate,
         array $labels,
-        string $direction = 'rtl',
+        string $direction = 'ltr',
     ): Response {
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
@@ -89,7 +89,7 @@ class EarningsXlsxExporter
         foreach ($fuelBreakdown as $i => $fuelRow) {
             $startCol = 1 + $i * (self::FUEL_BLOCK_WIDTH + self::FUEL_BLOCK_GAP);
 
-            $rows = [[$labels['liters_sold'], null, $fuelRow['liters_sold']]];
+            $rows = [[$labels['liters_sold'], $fuelRow['liters_sold'], null]];
 
             foreach ($fuelRow['margin_tiers'] as $tier) {
                 $rows[] = [$tier['margin_rate_syp'], $tier['liters'], $tier['earnings_syp']];
@@ -154,7 +154,7 @@ class EarningsXlsxExporter
                 array_map(fn (array $item) => [
                     $item['name'], $item['quantity_sold'], $item['cost_per_unit_syp'], $item['profit_per_unit_syp'], $item['total_profit_syp'],
                 ], $shopProfit['items']),
-                columnFormats: [2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0'],
+                columnFormats: [1 => '#,##0', 2 => '#,##0.00', 3 => '#,##0.00', 4 => '#,##0'],
             );
             $maxCol = max($maxCol, 5);
             $row++;

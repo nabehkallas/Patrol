@@ -212,7 +212,10 @@ class EarningsController extends Controller
             totalEarningsSyp: $totalEarningsSyp,
             sypRate: $sypRate,
             labels: $l,
-            direction: $isAr ? 'rtl' : 'ltr',
+            // Always LTR regardless of locale -- same convention as every other export in this
+            // app (see XlsxTableExporter), so columns/numbers stay in a predictable left-to-right
+            // layout in Excel even when the labels themselves are Arabic.
+            direction: 'ltr',
         );
     }
 
