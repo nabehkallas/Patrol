@@ -15,6 +15,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -110,6 +111,11 @@ class ShopController extends Controller
 
         $items = ShopItem::orderBy('name')->get();
 
+        // Today's price for each item, applied for the whole exported range -- same
+        // pre-existing "current price blanket-applied to the range" behavior this export has
+        // always had, just sourced from the price history table instead of a plain column now.
+        $currentPriceByItem = $items->mapWithKeys(fn (ShopItem $item) => [$item->id => $item->currentPrice()]);
+
         $sumQtyBefore = fn (TransactionType $type) => Transaction::whereNotNull('shop_item_id')
             ->where('type', $type)
             ->where('occurred_at', '<', $from->copy()->startOfDay())
@@ -161,7 +167,7 @@ class ShopController extends Controller
         $col = 1;
 
         foreach ($items as $item) {
-            $currency = $item->currency->value;
+            $currency = $currentPriceByItem[$item->id]?->currency->value ?? Currency::SYP->value;
 
             $headerRow[] = null;
             $headerRow[] = $item->name.' — '.$labels['stock'];
@@ -174,7 +180,7 @@ class ShopController extends Controller
             $col += 4;
         }
 
-        $currencies = $items->pluck('currency.value')->unique()->sort()->values();
+        $currencies = $items->map(fn (ShopItem $item) => $currentPriceByItem[$item->id]?->currency->value ?? Currency::SYP->value)->unique()->sort()->values();
         $overallColByCurrency = [];
 
         foreach ($currencies as $currency) {
@@ -204,7 +210,8 @@ class ShopController extends Controller
                 $row[] = null;
                 $row[] = $runningStock[$item->id];
                 $row[] = $soldToday > 0 ? $soldToday : null;
-                $row[] = "={$soldCol}{$thisRow}*".((float) $item->sell_price);
+                $sellPrice = (float) ($currentPriceByItem[$item->id]?->sell_price ?? 0);
+                $row[] = "={$soldCol}{$thisRow}*".$sellPrice;
 
                 $columnFormats[$soldColByItem[$item->id] - 2] = '#,##0'; // stock column
                 $columnFormats[$soldColByItem[$item->id] - 1] = '#,##0';
@@ -233,14 +240,18 @@ class ShopController extends Controller
 
     private function itemOptions()
     {
-        return ShopItem::orderBy('name')->get()->map(fn (ShopItem $item) => [
-            'id' => $item->id,
-            'name' => $item->name,
-            'stock' => $item->currentStock(),
-            'base_price' => $item->base_price,
-            'sell_price' => $item->sell_price,
-            'currency' => $item->currency->value,
-        ]);
+        return ShopItem::orderBy('name')->get()->map(function (ShopItem $item) {
+            $price = $item->currentPrice();
+
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'stock' => $item->currentStock(),
+                'base_price' => $price?->base_price,
+                'sell_price' => $price?->sell_price,
+                'currency' => $price?->currency->value ?? Currency::SYP->value,
+            ];
+        });
     }
 
     private function historyFor(CarbonInterface $from, CarbonInterface $to)
@@ -255,6 +266,7 @@ class ShopController extends Controller
             ->map(fn (Transaction $transaction) => [
                 'id' => $transaction->id,
                 'type' => $transaction->type->value,
+                'shop_item_id' => $transaction->shop_item_id,
                 'item_name' => $transaction->shopItem?->name ?? '—',
                 'quantity' => $transaction->quantity,
                 'amount' => $transaction->amount,
@@ -296,7 +308,17 @@ class ShopController extends Controller
             'currency' => ['required', 'in:SYP,TRY,USD'],
         ]);
 
-        ShopItem::create($data);
+        DB::transaction(function () use ($request, $data) {
+            $shopItem = ShopItem::create(['name' => $data['name']]);
+
+            $shopItem->prices()->create([
+                'base_price' => $data['base_price'],
+                'sell_price' => $data['sell_price'],
+                'currency' => $data['currency'],
+                'set_by_id' => $request->user()->id,
+                'effective_at' => now(),
+            ]);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Shop item created.')]);
 
@@ -310,13 +332,104 @@ class ShopController extends Controller
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'in:SYP,TRY,USD'],
+            'effective_at' => ['nullable', 'date'],
         ]);
 
-        $shopItem->update($data);
+        $repriced = 0;
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Shop item updated.')]);
+        DB::transaction(function () use ($request, $data, $shopItem, &$repriced) {
+            $shopItem->update(['name' => $data['name']]);
+
+            $currentPrice = $shopItem->currentPrice();
+
+            // Only a name-typo fix, nothing priced actually changed -- don't pollute the price
+            // history (or trigger a reprice pass) for an edit that has no bearing on price.
+            // Compared as floats, not strings: base_price/sell_price are decimal-cast ("120.00"),
+            // so a raw request value ("120") would otherwise always look different even when
+            // it's the exact same price.
+            $priceChanged = ! $currentPrice
+                || (float) $currentPrice->base_price !== (float) $data['base_price']
+                || (float) $currentPrice->sell_price !== (float) $data['sell_price']
+                || $currentPrice->currency->value !== $data['currency'];
+
+            if (! $priceChanged) {
+                return;
+            }
+
+            $effectiveAt = $this->resolveEffectiveAt($data['effective_at'] ?? null, now());
+
+            $shopItem->prices()->create([
+                'base_price' => $data['base_price'],
+                'sell_price' => $data['sell_price'],
+                'currency' => $data['currency'],
+                'set_by_id' => $request->user()->id,
+                'effective_at' => $effectiveAt,
+            ]);
+
+            $repriced = $this->repriceShopSales($shopItem, $effectiveAt);
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->withRepriceNote(__('Shop item updated.'), $repriced)]);
 
         return to_route('shop.index');
+    }
+
+    /**
+     * The date field on this form has no time component, so a submission dated TODAY doesn't
+     * actually tell us "effective from midnight" -- it means "effective starting right now".
+     * Copied from FuelPriceController::resolveEffectiveAt() -- same reasoning: only an explicit
+     * BACKDATE (a date strictly before today) anchors to startOfDay(); a same-day submission
+     * resolves to the real now() timestamp, so a same-day price correction can't accidentally
+     * reprice a sale that happened earlier today but before the correction was actually entered.
+     */
+    private function resolveEffectiveAt(?string $submittedDate, CarbonInterface $noDateFallback): CarbonInterface
+    {
+        if (! $submittedDate) {
+            return $noDateFallback;
+        }
+
+        $date = Carbon::parse($submittedDate);
+
+        return $date->isSameDay(now()) ? now() : $date->startOfDay();
+    }
+
+    /**
+     * Rewrites amount on every sale (never purchase -- see ShopItem's docs) of $shopItem
+     * occurring on or after $from, to match whatever sell price is correctly effective as of
+     * each sale's own date. Mirrors FuelPriceController::repriceTransactions() exactly: quantity
+     * never changes, so this updates rows in place rather than deleting/recreating them.
+     */
+    private function repriceShopSales(ShopItem $shopItem, CarbonInterface $from): int
+    {
+        $sales = Transaction::where('shop_item_id', $shopItem->id)
+            ->where('type', TransactionType::OtherIncome)
+            ->where('occurred_at', '>=', $from)
+            ->get();
+
+        $repriced = 0;
+
+        foreach ($sales as $sale) {
+            $priceAtDate = $shopItem->priceAt($sale->occurred_at);
+            $newAmount = $priceAtDate ? round((float) $sale->quantity * (float) $priceAtDate->sell_price, 2) : 0.0;
+
+            if ($newAmount === (float) $sale->amount) {
+                continue;
+            }
+
+            $sale->update(['amount' => $newAmount]);
+            $repriced++;
+        }
+
+        return $repriced;
+    }
+
+    private function withRepriceNote(string $message, int $repriced): string
+    {
+        if ($repriced === 0) {
+            return $message;
+        }
+
+        return $message.' '.__(':count transaction(s) updated to match.', ['count' => $repriced]);
     }
 
     public function destroyItem(ShopItem $shopItem): RedirectResponse
@@ -359,6 +472,53 @@ class ShopController extends Controller
         $this->recordMovement($request, $data, TransactionType::OtherIncome);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Sale recorded.')]);
+
+        return to_route('shop.index');
+    }
+
+    /**
+     * Corrects a past purchase or sale record in place -- quantity, item, date, amount, currency,
+     * notes -- rather than requiring a delete-and-recreate. Never changes $transaction->type: that
+     * would flip which direction it moves stock, a materially different (and riskier) operation
+     * than fixing a mistaken quantity or date.
+     */
+    public function updateTransaction(Request $request, Transaction $transaction): RedirectResponse
+    {
+        $this->authorize('update', $transaction);
+
+        $data = $this->validateMovement($request);
+        $item = ShopItem::findOrFail($data['shop_item_id']);
+
+        if ($transaction->type === TransactionType::OtherIncome) {
+            $stock = $item->currentStock();
+
+            // The old quantity is about to be replaced, not stacked on top -- if this edit keeps
+            // the same item, its own current contribution to "sold" must be added back before
+            // checking the new quantity fits, otherwise every edit would appear to exceed stock
+            // by this transaction's own old quantity.
+            if ($transaction->shop_item_id === $item->id) {
+                $stock += $transaction->quantity;
+            }
+
+            if ($data['quantity'] > $stock) {
+                throw ValidationException::withMessages([
+                    'quantity' => __('This exceeds the current stock (:stock).', ['stock' => $stock]),
+                ]);
+            }
+        }
+
+        $transaction->update([
+            'shop_item_id' => $item->id,
+            'quantity' => $data['quantity'],
+            'description' => $item->name.' × '.$data['quantity'],
+            'amount' => $data['amount'],
+            'currency' => $data['currency'],
+            'exchange_rate_to_usd' => ExchangeRate::currentRateFor(Currency::from($data['currency'])),
+            'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
 
         return to_route('shop.index');
     }

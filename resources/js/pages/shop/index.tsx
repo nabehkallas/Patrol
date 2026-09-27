@@ -36,6 +36,7 @@ import {
 } from '@/routes/shop/items';
 import { store as storePurchase } from '@/routes/shop/purchases';
 import { store as storeSale } from '@/routes/shop/sales';
+import { update as updateTransaction } from '@/routes/shop/transactions';
 import { destroy as destroyTransaction } from '@/routes/transactions';
 import type { Auth, Currency } from '@/types';
 
@@ -51,6 +52,7 @@ type ShopItem = {
 type HistoryEntry = {
     id: number;
     type: 'purchase' | 'other_income';
+    shop_item_id: number;
     item_name: string;
     quantity: number;
     amount: string;
@@ -138,6 +140,7 @@ function ItemCard({ item }: { item: ShopItem }) {
         base_price: item.base_price ?? '',
         sell_price: item.sell_price ?? '',
         currency: item.currency,
+        effective_at: defaultEntryDate,
     });
 
     function handleSellQuantityChange(quantity: string) {
@@ -200,6 +203,7 @@ function ItemCard({ item }: { item: ShopItem }) {
             base_price: item.base_price ?? '',
             sell_price: item.sell_price ?? '',
             currency: item.currency,
+            effective_at: defaultEntryDate,
         });
         setEditOpen(true);
     }
@@ -480,6 +484,25 @@ function ItemCard({ item }: { item: ShopItem }) {
                             />
                             <InputError message={editForm.errors.currency} />
                         </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor={`edit_effective_at_${item.id}`}>
+                                {t('shop.effective_date')}
+                            </Label>
+                            <Input
+                                id={`edit_effective_at_${item.id}`}
+                                type="date"
+                                value={editForm.data.effective_at}
+                                onChange={(e) =>
+                                    editForm.setData(
+                                        'effective_at',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={editForm.errors.effective_at}
+                            />
+                        </div>
 
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
@@ -538,6 +561,39 @@ export default function ShopIndex() {
                 preserveScroll: true,
             });
         }
+    }
+
+    const [editingEntry, setEditingEntry] = useState<HistoryEntry | null>(null);
+    const editEntryForm = useForm({
+        shop_item_id: 0,
+        quantity: '',
+        amount: '',
+        currency: 'SYP' as Currency,
+        date: '',
+    });
+
+    function openEditEntry(entry: HistoryEntry) {
+        editEntryForm.setData({
+            shop_item_id: entry.shop_item_id,
+            quantity: String(entry.quantity),
+            amount: entry.amount,
+            currency: entry.currency,
+            date: entry.occurred_at.slice(0, 10),
+        });
+        setEditingEntry(entry);
+    }
+
+    function submitEditEntry(event: FormEvent) {
+        event.preventDefault();
+
+        if (!editingEntry) {
+            return;
+        }
+
+        editEntryForm.patch(updateTransaction.url(editingEntry.id), {
+            preserveScroll: true,
+            onSuccess: () => setEditingEntry(null),
+        });
     }
 
     return (
@@ -672,6 +728,15 @@ export default function ShopIndex() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() =>
+                                                        openEditEntry(entry)
+                                                    }
+                                                >
+                                                    {t('common.edit')}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
                                                         removeHistoryEntry(
                                                             entry,
                                                         )
@@ -775,6 +840,139 @@ export default function ShopIndex() {
                                 disabled={newItemForm.processing}
                             >
                                 {t('shop.add_item')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={editingEntry !== null}
+                onOpenChange={(open) => !open && setEditingEntry(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>
+                        {t('common.edit')} — {editingEntry?.item_name}
+                    </DialogTitle>
+
+                    <form onSubmit={submitEditEntry} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit_entry_item">
+                                {t('shop.item')}
+                            </Label>
+                            <Select
+                                value={String(editEntryForm.data.shop_item_id)}
+                                onValueChange={(value) =>
+                                    editEntryForm.setData(
+                                        'shop_item_id',
+                                        Number(value),
+                                    )
+                                }
+                            >
+                                <SelectTrigger id="edit_entry_item">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {items.map((option) => (
+                                        <SelectItem
+                                            key={option.id}
+                                            value={String(option.id)}
+                                        >
+                                            {option.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={editEntryForm.errors.shop_item_id}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit_entry_quantity">
+                                    {t('shop.quantity')}
+                                </Label>
+                                <Input
+                                    id="edit_entry_quantity"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    value={editEntryForm.data.quantity}
+                                    onChange={(e) =>
+                                        editEntryForm.setData(
+                                            'quantity',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={editEntryForm.errors.quantity}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit_entry_amount">
+                                    {t('common.amount')}
+                                </Label>
+                                <MoneyInput
+                                    id="edit_entry_amount"
+                                    value={editEntryForm.data.amount}
+                                    onChange={(value) =>
+                                        editEntryForm.setData('amount', value)
+                                    }
+                                />
+                                <InputError
+                                    message={editEntryForm.errors.amount}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit_entry_currency">
+                                    {t('common.currency')}
+                                </Label>
+                                <CurrencySelect
+                                    id="edit_entry_currency"
+                                    value={editEntryForm.data.currency}
+                                    onChange={(value) =>
+                                        editEntryForm.setData('currency', value)
+                                    }
+                                />
+                                <InputError
+                                    message={editEntryForm.errors.currency}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit_entry_date">
+                                    {t('common.date')}
+                                </Label>
+                                <Input
+                                    id="edit_entry_date"
+                                    type="date"
+                                    value={editEntryForm.data.date}
+                                    onChange={(e) =>
+                                        editEntryForm.setData(
+                                            'date',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={editEntryForm.errors.date}
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button variant="secondary" type="button">
+                                    {t('common.cancel')}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                disabled={editEntryForm.processing}
+                            >
+                                {t('common.save')}
                             </Button>
                         </DialogFooter>
                     </form>

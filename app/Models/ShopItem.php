@@ -2,27 +2,45 @@
 
 namespace App\Models;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'base_price', 'sell_price', 'currency'])]
+#[Fillable(['name'])]
 class ShopItem extends Model
 {
-    protected function casts(): array
-    {
-        return [
-            'base_price' => 'decimal:2',
-            'sell_price' => 'decimal:2',
-            'currency' => Currency::class,
-        ];
-    }
-
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function prices(): HasMany
+    {
+        return $this->hasMany(ShopItemPrice::class);
+    }
+
+    public function currentPrice(): ?ShopItemPrice
+    {
+        return $this->prices()
+            ->where('effective_at', '<=', now())
+            ->latest('effective_at')
+            ->first();
+    }
+
+    /**
+     * The price in effect on a given date -- mirrors FuelType::priceAt(), same reasoning: a
+     * backdated correction is stored at startOfDay(), so two corrections entered for the same
+     * date share an identical effective_at -- id breaks the tie in entry order.
+     */
+    public function priceAt(CarbonInterface $date): ?ShopItemPrice
+    {
+        return $this->prices()
+            ->effectiveAsOf($date)
+            ->latest('effective_at')
+            ->latest('id')
+            ->first();
     }
 
     /**

@@ -120,6 +120,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::delete('shop/items/{shopItem}', [ShopController::class, 'destroyItem'])->name('shop.items.destroy');
         Route::post('shop/purchases', [ShopController::class, 'storePurchase'])->name('shop.purchases.store');
         Route::post('shop/sales', [ShopController::class, 'storeSale'])->name('shop.sales.store');
+        Route::patch('shop/transactions/{transaction}', [ShopController::class, 'updateTransaction'])->name('shop.transactions.update');
     });
 
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {

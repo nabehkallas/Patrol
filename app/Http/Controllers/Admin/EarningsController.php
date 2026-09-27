@@ -205,7 +205,11 @@ class EarningsController extends Controller
         }
 
         foreach (ShopItem::orderBy('name')->get() as $shopItem) {
-            $priceReference[] = ['label' => $shopItem->name, 'price_syp' => round($this->convertToSyp((float) $shopItem->sell_price, $shopItem->currency, $sypRate), 2)];
+            $shopPrice = $shopItem->currentPrice();
+
+            if ($shopPrice) {
+                $priceReference[] = ['label' => $shopItem->name, 'price_syp' => round($this->convertToSyp((float) $shopPrice->sell_price, $shopPrice->currency, $sypRate), 2)];
+            }
         }
 
         return $exporter->download(
@@ -536,12 +540,12 @@ class EarningsController extends Controller
 
     /**
      * Total shop revenue, COGS, and net profit across every shop item sold in the date filter,
-     * plus a per-item breakdown. COGS is unit-cost based -- Quantity Sold x the item's own
-     * سعر التكلفة (ShopItem::base_price, the cost price the station enters when it creates or
-     * edits the item) -- not reconstructed from Purchase/restock transactions, since those
-     * aren't reliably logged for every item and left COGS at 0 whenever they weren't. Every
-     * figure here is rounded exactly once, and net_profit_syp/average_margin_percent are built
-     * from those already-rounded totals -- see the note in index().
+     * plus a per-item breakdown. COGS is unit-cost based -- Quantity Sold x whichever
+     * سعر التكلفة (ShopItemPrice::base_price) was actually in effect on each sale's own date --
+     * not reconstructed from Purchase/restock transactions, since those aren't reliably logged
+     * for every item and left COGS at 0 whenever they weren't. Every figure here is rounded
+     * exactly once, and net_profit_syp/average_margin_percent are built from those
+     * already-rounded totals -- see the note in index().
      *
      * @return array{total_revenue_syp: int, total_cogs_syp: int, average_margin_percent: float, net_profit_syp: int, items: array<int, array<string, mixed>>}
      */
@@ -572,11 +576,22 @@ class EarningsController extends Controller
             $quantitySold = (int) $group->sum('quantity');
             $revenueSyp = (int) round((float) $group->sum(fn (Transaction $sale) => $sale->amountInSyp($sypRate)), 0);
 
-            // base_price has no historical record — only its current value is ever known, same
-            // limitation as fuel's margin% (see fuelTypeBreakdown above) — so every unit sold in
-            // the window is costed at today's cost price regardless of when it sold.
-            $costPerUnitSyp = round($this->convertToSyp((float) $item->base_price, $item->currency, $sypRate), 2);
-            $cogsSyp = (int) round($quantitySold * $costPerUnitSyp, 0);
+            // Each sale costed at whichever price was actually in effect on its own date (see
+            // ShopItem::priceAt()), not blanket today's cost applied to the whole range — a sale
+            // made before a later cost correction keeps its own batch's real cost basis.
+            $cogsSyp = 0;
+
+            foreach ($group->groupBy(fn (Transaction $sale) => $item->priceAt($sale->occurred_at)?->id ?? 0) as $priceGroup) {
+                $priceAtSale = $item->priceAt($priceGroup->first()->occurred_at);
+                $costPerUnitAtSaleSyp = $priceAtSale ? $this->convertToSyp((float) $priceAtSale->base_price, $priceAtSale->currency, $sypRate) : 0.0;
+                $cogsSyp += (int) round((float) $priceGroup->sum('quantity') * $costPerUnitAtSaleSyp, 0);
+            }
+
+            // A single blended per-unit figure for display, consistent with profit_per_unit_syp
+            // below already being an average — the tier-by-tier breakdown fuel's margin cards show
+            // isn't asked for here; this just needs the total to stop using today's price for
+            // yesterday's sale.
+            $costPerUnitSyp = round($quantitySold > 0 ? $cogsSyp / $quantitySold : 0.0, 2);
             $itemProfitSyp = $revenueSyp - $cogsSyp;
 
             $totalRevenueSyp += $revenueSyp;
@@ -609,7 +624,7 @@ class EarningsController extends Controller
 
     /**
      * Converts a raw amount in $currency to SYP at CURRENT exchange rates -- for values (like
-     * ShopItem::base_price) that aren't attached to a transaction's own recorded
+     * ShopItemPrice::base_price) that aren't attached to a transaction's own recorded
      * exchange_rate_to_usd, so there's no historical rate to use instead.
      */
     private function convertToSyp(float $amount, Currency $currency, float $sypRate): float
