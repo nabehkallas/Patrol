@@ -199,6 +199,36 @@ export default function InventoryIndex() {
         { value: 'actual', label: t('inventory.tab_actual') },
     ];
 
+    // Sum of added liters per fuel type, over whatever date range topUps was already fetched
+    // for (see InventoryEntryController::index()) -- excludes each tank's one-time opening
+    // balance top-up (its starting stock when onboarded, not fuel actually supplied during this
+    // range), same exclusion EarningsController applies for the same reason. Seeded from every
+    // fuel type that actually has a tank (not just ones with a top-up in range), so a fuel type
+    // with zero supply this period still shows its own "0 L" card instead of silently
+    // disappearing -- that's exactly the "at a glance" answer the card exists to give.
+    const topUpTotalsByFuelType = tanks.reduce<
+        Record<number, { name: string; liters: number }>
+    >((totals, tank) => {
+        totals[tank.fuel_type.id] ??= { name: tank.fuel_type.name, liters: 0 };
+
+        return totals;
+    }, {});
+
+    topUps
+        .filter((topUp) => !topUp.is_opening_balance && topUp.tank?.fuel_type)
+        .forEach((topUp) => {
+            const fuelType = topUp.tank!.fuel_type!;
+            const existing = topUpTotalsByFuelType[fuelType.id] ?? {
+                name: fuelType.name,
+                liters: 0,
+            };
+
+            topUpTotalsByFuelType[fuelType.id] = {
+                name: fuelType.name,
+                liters: existing.liters + parseFloat(topUp.liters),
+            };
+        });
+
     return (
         <>
             <Head title={t('inventory.title')} />
@@ -331,6 +361,26 @@ export default function InventoryIndex() {
                                 })}
                                 label={t('inventory.export_tanks_ledger')}
                             />
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {Object.values(topUpTotalsByFuelType).map(
+                                (total) => (
+                                    <Card key={total.name}>
+                                        <CardHeader>
+                                            <CardTitle className="text-sm font-medium">
+                                                {t(
+                                                    'inventory.total_added_liters',
+                                                )}{' '}
+                                                — {total.name}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-2xl font-semibold">
+                                            {formatNumber(total.liters)} L
+                                        </CardContent>
+                                    </Card>
+                                ),
+                            )}
                         </div>
 
                         <div className="space-y-3">
