@@ -444,7 +444,7 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                             {pump.latest_reading && (
-                                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                                     {t(
                                                                         'pump_counters.previous',
                                                                     )}
@@ -488,7 +488,7 @@ export default function PumpCountersIndex() {
                                                             />
                                                             {maxLitersSold !==
                                                                 null && (
-                                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                                     {t(
                                                                         'pump_counters.max',
                                                                     )}
