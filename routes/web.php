@@ -108,6 +108,7 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
         Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');
         Route::get('pump-counters/export-xlsx', [PumpCounterReadingController::class, 'exportXlsx'])->name('pump-counters.export-xlsx');
         Route::post('pump-counters', [PumpCounterReadingController::class, 'store'])->name('pump-counters.store');
+        Route::post('pump-counters/bulk', [PumpCounterReadingController::class, 'storeBulk'])->name('pump-counters.store-bulk');
         Route::get('pump-counters/{pumpCounterReading}/edit', [PumpCounterReadingController::class, 'edit'])->name('pump-counters.edit')->middleware('role:admin');
         Route::patch('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'update'])->name('pump-counters.update')->middleware('role:admin');
         Route::delete('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'destroy'])->name('pump-counters.destroy')->middleware('role:admin');

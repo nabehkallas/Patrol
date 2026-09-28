@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -18,7 +18,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -30,7 +29,7 @@ import {
     exportPdf,
     exportXlsx,
     index,
-    store,
+    storeBulk,
 } from '@/routes/pump-counters';
 import type { Auth, PumpCounterReading, PumpSummary } from '@/types';
 
@@ -102,6 +101,26 @@ function tanksFor(
     return matching.length > 0 ? matching : active;
 }
 
+type BulkRow = {
+    pump_id: number;
+    tank_id: string;
+    reading_value: string;
+    governmental_liters: string;
+    return_liters: string;
+    notes: string;
+};
+
+function buildRows(pumpList: PumpSummary[], tanks: TankOption[]): BulkRow[] {
+    return pumpList.map((pump) => ({
+        pump_id: pump.id,
+        tank_id: String(defaultTankFor(pump, tanksFor(pump, tanks))),
+        reading_value: '',
+        governmental_liters: '',
+        return_liters: '',
+        notes: '',
+    }));
+}
+
 export default function PumpCountersIndex() {
     const {
         auth,
@@ -115,25 +134,76 @@ export default function PumpCountersIndex() {
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
 
-    const initialPump = pumps[0];
-    const initialTanks = tanksFor(initialPump, tanks);
+    // Colored accent per fuel type, keyed by order of first appearance among the pumps -- the
+    // first fuel type (typically petrol) gets amber, the second (typically diesel) gets blue,
+    // matching the same convention used on the Inventory page's tank cards. Shared by the bulk
+    // entry table's per-row accent and the pump summary cards' top border below.
+    const fuelTypeOrder: number[] = [];
+    pumps.forEach((pump) => {
+        const fuelTypeId = pump.fuel_type_ids[0];
 
-    const form = useForm({
-        pump_id: String(initialPump?.id ?? ''),
-        tank_id: String(defaultTankFor(initialPump, initialTanks)),
-        date: defaultEntryDate,
-        reading_value: '',
-        governmental_liters: '',
-        return_liters: '',
-        notes: '',
+        if (fuelTypeId !== undefined && !fuelTypeOrder.includes(fuelTypeId)) {
+            fuelTypeOrder.push(fuelTypeId);
+        }
     });
 
-    const selectedPump = pumps.find((p) => String(p.id) === form.data.pump_id);
+    const CARD_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
+    const ROW_ACCENT_BORDERS = ['border-s-amber-500', 'border-s-blue-500'];
+    const fuelTypeCardBorder: Record<number, string> = {};
+    const fuelTypeRowBorder: Record<number, string> = {};
+    fuelTypeOrder.forEach((fuelTypeId, i) => {
+        fuelTypeCardBorder[fuelTypeId] =
+            CARD_ACCENT_BORDERS[i] ?? 'border-t-border';
+        fuelTypeRowBorder[fuelTypeId] =
+            ROW_ACCENT_BORDERS[i] ?? 'border-s-border';
+    });
 
-    const availableTanks = useMemo(
-        () => tanksFor(selectedPump, tanks),
-        [tanks, selectedPump],
+    // Pumps grouped by fuel type (stable sort keeps each fuel type's own pumps in their
+    // original relative order) so the bulk entry table naturally clusters petrol pumps together
+    // and diesel pumps together, without needing separate tables per fuel type.
+    const sortedPumps = [...pumps].sort(
+        (a, b) =>
+            fuelTypeOrder.indexOf(a.fuel_type_ids[0]) -
+            fuelTypeOrder.indexOf(b.fuel_type_ids[0]),
     );
+
+    const pumpsById = useMemo(
+        () => new Map(pumps.map((pump) => [pump.id, pump])),
+        [pumps],
+    );
+
+    const form = useForm({
+        date: defaultEntryDate,
+        readings: buildRows(sortedPumps, tanks),
+    });
+
+    function updateRow(pumpId: number, patch: Partial<BulkRow>) {
+        form.setData(
+            'readings',
+            form.data.readings.map((row) =>
+                row.pump_id === pumpId ? { ...row, ...patch } : row,
+            ),
+        );
+    }
+
+    function submitAll(event: FormEvent) {
+        event.preventDefault();
+        form.post(storeBulk.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.setData(
+                    'readings',
+                    form.data.readings.map((row) => ({
+                        ...row,
+                        reading_value: '',
+                        governmental_liters: '',
+                        return_liters: '',
+                        notes: '',
+                    })),
+                );
+            },
+        });
+    }
 
     // The monthly ledger export is deliberately a separate control from the single-day filter
     // above — the export covers a whole range, one row per day, while the rest of this page
@@ -161,86 +231,10 @@ export default function PumpCountersIndex() {
         return Array.from(seen, ([id, name]) => ({ id, name }));
     }, [tanks]);
 
-    function handlePumpChange(pumpId: string) {
-        const pump = pumps.find((p) => String(p.id) === pumpId);
-        const nextTanks = tanksFor(pump, tanks);
-
-        form.setData((data) => ({
-            ...data,
-            pump_id: pumpId,
-            tank_id: String(defaultTankFor(pump, nextTanks)),
-        }));
-    }
-
-    // Safety net: if tank_id ever ends up not matching any currently-available tank (a stray
-    // edge case in the Select's own controlled-value sync when both the value and its option
-    // list change together), correct it immediately rather than leaving the field blank.
-    useEffect(() => {
-        const isValid = availableTanks.some(
-            (tank) => String(tank.id) === form.data.tank_id,
-        );
-
-        if (!isValid) {
-            form.setData(
-                'tank_id',
-                String(defaultTankFor(selectedPump, availableTanks)),
-            );
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [availableTanks, form.data.tank_id]);
-
-    // After a successful submit, the server sends back a fresh `pumps` prop (with this
-    // pump's new latest_reading applied). Waiting for that prop to actually land — rather
-    // than advancing off the pumps array captured in the submit-time closure — guarantees
-    // the "move to the next pump" step always computes its default tank from up-to-date data.
-    const pendingAdvanceRef = useRef(false);
-
-    useEffect(() => {
-        if (!pendingAdvanceRef.current) {
-            return;
-        }
-
-        pendingAdvanceRef.current = false;
-
-        const currentIndex = pumps.findIndex(
-            (p) => String(p.id) === form.data.pump_id,
-        );
-        const nextPump = pumps[(currentIndex + 1) % pumps.length];
-
-        if (nextPump) {
-            handlePumpChange(String(nextPump.id));
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pumps]);
-
-    const maxLitersSold =
-        selectedPump?.latest_reading && form.data.reading_value !== ''
-            ? Number(form.data.reading_value) -
-              Number(selectedPump.latest_reading.reading_value)
-            : null;
-
-    function submit(event: FormEvent) {
-        event.preventDefault();
-        pendingAdvanceRef.current = true;
-        form.post(store.url(), {
-            onSuccess: () => {
-                form.reset(
-                    'reading_value',
-                    'governmental_liters',
-                    'return_liters',
-                    'notes',
-                );
-            },
-            onError: () => {
-                pendingAdvanceRef.current = false;
-            },
-        });
-    }
-
     function handleDateChange(newDate: string) {
-        // preserveState keeps the in-progress reading form (selected pump/tank, any values
-        // already typed) intact — without it, Inertia remounts the page and the form quietly
-        // resets to the very first pump's default, which looks like "the tank isn't defaulting".
+        // preserveState keeps the in-progress bulk entry table (whatever counter values are
+        // already typed) intact — without it, Inertia remounts the page and every row quietly
+        // resets back to blank.
         router.get(
             index(),
             { date: newDate },
@@ -253,21 +247,6 @@ export default function PumpCountersIndex() {
             router.delete(destroy.url(reading.id));
         }
     }
-
-    // Colored top border per pump card, keyed by its primary fuel type's order of first
-    // appearance -- the first fuel type (typically petrol) gets amber, the second (typically
-    // diesel) gets blue, matching the same convention used on the Inventory page's tank cards.
-    const PUMP_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
-    const fuelTypeAccentBorder: Record<number, string> = {};
-    pumps.forEach((pump) => {
-        const fuelTypeId = pump.fuel_type_ids[0];
-
-        if (fuelTypeId !== undefined && !(fuelTypeId in fuelTypeAccentBorder)) {
-            fuelTypeAccentBorder[fuelTypeId] =
-                PUMP_ACCENT_BORDERS[Object.keys(fuelTypeAccentBorder).length] ??
-                'border-t-border';
-        }
-    });
 
     return (
         <>
@@ -282,74 +261,11 @@ export default function PumpCountersIndex() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>{t('pump_counters.record')}</CardTitle>
+                        <CardTitle>{t('pump_counters.bulk_entry')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <form
-                            onSubmit={submit}
-                            className="grid gap-4 md:grid-cols-4"
-                        >
-                            <div className="grid gap-2">
-                                <Label htmlFor="pump_id">
-                                    {t('pump_counters.pump')}
-                                </Label>
-                                <Select
-                                    value={form.data.pump_id}
-                                    onValueChange={handlePumpChange}
-                                >
-                                    <SelectTrigger
-                                        id="pump_id"
-                                        className="w-full"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {pumps.map((pump) => (
-                                            <SelectItem
-                                                key={pump.id}
-                                                value={String(pump.id)}
-                                            >
-                                                {pump.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={form.errors.pump_id} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="tank_id">
-                                    {t('common.tank')}
-                                </Label>
-                                <Select
-                                    key={form.data.pump_id}
-                                    value={form.data.tank_id}
-                                    onValueChange={(value) =>
-                                        form.setData('tank_id', value)
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="tank_id"
-                                        className="w-full"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableTanks.map((tank) => (
-                                            <SelectItem
-                                                key={tank.id}
-                                                value={String(tank.id)}
-                                            >
-                                                {tank.fuel_type_name} —{' '}
-                                                {tank.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={form.errors.tank_id} />
-                            </div>
-
-                            <div className="grid gap-2">
+                        <form onSubmit={submitAll} className="space-y-4">
+                            <div className="grid gap-2 sm:max-w-xs">
                                 <Label htmlFor="date">{t('common.date')}</Label>
                                 <Input
                                     id="date"
@@ -362,116 +278,293 @@ export default function PumpCountersIndex() {
                                 <InputError message={form.errors.date} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="reading_value">
-                                    {t('pump_counters.reading_value')}
-                                    {selectedPump?.latest_reading && (
-                                        <span className="text-muted-foreground ms-2 text-sm font-normal">
-                                            ({t('pump_counters.previous')}:{' '}
-                                            <span className="text-foreground font-bold">
-                                                {formatNumber(
-                                                    selectedPump.latest_reading
-                                                        .reading_value,
-                                                    0,
+                            <InputError message={form.errors.readings} />
+
+                            <div className="overflow-x-auto rounded-xl border">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-muted/50 text-start">
+                                            <th className="px-4 py-2">
+                                                {t('pump_counters.pump')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.tank')}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t(
+                                                    'pump_counters.reading_value',
                                                 )}
-                                            </span>
-                                            )
-                                        </span>
-                                    )}
-                                </Label>
-                                <Input
-                                    id="reading_value"
-                                    type="number"
-                                    step="1"
-                                    min="0"
-                                    value={form.data.reading_value}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'reading_value',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.reading_value}
-                                />
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t(
+                                                    'pump_counters.governmental_sale',
+                                                )}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t(
+                                                    'pump_counters.return_liters',
+                                                )}
+                                            </th>
+                                            <th className="px-4 py-2">
+                                                {t('common.notes')}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {form.data.readings.map(
+                                            (row, rowIndex) => {
+                                                const pump = pumpsById.get(
+                                                    row.pump_id,
+                                                );
+
+                                                if (!pump) {
+                                                    return null;
+                                                }
+
+                                                const tankOptions = tanksFor(
+                                                    pump,
+                                                    tanks,
+                                                );
+                                                const maxLitersSold =
+                                                    pump.latest_reading &&
+                                                    row.reading_value !== ''
+                                                        ? Number(
+                                                              row.reading_value,
+                                                          ) -
+                                                          Number(
+                                                              pump
+                                                                  .latest_reading
+                                                                  .reading_value,
+                                                          )
+                                                        : null;
+
+                                                return (
+                                                    <tr
+                                                        key={pump.id}
+                                                        className={cn(
+                                                            'border-s-4 border-t',
+                                                            fuelTypeRowBorder[
+                                                                pump
+                                                                    .fuel_type_ids[0]
+                                                            ] ??
+                                                                'border-s-border',
+                                                        )}
+                                                    >
+                                                        <td className="px-4 py-2 align-top">
+                                                            <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap font-medium">
+                                                                {pump.name}
+                                                                {pump.fuel_type_names.map(
+                                                                    (name) => (
+                                                                        <Badge
+                                                                            key={
+                                                                                name
+                                                                            }
+                                                                            variant="secondary"
+                                                                        >
+                                                                            {
+                                                                                name
+                                                                            }
+                                                                        </Badge>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <Select
+                                                                value={
+                                                                    row.tank_id
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    updateRow(
+                                                                        pump.id,
+                                                                        {
+                                                                            tank_id:
+                                                                                value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger className="w-48">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {tankOptions.map(
+                                                                        (
+                                                                            tank,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    tank.id
+                                                                                }
+                                                                                value={String(
+                                                                                    tank.id,
+                                                                                )}
+                                                                            >
+                                                                                {
+                                                                                    tank.fuel_type_name
+                                                                                }{' '}
+                                                                                —{' '}
+                                                                                {
+                                                                                    tank.name
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <InputError
+                                                                message={
+                                                                    form.errors[
+                                                                        `readings.${rowIndex}.tank_id`
+                                                                    ]
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <Input
+                                                                type="number"
+                                                                step="1"
+                                                                min="0"
+                                                                className="w-28"
+                                                                value={
+                                                                    row.reading_value
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateRow(
+                                                                        pump.id,
+                                                                        {
+                                                                            reading_value:
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            />
+                                                            {pump.latest_reading && (
+                                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                                    {t(
+                                                                        'pump_counters.previous',
+                                                                    )}
+                                                                    :{' '}
+                                                                    {formatNumber(
+                                                                        pump
+                                                                            .latest_reading
+                                                                            .reading_value,
+                                                                        0,
+                                                                    )}
+                                                                </p>
+                                                            )}
+                                                            <InputError
+                                                                message={
+                                                                    form.errors[
+                                                                        `readings.${rowIndex}.reading_value`
+                                                                    ]
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.001"
+                                                                min="0"
+                                                                className="w-24"
+                                                                value={
+                                                                    row.governmental_liters
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateRow(
+                                                                        pump.id,
+                                                                        {
+                                                                            governmental_liters:
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            />
+                                                            {maxLitersSold !==
+                                                                null && (
+                                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                                    {t(
+                                                                        'pump_counters.max',
+                                                                    )}
+                                                                    :{' '}
+                                                                    {formatNumber(
+                                                                        maxLitersSold,
+                                                                    )}{' '}
+                                                                    L
+                                                                </p>
+                                                            )}
+                                                            <InputError
+                                                                message={
+                                                                    form.errors[
+                                                                        `readings.${rowIndex}.governmental_liters`
+                                                                    ]
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.001"
+                                                                min="0"
+                                                                className="w-24"
+                                                                value={
+                                                                    row.return_liters
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateRow(
+                                                                        pump.id,
+                                                                        {
+                                                                            return_liters:
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            />
+                                                            <InputError
+                                                                message={
+                                                                    form.errors[
+                                                                        `readings.${rowIndex}.return_liters`
+                                                                    ]
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <Input
+                                                                type="text"
+                                                                className="w-36"
+                                                                value={
+                                                                    row.notes
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateRow(
+                                                                        pump.id,
+                                                                        {
+                                                                            notes: e
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            },
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="governmental_liters">
-                                    {t('pump_counters.governmental_sale')}
-                                    {maxLitersSold !== null && (
-                                        <span className="text-muted-foreground ms-2 text-xs font-normal">
-                                            ({t('pump_counters.max')}:{' '}
-                                            {formatNumber(maxLitersSold)} L)
-                                        </span>
-                                    )}
-                                </Label>
-                                <Input
-                                    id="governmental_liters"
-                                    type="number"
-                                    step="0.001"
-                                    min="0"
-                                    value={form.data.governmental_liters}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'governmental_liters',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.governmental_liters}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="return_liters">
-                                    {t('pump_counters.return_liters')}
-                                    {maxLitersSold !== null && (
-                                        <span className="text-muted-foreground ms-2 text-xs font-normal">
-                                            ({t('pump_counters.max')}:{' '}
-                                            {formatNumber(maxLitersSold)} L)
-                                        </span>
-                                    )}
-                                </Label>
-                                <Input
-                                    id="return_liters"
-                                    type="number"
-                                    step="0.001"
-                                    min="0"
-                                    value={form.data.return_liters}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'return_liters',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.return_liters}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="notes">
-                                    {t('common.notes')}
-                                </Label>
-                                <Textarea
-                                    id="notes"
-                                    value={form.data.notes}
-                                    onChange={(e) =>
-                                        form.setData('notes', e.target.value)
-                                    }
-                                />
-                            </div>
-
-                            <Button
-                                type="submit"
-                                disabled={form.processing}
-                                className="md:col-span-4 md:w-fit"
-                            >
-                                {t('pump_counters.save')}
+                            <Button type="submit" disabled={form.processing}>
+                                {t('pump_counters.save_all')}
                             </Button>
                         </form>
                     </CardContent>
@@ -526,7 +619,7 @@ export default function PumpCountersIndex() {
                             key={pump.id}
                             className={cn(
                                 'border-t-4',
-                                fuelTypeAccentBorder[pump.fuel_type_ids[0]] ??
+                                fuelTypeCardBorder[pump.fuel_type_ids[0]] ??
                                     'border-t-border',
                             )}
                         >

@@ -352,6 +352,90 @@ class PumpCounterReadingController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $reading = $this->createReading($data, $request->user()->id);
+
+        $message = $reading->liters_sold !== null
+            ? __(':liters L recorded as a fuel sale.', ['liters' => $reading->liters_sold])
+            : __('Counter reading saved (no previous reading to compare).');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('pump-counters.index', ['date' => $data['date']]);
+    }
+
+    /**
+     * Saves counter values for several pumps in one request. Reuses createReading() for each
+     * row so every reading is created exactly as it would be through the single-reading store()
+     * -- its own Transaction, its own governmental Debt where applicable, and the same
+     * recompute-the-next-reading step -- just triggered once per pump instead of once per
+     * request. The whole batch is wrapped in one transaction: if any row fails validation
+     * (fuel-type/tank mismatch, or governmental+return exceeding liters sold), nothing in the
+     * batch is saved, and the failing row's own errors are reported back keyed by its index so
+     * the frontend can point at the exact row.
+     */
+    public function storeBulk(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'readings' => 'required|array|min:1',
+            'readings.*.pump_id' => 'required|exists:fuel_pumps,id',
+            'readings.*.tank_id' => 'nullable|required_with:readings.*.reading_value|exists:tanks,id',
+            'readings.*.reading_value' => 'nullable|integer|min:0',
+            'readings.*.governmental_liters' => 'nullable|numeric|min:0',
+            'readings.*.return_liters' => 'nullable|numeric|min:0',
+            'readings.*.notes' => 'nullable|string|max:500',
+        ]);
+
+        $rowsToSave = collect($validated['readings'])
+            ->map(fn ($row, $index) => $row + ['_index' => $index])
+            ->filter(fn ($row) => filled($row['reading_value'] ?? null))
+            ->values();
+
+        if ($rowsToSave->isEmpty()) {
+            throw ValidationException::withMessages([
+                'readings' => __('Enter at least one counter value.'),
+            ]);
+        }
+
+        $savedCount = DB::transaction(function () use ($rowsToSave, $validated, $request) {
+            $errors = [];
+            $count = 0;
+
+            foreach ($rowsToSave as $row) {
+                try {
+                    $this->createReading([...$row, 'date' => $validated['date']], $request->user()->id);
+                    $count++;
+                } catch (ValidationException $e) {
+                    foreach ($e->errors() as $field => $messages) {
+                        $errors["readings.{$row['_index']}.{$field}"] = $messages;
+                    }
+                }
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            return $count;
+        });
+
+        $message = $savedCount === 1
+            ? __('1 reading saved.')
+            : __(':count readings saved.', ['count' => $savedCount]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('pump-counters.index', ['date' => $validated['date']]);
+    }
+
+    /**
+     * Creates one pump counter reading -- the fuel-type/tank match check, the transaction that
+     * finds the previous reading, computes liters sold and creates the Transaction/Debt, and the
+     * recompute-the-next-reading step. Shared by store() and storeBulk() so both go through
+     * identical business logic.
+     */
+    private function createReading(array $data, int $userId): PumpCounterReading
+    {
         $pump = FuelPump::findOrFail($data['pump_id']);
         $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
 
@@ -361,7 +445,7 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        $litersSold = DB::transaction(function () use ($request, $data, $pump, $tank) {
+        return DB::transaction(function () use ($data, $pump, $tank, $userId) {
             // whereDate(), not where('date', ...): the column stores a full "Y-m-d H:i:s"
             // string, so a bare <= comparison against $data['date'] (just "Y-m-d") is false for
             // a reading dated on that same day (the longer string sorts after the short one) --
@@ -375,7 +459,7 @@ class PumpCounterReadingController extends Controller
 
             [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
                 $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
-                $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
+                $userId, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
             );
 
             $reading = PumpCounterReading::create([
@@ -388,7 +472,7 @@ class PumpCounterReadingController extends Controller
                 'return_liters' => $returnLiters,
                 'transaction_id' => $transactionId,
                 'governmental_transaction_id' => $governmentalTransactionId,
-                'recorded_by_id' => $request->user()->id,
+                'recorded_by_id' => $userId,
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -401,16 +485,8 @@ class PumpCounterReadingController extends Controller
                 $this->recomputeReading($nextReading, $reading);
             }
 
-            return $litersSold;
+            return $reading;
         });
-
-        $message = $litersSold !== null
-            ? __(':liters L recorded as a fuel sale.', ['liters' => $litersSold])
-            : __('Counter reading saved (no previous reading to compare).');
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
-
-        return to_route('pump-counters.index', ['date' => $data['date']]);
     }
 
     public function edit(PumpCounterReading $pumpCounterReading): Response
