@@ -254,6 +254,21 @@ export default function PumpCountersIndex() {
         }
     }
 
+    // Colored top border per pump card, keyed by its primary fuel type's order of first
+    // appearance -- the first fuel type (typically petrol) gets amber, the second (typically
+    // diesel) gets blue, matching the same convention used on the Inventory page's tank cards.
+    const PUMP_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
+    const fuelTypeAccentBorder: Record<number, string> = {};
+    pumps.forEach((pump) => {
+        const fuelTypeId = pump.fuel_type_ids[0];
+
+        if (fuelTypeId !== undefined && !(fuelTypeId in fuelTypeAccentBorder)) {
+            fuelTypeAccentBorder[fuelTypeId] =
+                PUMP_ACCENT_BORDERS[Object.keys(fuelTypeAccentBorder).length] ??
+                'border-t-border';
+        }
+    });
+
     return (
         <>
             <Head title={t('pump_counters.title')} />
@@ -505,9 +520,16 @@ export default function PumpCountersIndex() {
                     </div>
                 )}
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
                     {pumps.map((pump) => (
-                        <Card key={pump.id}>
+                        <Card
+                            key={pump.id}
+                            className={cn(
+                                'border-t-4',
+                                fuelTypeAccentBorder[pump.fuel_type_ids[0]] ??
+                                    'border-t-border',
+                            )}
+                        >
                             <CardHeader>
                                 <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                                     {pump.name}
@@ -518,32 +540,33 @@ export default function PumpCountersIndex() {
                                     ))}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-1 text-sm">
-                                <div className="flex justify-between font-medium">
-                                    <span className="text-muted-foreground">
+                            <CardContent className="space-y-3 text-sm">
+                                <div>
+                                    <p className="text-muted-foreground text-xs">
                                         {t('pump_counters.daily_total')}
-                                    </span>
-                                    <span
+                                    </p>
+                                    <p
                                         className={cn(
+                                            'text-2xl font-bold',
                                             pump.daily_liters_sold > 0 &&
                                                 'text-success',
                                         )}
                                     >
                                         {formatNumber(pump.daily_liters_sold)} L
-                                    </span>
+                                    </p>
                                 </div>
                                 {pump.latest_reading ? (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
+                                    <div>
+                                        <p className="text-muted-foreground text-xs">
                                             {t('pump_counters.reading_value')}
-                                        </span>
-                                        <span>
+                                        </p>
+                                        <p className="text-2xl font-bold">
                                             {formatNumber(
                                                 pump.latest_reading
                                                     .reading_value,
                                                 0,
                                             )}
-                                        </span>
+                                        </p>
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground">
