@@ -1,18 +1,14 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { Coins, Fuel, TrendingDown, TrendingUp, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import { SalesChart } from '@/components/sales-chart';
+import { SummaryCard } from '@/components/summary-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     formatCurrencyAmount,
     formatDateTime,
@@ -109,50 +105,36 @@ function TotalsGrid({
 }) {
     return (
         <div className="grid auto-rows-min gap-4 md:grid-cols-5">
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.income')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.income_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.expenses')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.expense_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>{t('dashboard.net')}</CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatSyp(totals.net_syp)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('dashboard.liters_sold')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatNumber(totals.liters_sold)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardDescription>
-                        {t('dashboard.liters_delivered')}
-                    </CardDescription>
-                    <CardTitle className="text-2xl">
-                        {formatNumber(totals.liters_delivered)}
-                    </CardTitle>
-                </CardHeader>
-            </Card>
+            <SummaryCard
+                accent="green"
+                icon={<TrendingUp className="size-5" />}
+                label={t('dashboard.income')}
+                value={formatSyp(totals.income_syp)}
+            />
+            <SummaryCard
+                accent="red"
+                icon={<TrendingDown className="size-5" />}
+                label={t('dashboard.expenses')}
+                value={formatSyp(totals.expense_syp)}
+            />
+            <SummaryCard
+                accent="orange"
+                icon={<Coins className="size-5" />}
+                label={t('dashboard.net')}
+                value={formatSyp(totals.net_syp)}
+            />
+            <SummaryCard
+                accent="orange"
+                icon={<Fuel className="size-5" />}
+                label={t('dashboard.liters_sold')}
+                value={formatNumber(totals.liters_sold)}
+            />
+            <SummaryCard
+                accent="blue"
+                icon={<Truck className="size-5" />}
+                label={t('dashboard.liters_delivered')}
+                value={formatNumber(totals.liters_delivered)}
+            />
         </div>
     );
 }
@@ -273,7 +255,7 @@ export default function StatisticsIndex() {
                                 <tbody>
                                     {transactions.map((txn) => (
                                         <tr key={txn.id} className="border-t">
-                                            <td className="px-4 py-2 whitespace-nowrap">
+                                            <td className="whitespace-nowrap px-4 py-2">
                                                 {formatDateTime(
                                                     txn.occurred_at,
                                                 )}
@@ -321,7 +303,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -366,7 +348,7 @@ export default function StatisticsIndex() {
                                             key={delivery.id}
                                             className="border-t"
                                         >
-                                            <td className="px-4 py-2 whitespace-nowrap">
+                                            <td className="whitespace-nowrap px-4 py-2">
                                                 {formatDateTime(
                                                     delivery.occurred_at,
                                                 )}
@@ -408,7 +390,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -469,7 +451,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={3}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -533,7 +515,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={3}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -586,7 +568,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={3}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -661,7 +643,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={5}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>

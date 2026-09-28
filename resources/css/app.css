@@ -42,21 +42,29 @@
     --color-destructive-foreground: var(--destructive-foreground);
     --color-destructive-soft: var(--destructive-soft);
     --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+    --color-destructive-border: var(--destructive-border);
+    --color-destructive-accent: var(--destructive-accent);
 
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
     --color-success-soft: var(--success-soft);
     --color-success-soft-foreground: var(--success-soft-foreground);
+    --color-success-border: var(--success-border);
+    --color-success-accent: var(--success-accent);
 
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
     --color-warning-soft: var(--warning-soft);
     --color-warning-soft-foreground: var(--warning-soft-foreground);
+    --color-warning-border: var(--warning-border);
+    --color-warning-accent: var(--warning-accent);
 
     --color-info: var(--info);
     --color-info-foreground: var(--info-foreground);
     --color-info-soft: var(--info-soft);
     --color-info-soft-foreground: var(--info-soft-foreground);
+    --color-info-border: var(--info-border);
+    --color-info-accent: var(--info-accent);
 
     --color-border: var(--border);
     --color-input: var(--input);
@@ -89,14 +97,8 @@
     --brand-navy-dark: #0f1f33;
     --brand-navy-deep: #081525;
     --brand-orange: #f59e0b;
-    --brand-orange-dark: #d97706;
-    --brand-orange-light: #fef3c7;
     --brand-green: #16a34a;
-    --brand-green-light: #dcfce7;
-    --brand-red: #dc2626;
-    --brand-red-light: #fee2e2;
     --brand-blue: #2563eb;
-    --brand-blue-light: #dbeafe;
 
     /* Navy Light theme -- deliberately NOT pure white: a soft blue-gray wash behind white
        cards, so the app reads as "navy product" even in its light mode. */
@@ -114,22 +116,36 @@
     --muted-foreground: #64748b;
     --accent: #e6edf5;
     --accent-foreground: var(--brand-navy);
-    --destructive: var(--brand-red);
+    /* Semantic card-color system -- orange/green/red/blue, each meaning the same thing
+       everywhere it appears (Badge, the Tanks status pill, SummaryCard, ...): icon
+       background/solid-button bg (base), soft tinted card background (-soft), the text/icon
+       color readable on that tint (-soft-foreground), the card's border, and a brighter
+       "accent" tone for a card's large value text or top bar. -foreground (white/navy, for
+       text on the SOLID base color) is unrelated to this system and stays as-is below. */
+    --destructive: #ef4444;
     --destructive-foreground: #ffffff;
-    --destructive-soft: var(--brand-red-light);
-    --destructive-soft-foreground: var(--brand-red);
-    --success: var(--brand-green);
+    --destructive-soft: #fff1f2;
+    --destructive-soft-foreground: #dc2626;
+    --destructive-border: #fecdd3;
+    --destructive-accent: #ef4444;
+    --success: #16a34a;
     --success-foreground: #ffffff;
-    --success-soft: var(--brand-green-light);
-    --success-soft-foreground: var(--brand-green);
-    --warning: var(--brand-orange);
+    --success-soft: #f0fdf4;
+    --success-soft-foreground: #15803d;
+    --success-border: #bbf7d0;
+    --success-accent: #16a34a;
+    --warning: #f59e0b;
     --warning-foreground: var(--brand-navy);
-    --warning-soft: var(--brand-orange-light);
-    --warning-soft-foreground: var(--brand-orange-dark);
-    --info: var(--brand-blue);
+    --warning-soft: #fff7ed;
+    --warning-soft-foreground: #d97706;
+    --warning-border: #fed7aa;
+    --warning-accent: #f59e0b;
+    --info: #2563eb;
     --info-foreground: #ffffff;
-    --info-soft: var(--brand-blue-light);
-    --info-soft-foreground: var(--brand-blue);
+    --info-soft: #eff6ff;
+    --info-soft-foreground: #1d4ed8;
+    --info-border: #bfdbfe;
+    --info-accent: #2563eb;
     --border: #d5dfea;
     --input: #d5dfea;
     --ring: var(--brand-orange);
@@ -166,22 +182,30 @@
     --muted-foreground: #94a3b8;
     --accent: #142b43;
     --accent-foreground: #f1f5f9;
-    --destructive: var(--brand-red);
+    --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --destructive-soft: color-mix(in oklab, var(--brand-red) 20%, transparent);
-    --destructive-soft-foreground: #fca5a5;
-    --success: #22c55e;
+    --destructive-soft: #261419;
+    --destructive-soft-foreground: #fb7185;
+    --destructive-border: #9f1239;
+    --destructive-accent: #f43f5e;
+    --success: #16a34a;
     --success-foreground: #052e14;
-    --success-soft: color-mix(in oklab, var(--brand-green) 22%, transparent);
-    --success-soft-foreground: #86efac;
-    --warning: var(--brand-orange);
+    --success-soft: #0d241b;
+    --success-soft-foreground: #4ade80;
+    --success-border: #166534;
+    --success-accent: #22c55e;
+    --warning: #f59e0b;
     --warning-foreground: var(--brand-navy-deep);
-    --warning-soft: color-mix(in oklab, var(--brand-orange) 20%, transparent);
-    --warning-soft-foreground: #fcd34d;
-    --info: #3b82f6;
+    --warning-soft: #211a10;
+    --warning-soft-foreground: #fbbf24;
+    --warning-border: #8a5a12;
+    --warning-accent: #f59e0b;
+    --info: #2563eb;
     --info-foreground: #08213e;
-    --info-soft: color-mix(in oklab, var(--brand-blue) 22%, transparent);
-    --info-soft-foreground: #93c5fd;
+    --info-soft: #0d1f35;
+    --info-soft-foreground: #60a5fa;
+    --info-border: #1d4ed8;
+    --info-accent: #3b82f6;
     --border: #243b53;
     --input: #243b53;
     --ring: var(--brand-orange);

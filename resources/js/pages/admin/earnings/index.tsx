@@ -1,4 +1,5 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
@@ -6,6 +7,7 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -440,27 +442,19 @@ function EarningsReport({
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-wrap gap-4">
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('earnings.total_earnings')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            <Syp value={total_earnings_syp} />
-                        </CardContent>
-                    </Card>
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('cash_box.other_expenses')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            <Syp value={-other_expense_syp} />
-                        </CardContent>
-                    </Card>
+                <div className="flex flex-wrap gap-4 [&>*]:min-w-[12rem] [&>*]:max-w-xs [&>*]:flex-1">
+                    <SummaryCard
+                        accent="green"
+                        icon={<TrendingUp className="size-5" />}
+                        label={t('earnings.total_earnings')}
+                        value={<Syp value={total_earnings_syp} />}
+                    />
+                    <SummaryCard
+                        accent="red"
+                        icon={<TrendingDown className="size-5" />}
+                        label={t('cash_box.other_expenses')}
+                        value={<Syp value={-other_expense_syp} />}
+                    />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

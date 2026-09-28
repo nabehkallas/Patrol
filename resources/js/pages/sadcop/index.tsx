@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Coins, Receipt } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
@@ -7,8 +8,8 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
+import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -192,27 +193,19 @@ export default function SadcopIndex() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-4">
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('sadcop.balance')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            {formatSyp(balance)}
-                        </CardContent>
-                    </Card>
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('sadcop.payments_this_month')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            {formatSyp(monthPayments)}
-                        </CardContent>
-                    </Card>
+                <div className="flex flex-wrap gap-4 [&>*]:min-w-[12rem] [&>*]:max-w-xs [&>*]:flex-1">
+                    <SummaryCard
+                        accent="orange"
+                        icon={<Coins className="size-5" />}
+                        label={t('sadcop.balance')}
+                        value={formatSyp(balance)}
+                    />
+                    <SummaryCard
+                        accent="blue"
+                        icon={<Receipt className="size-5" />}
+                        label={t('sadcop.payments_this_month')}
+                        value={formatSyp(monthPayments)}
+                    />
                 </div>
 
                 <div className="flex flex-wrap items-end gap-4">
