@@ -38,7 +38,7 @@ export function CurrencyCard({
         <Card className={accent ? ACCENT_BORDERS[accent] : undefined}>
             <CardHeader>
                 <CardDescription>{label}</CardDescription>
-                <CardTitle className="text-3xl font-bold">
+                <CardTitle className="text-2xl font-bold">
                     {formatSyp(breakdown.SYP)}
                 </CardTitle>
             </CardHeader>

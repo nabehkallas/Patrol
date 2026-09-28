@@ -305,7 +305,7 @@ export default function InventoryIndex() {
                                             <p className="text-muted-foreground text-xs">
                                                 {t('inventory.amount')}
                                             </p>
-                                            <p className="text-3xl font-bold">
+                                            <p className="text-2xl font-bold">
                                                 {formatNumber(
                                                     tank.expected_liters,
                                                 )}{' '}
@@ -387,7 +387,7 @@ export default function InventoryIndex() {
                                                 — {total.name}
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent className="px-4 text-3xl font-bold">
+                                        <CardContent className="px-4 text-2xl font-bold">
                                             {formatNumber(total.liters)} L
                                         </CardContent>
                                     </Card>
