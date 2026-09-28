@@ -241,18 +241,22 @@ export default function DebtsIndex() {
                     <CurrencyCard
                         label={t('debts.total_unpaid')}
                         breakdown={totals.outstanding}
+                        accent="green"
                     />
                     <CurrencyCard
                         label={t('debts.total_debts')}
                         breakdown={totals.total}
+                        accent="green"
                     />
                     <CurrencyCard
                         label={t('debts.payable_unpaid')}
                         breakdown={totals.payable_outstanding}
+                        accent="red"
                     />
                     <CurrencyCard
                         label={t('debts.payable_total')}
                         breakdown={totals.payable_total}
+                        accent="red"
                     />
                 </div>
 

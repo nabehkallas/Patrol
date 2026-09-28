@@ -16,22 +16,29 @@ function extraCurrencies(breakdown: CurrencyBreakdown): [Currency, number][] {
     ) as [Currency, number][];
 }
 
+const ACCENT_BORDERS = {
+    green: 'border-t-4 border-t-green-500',
+    red: 'border-t-4 border-t-red-500',
+};
+
 export function CurrencyCard({
     label,
     breakdown,
+    accent,
     extraContent,
 }: {
     label: string;
     breakdown: CurrencyBreakdown;
+    accent?: keyof typeof ACCENT_BORDERS;
     extraContent?: ReactNode;
 }) {
     const extras = extraCurrencies(breakdown);
 
     return (
-        <Card>
+        <Card className={accent ? ACCENT_BORDERS[accent] : undefined}>
             <CardHeader>
                 <CardDescription>{label}</CardDescription>
-                <CardTitle className="text-2xl">
+                <CardTitle className="text-3xl font-bold">
                     {formatSyp(breakdown.SYP)}
                 </CardTitle>
             </CardHeader>

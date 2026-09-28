@@ -305,7 +305,7 @@ export default function InventoryIndex() {
                                             <p className="text-muted-foreground text-xs">
                                                 {t('inventory.amount')}
                                             </p>
-                                            <p className="text-2xl font-bold">
+                                            <p className="text-3xl font-bold">
                                                 {formatNumber(
                                                     tank.expected_liters,
                                                 )}{' '}
@@ -372,7 +372,7 @@ export default function InventoryIndex() {
                             />
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
                             {Object.values(topUpTotalsByFuelType).map(
                                 (total) => (
                                     <Card
@@ -387,7 +387,7 @@ export default function InventoryIndex() {
                                                 — {total.name}
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent className="px-4 text-2xl font-bold">
+                                        <CardContent className="px-4 text-3xl font-bold">
                                             {formatNumber(total.liters)} L
                                         </CardContent>
                                     </Card>
