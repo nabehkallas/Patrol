@@ -540,14 +540,14 @@ export default function PumpCountersIndex() {
                                     ))}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
+                            <CardContent className="space-y-2 text-sm">
                                 <div>
                                     <p className="text-muted-foreground text-xs">
                                         {t('pump_counters.daily_total')}
                                     </p>
                                     <p
                                         className={cn(
-                                            'text-2xl font-bold',
+                                            'text-lg font-bold',
                                             pump.daily_liters_sold > 0 &&
                                                 'text-success',
                                         )}
@@ -560,7 +560,7 @@ export default function PumpCountersIndex() {
                                         <p className="text-muted-foreground text-xs">
                                             {t('pump_counters.reading_value')}
                                         </p>
-                                        <p className="text-2xl font-bold">
+                                        <p className="text-lg font-bold">
                                             {formatNumber(
                                                 pump.latest_reading
                                                     .reading_value,
