@@ -387,7 +387,7 @@ export default function PumpCountersIndex() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="w-48">
+                                                                <SelectTrigger className="w-full">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -428,7 +428,7 @@ export default function PumpCountersIndex() {
                                                                 type="number"
                                                                 step="1"
                                                                 min="0"
-                                                                className="w-28"
+                                                                className="w-full"
                                                                 value={
                                                                     row.reading_value
                                                                 }
@@ -471,7 +471,7 @@ export default function PumpCountersIndex() {
                                                                 type="number"
                                                                 step="0.001"
                                                                 min="0"
-                                                                className="w-24"
+                                                                className="w-full"
                                                                 value={
                                                                     row.governmental_liters
                                                                 }
@@ -513,7 +513,7 @@ export default function PumpCountersIndex() {
                                                                 type="number"
                                                                 step="0.001"
                                                                 min="0"
-                                                                className="w-24"
+                                                                className="w-full"
                                                                 value={
                                                                     row.return_liters
                                                                 }
@@ -540,7 +540,7 @@ export default function PumpCountersIndex() {
                                                         <td className="px-4 py-4 align-top">
                                                             <Input
                                                                 type="text"
-                                                                className="w-36"
+                                                                className="w-full"
                                                                 value={
                                                                     row.notes
                                                                 }
