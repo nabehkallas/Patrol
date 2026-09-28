@@ -7,7 +7,6 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -240,22 +239,18 @@ export default function DebtsIndex() {
 
                 <div className="flex flex-wrap gap-4 [&>*]:min-w-[12rem] [&>*]:max-w-xs [&>*]:flex-1">
                     <CurrencyCard
-                        accent="red"
                         label={t('debts.total_unpaid')}
                         breakdown={totals.outstanding}
                     />
                     <CurrencyCard
-                        accent="blue"
                         label={t('debts.total_debts')}
                         breakdown={totals.total}
                     />
                     <CurrencyCard
-                        accent="red"
                         label={t('debts.payable_unpaid')}
                         breakdown={totals.payable_outstanding}
                     />
                     <CurrencyCard
-                        accent="blue"
                         label={t('debts.payable_total')}
                         breakdown={totals.payable_total}
                     />
@@ -446,17 +441,9 @@ export default function DebtsIndex() {
                                             : t('debts.direction.receivable')}
                                     </td>
                                     <td className="px-4 py-2">
-                                        <Badge
-                                            variant={
-                                                debt.status === 'outstanding'
-                                                    ? 'destructive'
-                                                    : 'success'
-                                            }
-                                        >
-                                            {debt.status === 'outstanding'
-                                                ? t('debts.status.outstanding')
-                                                : t('debts.status.settled')}
-                                        </Badge>
+                                        {debt.status === 'outstanding'
+                                            ? t('debts.status.outstanding')
+                                            : t('debts.status.settled')}
                                     </td>
                                     <td className="px-4 py-2">
                                         {debt.recorded_by?.name}

@@ -1,5 +1,4 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Fuel } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
@@ -8,7 +7,6 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
-import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -271,10 +269,7 @@ export default function InventoryIndex() {
                     <div className="space-y-6">
                         <div className="grid gap-4 md:grid-cols-3">
                             {tanks.map((tank) => (
-                                <Card
-                                    key={tank.id}
-                                    className="bg-warning-soft border-warning-border"
-                                >
+                                <Card key={tank.id}>
                                     <CardHeader>
                                         <CardTitle className="flex items-center justify-between text-base">
                                             <span>
@@ -371,13 +366,19 @@ export default function InventoryIndex() {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {Object.values(topUpTotalsByFuelType).map(
                                 (total) => (
-                                    <SummaryCard
-                                        key={total.name}
-                                        accent="orange"
-                                        icon={<Fuel className="size-5" />}
-                                        label={`${t('inventory.total_added_liters')} — ${total.name}`}
-                                        value={`${formatNumber(total.liters)} L`}
-                                    />
+                                    <Card key={total.name}>
+                                        <CardHeader>
+                                            <CardTitle className="text-sm font-medium">
+                                                {t(
+                                                    'inventory.total_added_liters',
+                                                )}{' '}
+                                                — {total.name}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-2xl font-semibold">
+                                            {formatNumber(total.liters)} L
+                                        </CardContent>
+                                    </Card>
                                 ),
                             )}
                         </div>

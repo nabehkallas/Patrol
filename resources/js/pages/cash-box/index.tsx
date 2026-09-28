@@ -17,9 +17,13 @@ import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
-import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     formatCurrencyAmount,
     formatDateTime,
@@ -29,6 +33,7 @@ import {
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { exportPdf, exportXlsx, index } from '@/routes/cash-box';
 import { create as createTransaction } from '@/routes/transactions';
 import type {
@@ -72,6 +77,95 @@ function otherCurrencies(
     }
 
     return Array.from(found);
+}
+
+type Accent = 'blue' | 'green' | 'red' | 'amber';
+
+/** Neutral card + colored icon + a thin colored accent bar (not a solid colored fill) --
+ * matches the rest of the page's light/dark surface colors and keeps the number itself in
+ * the main text color, using color only as a small semantic accent. */
+const ACCENT_TOKENS: Record<Accent, { icon: string; bar: string }> = {
+    blue: { icon: 'bg-info-soft text-info', bar: 'bg-info' },
+    green: { icon: 'bg-success-soft text-success', bar: 'bg-success' },
+    red: {
+        icon: 'bg-destructive-soft text-destructive',
+        bar: 'bg-destructive',
+    },
+    amber: { icon: 'bg-warning-soft text-warning', bar: 'bg-warning' },
+};
+
+function StatCard({
+    accent,
+    icon,
+    label,
+    value,
+    subtitle,
+    breakdown,
+    breakdownLabel,
+    children,
+}: {
+    accent: Accent;
+    icon: ReactNode;
+    label: string;
+    value: string;
+    subtitle?: string;
+    breakdown?: ReactNode;
+    breakdownLabel?: string;
+    children?: ReactNode;
+}) {
+    const { t } = useTranslation();
+    const tokens = ACCENT_TOKENS[accent];
+
+    return (
+        <Card className="relative overflow-hidden py-0">
+            <div className={cn('absolute inset-x-0 top-0 h-1', tokens.bar)} />
+            <CardContent className="space-y-3 pt-5">
+                <div className="flex items-start justify-between gap-3">
+                    <div
+                        className={cn(
+                            'flex size-10 shrink-0 items-center justify-center rounded-lg',
+                            tokens.icon,
+                        )}
+                    >
+                        {icon}
+                    </div>
+                    {breakdown && (
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground text-xs underline decoration-dotted underline-offset-4"
+                                >
+                                    {t('cash_box.view_breakdown')}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                align="end"
+                                className="max-h-96 w-80 overflow-auto"
+                            >
+                                <p className="mb-2 text-sm font-semibold">
+                                    {breakdownLabel}
+                                </p>
+                                <div className="space-y-2">{breakdown}</div>
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                </div>
+
+                <div>
+                    <p className="text-muted-foreground text-sm">{label}</p>
+                    <p className="text-2xl font-bold">{value}</p>
+                    {subtitle && (
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                            {subtitle}
+                        </p>
+                    )}
+                </div>
+
+                {children}
+            </CardContent>
+        </Card>
+    );
 }
 
 function BreakdownRow({
@@ -479,14 +573,14 @@ export default function CashBoxIndex() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <SummaryCard
+                    <StatCard
                         accent="blue"
                         icon={<Wallet className="size-5" />}
                         label={t('cash_box.opening_balance')}
                         value={formatSyp(openingBalance.SYP)}
                     />
 
-                    <SummaryCard
+                    <StatCard
                         accent="green"
                         icon={<TrendingUp className="size-5" />}
                         label={t('cash_box.total_income')}
@@ -547,7 +641,7 @@ export default function CashBoxIndex() {
                         }
                     />
 
-                    <SummaryCard
+                    <StatCard
                         accent="red"
                         icon={<TrendingDown className="size-5" />}
                         label={t('cash_box.total_outflow')}
@@ -609,8 +703,8 @@ export default function CashBoxIndex() {
                         }
                     />
 
-                    <SummaryCard
-                        accent="orange"
+                    <StatCard
+                        accent="amber"
                         icon={<Coins className="size-5" />}
                         label={t('cash_box.current_balance')}
                         value={formatSyp(openingBalance.SYP + totals.net.SYP)}
@@ -625,7 +719,7 @@ export default function CashBoxIndex() {
                                 </span>
                             </div>
                         </div>
-                    </SummaryCard>
+                    </StatCard>
                 </div>
 
                 <OtherCurrencyBoxes
