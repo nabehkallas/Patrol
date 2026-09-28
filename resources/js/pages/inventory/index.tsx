@@ -229,6 +229,20 @@ export default function InventoryIndex() {
             };
         });
 
+    // Colored top border per tank card, keyed by each fuel type's order of first appearance --
+    // the first fuel type (typically petrol) gets amber, the second (typically diesel) gets
+    // blue, matching the Cash Box page's colored-accent style. Any further fuel type falls back
+    // to a neutral border since the station's own fuel type names aren't a fixed enum.
+    const TANK_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
+    const fuelTypeAccentBorder: Record<number, string> = {};
+    tanks.forEach((tank) => {
+        if (!(tank.fuel_type.id in fuelTypeAccentBorder)) {
+            fuelTypeAccentBorder[tank.fuel_type.id] =
+                TANK_ACCENT_BORDERS[Object.keys(fuelTypeAccentBorder).length] ??
+                'border-t-border';
+        }
+    });
+
     return (
         <>
             <Head title={t('inventory.title')} />
@@ -267,80 +281,75 @@ export default function InventoryIndex() {
 
                 {activeTab === 'amounts' && (
                     <div className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
                             {tanks.map((tank) => (
-                                <Card key={tank.id}>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center justify-between text-base">
-                                            <span>
-                                                {tank.fuel_type.name} —{' '}
-                                                {tank.name}
-                                            </span>
-                                            <span className="text-muted-foreground text-xs">
-                                                {t('inventory.capacity')}:{' '}
-                                                {formatNumber(
-                                                    tank.capacity_liters,
-                                                )}{' '}
-                                                L
-                                            </span>
+                                <Card
+                                    key={tank.id}
+                                    className={cn(
+                                        'gap-3 border-t-4 py-4',
+                                        fuelTypeAccentBorder[tank.fuel_type.id],
+                                    )}
+                                >
+                                    <CardHeader className="px-4">
+                                        <CardTitle className="text-lg font-semibold">
+                                            {tank.fuel_type.name} — {tank.name}
                                         </CardTitle>
+                                        <span className="text-muted-foreground text-xs">
+                                            {t('inventory.capacity')}:{' '}
+                                            {formatNumber(tank.capacity_liters)}{' '}
+                                            L
+                                        </span>
                                     </CardHeader>
-                                    <CardContent className="space-y-3 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">
+                                    <CardContent className="space-y-3 px-4 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground text-xs">
                                                 {t('inventory.amount')}
-                                            </span>
-                                            <span>
+                                            </p>
+                                            <p className="text-2xl font-bold">
                                                 {formatNumber(
                                                     tank.expected_liters,
                                                 )}{' '}
                                                 L
-                                            </span>
+                                            </p>
                                         </div>
 
                                         <form
                                             onSubmit={(event) =>
                                                 submitTopUp(event, tank.id)
                                             }
-                                            className="flex items-start gap-2 border-t pt-3"
+                                            className="flex items-center gap-2 border-t pt-3"
                                         >
-                                            <div className="grid flex-1 gap-1">
-                                                <Input
-                                                    type="number"
-                                                    step="0.001"
-                                                    min="0"
-                                                    placeholder={t(
-                                                        'inventory.add_liters_placeholder',
-                                                    )}
-                                                    value={
-                                                        topUpLiters[tank.id] ??
-                                                        ''
-                                                    }
-                                                    onChange={(e) =>
-                                                        setTopUpLiters(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                [tank.id]:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                />
-                                                <InputError
-                                                    message={
-                                                        topUpErrors[tank.id]
-                                                    }
-                                                />
-                                            </div>
+                                            <Input
+                                                type="number"
+                                                step="0.001"
+                                                min="0"
+                                                className="h-9"
+                                                placeholder={t(
+                                                    'inventory.add_liters_placeholder',
+                                                )}
+                                                value={
+                                                    topUpLiters[tank.id] ?? ''
+                                                }
+                                                onChange={(e) =>
+                                                    setTopUpLiters((prev) => ({
+                                                        ...prev,
+                                                        [tank.id]:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                            />
                                             <Button
                                                 type="submit"
                                                 size="sm"
                                                 variant="outline"
+                                                className="shrink-0"
                                             >
                                                 {t('inventory.add_liters')}
                                             </Button>
                                         </form>
+                                        <InputError
+                                            message={topUpErrors[tank.id]}
+                                        />
                                     </CardContent>
                                 </Card>
                             ))}
@@ -366,8 +375,11 @@ export default function InventoryIndex() {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {Object.values(topUpTotalsByFuelType).map(
                                 (total) => (
-                                    <Card key={total.name}>
-                                        <CardHeader>
+                                    <Card
+                                        key={total.name}
+                                        className="gap-3 border-t-4 border-t-green-500 py-4"
+                                    >
+                                        <CardHeader className="px-4">
                                             <CardTitle className="text-sm font-medium">
                                                 {t(
                                                     'inventory.total_added_liters',
@@ -375,7 +387,7 @@ export default function InventoryIndex() {
                                                 — {total.name}
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent className="text-2xl font-semibold">
+                                        <CardContent className="px-4 text-2xl font-bold">
                                             {formatNumber(total.liters)} L
                                         </CardContent>
                                     </Card>
