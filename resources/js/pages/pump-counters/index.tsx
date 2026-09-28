@@ -284,28 +284,28 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t(
                                                     'pump_counters.reading_value',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t(
                                                     'pump_counters.governmental_sale',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t(
                                                     'pump_counters.return_liters',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-bottom">
+                                            <th className="px-4 py-4 align-top">
                                                 {t('common.notes')}
                                             </th>
                                         </tr>
@@ -350,7 +350,7 @@ export default function PumpCountersIndex() {
                                                                 'border-s-border',
                                                         )}
                                                     >
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap text-base font-semibold">
                                                                 {pump.name}
                                                                 {pump.fuel_type_names.map(
@@ -370,7 +370,7 @@ export default function PumpCountersIndex() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <Select
                                                                 value={
                                                                     row.tank_id
@@ -423,7 +423,7 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                         </td>
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <Input
                                                                 type="number"
                                                                 step="1"
@@ -466,7 +466,7 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                         </td>
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <Input
                                                                 type="number"
                                                                 step="0.001"
@@ -508,7 +508,7 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                         </td>
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <Input
                                                                 type="number"
                                                                 step="0.001"
@@ -537,7 +537,7 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                         </td>
-                                                        <td className="px-4 pb-4 pt-6 align-top">
+                                                        <td className="px-4 py-4 align-top">
                                                             <Input
                                                                 type="text"
                                                                 className="w-36"
