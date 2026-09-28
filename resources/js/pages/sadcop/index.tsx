@@ -193,23 +193,23 @@ export default function SadcopIndex() {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1 border-t-4 border-t-amber-500">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('sadcop.balance')}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
+                        <CardContent className="text-2xl font-bold">
                             {formatSyp(balance)}
                         </CardContent>
                     </Card>
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
+                    <Card className="min-w-[12rem] max-w-xs flex-1 border-t-4 border-t-red-500">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('sadcop.payments_this_month')}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
+                        <CardContent className="text-2xl font-bold">
                             {formatSyp(monthPayments)}
                         </CardContent>
                     </Card>
