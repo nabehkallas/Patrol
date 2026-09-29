@@ -365,18 +365,12 @@ function CashBoxHistory({
                 <table className="w-full text-sm">
                     <thead className="sticky top-0 z-10">
                         <tr className="bg-muted text-start">
-                            <th className="px-4 py-2 text-center">
-                                {t('common.date')}
-                            </th>
-                            <th className="px-4 py-2 text-center">
-                                {t('common.type')}
-                            </th>
-                            <th className="px-4 py-2 text-center">
+                            <th className="px-4 py-3">{t('common.date')}</th>
+                            <th className="px-4 py-3">{t('common.type')}</th>
+                            <th className="px-4 py-3">
                                 {t('transactions.detail')}
                             </th>
-                            <th className="px-4 py-2 text-center">
-                                {t('common.amount')}
-                            </th>
+                            <th className="px-4 py-3">{t('common.amount')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -392,17 +386,17 @@ function CashBoxHistory({
                                     key={entry.id}
                                     className="hover:bg-muted/50 border-t transition-colors"
                                 >
-                                    <td className="text-muted-foreground whitespace-nowrap px-4 py-2">
+                                    <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
                                         {formatDateTime(entry.date)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {typeLabels[entry.type]}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.description}
                                     </td>
                                     <td
-                                        className={`px-4 py-2 font-medium ${
+                                        className={`px-4 py-3 font-medium ${
                                             isPositive
                                                 ? 'text-success'
                                                 : isNegative
