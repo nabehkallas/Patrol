@@ -253,8 +253,8 @@ function ItemCard({ item }: { item: ShopItem }) {
     }
 
     return (
-        <Card className="gap-2 py-3">
-            <CardHeader className="px-4">
+        <Card className="gap-2 py-2.5 dark:border-slate-700 dark:bg-slate-800/90">
+            <CardHeader className="px-3">
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
                     <div className="flex items-center">
@@ -262,7 +262,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs dark:text-slate-400 dark:hover:text-white"
                             onClick={openEdit}
                         >
                             {t('common.edit')}
@@ -271,7 +271,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs dark:text-slate-400 dark:hover:text-white"
                             onClick={removeItem}
                         >
                             {t('common.delete')}
@@ -279,7 +279,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 px-4 text-sm">
+            <CardContent className="space-y-2 px-3 text-sm">
                 <div className="flex items-center justify-between">
                     <span>
                         <span className="text-muted-foreground">
@@ -333,9 +333,8 @@ function ItemCard({ item }: { item: ShopItem }) {
                         </Button>
                         <Button
                             type="button"
-                            variant="outline"
                             size="sm"
-                            className="h-8"
+                            className="h-8 rounded-lg bg-blue-600 px-3 font-medium text-white hover:bg-blue-500"
                             onClick={openBuy}
                         >
                             {t('shop.buy')}
@@ -639,7 +638,7 @@ export default function ShopIndex() {
                     </Button>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(max(min(100%,300px),calc((100%_-_3rem)/5)),1fr))] gap-3">
                     {items.map((item) => (
                         <ItemCard key={item.id} item={item} />
                     ))}
