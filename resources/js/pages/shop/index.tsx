@@ -103,9 +103,8 @@ const SUGGESTED_CATEGORIES = [
 ];
 
 // An item's category colors, used for its card's top border and its sold-quantity badge
-// number. Diesel uses the same blue as diesel everywhere else in the app. No green or purple,
-// so nothing reads like the emerald Sell / indigo Buy buttons. Anything not listed -- including
-// items with no category yet and any new category -- gets slate silver.
+// number. Diesel uses the same blue as diesel everywhere else in the app. Anything not listed
+// -- including items with no category yet and any new category -- gets slate silver.
 const CATEGORY_COLORS = {
     petrol: {
         text: 'text-amber-600 dark:text-amber-400',
@@ -116,8 +115,8 @@ const CATEGORY_COLORS = {
         border: 'border-t-blue-500 dark:border-t-blue-500',
     },
     oils: {
-        text: 'text-teal-600 dark:text-teal-300',
-        border: 'border-t-teal-500 dark:border-t-teal-500',
+        text: 'text-emerald-600 dark:text-emerald-400',
+        border: 'border-t-emerald-500 dark:border-t-emerald-500',
     },
     other: {
         text: 'text-slate-600 dark:text-slate-200',
@@ -343,7 +342,7 @@ function ItemCard({ item }: { item: ShopItem }) {
             <CardContent className="space-y-2 px-3 text-sm">
                 <div className="flex items-center justify-between">
                     <span>
-                        <span className="text-muted-foreground text-xs font-normal dark:text-slate-400">
+                        <span className="text-xs font-normal text-slate-500">
                             {t('shop.stock')}:
                         </span>{' '}
                         <span className="text-foreground text-sm font-bold dark:text-white">
@@ -399,7 +398,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                         <Button
                             type="button"
                             size="sm"
-                            className="h-8 rounded-lg bg-indigo-600 px-3 font-medium text-white hover:bg-indigo-500"
+                            className="h-8 rounded-lg bg-rose-600 px-3 font-medium text-white hover:bg-rose-500"
                             onClick={openBuy}
                         >
                             {t('shop.buy')}
