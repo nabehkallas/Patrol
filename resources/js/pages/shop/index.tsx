@@ -102,21 +102,41 @@ const SUGGESTED_CATEGORIES = [
     'إكسسوارات',
 ];
 
-// Color of an item's sold-quantity badge number, by its category. Anything not listed --
-// including items with no category yet and any new category -- gets purple.
-function getCategoryColor(category: string | null): string {
+// An item's category colors, used for its card's top border and its sold-quantity badge
+// number. Diesel uses the same blue as diesel everywhere else in the app. Anything not listed
+// -- including items with no category yet and any new category -- gets purple.
+const CATEGORY_COLORS = {
+    petrol: {
+        text: 'text-amber-600 dark:text-amber-400',
+        border: 'border-t-amber-500 dark:border-t-amber-500',
+    },
+    diesel: {
+        text: 'text-blue-600 dark:text-blue-400',
+        border: 'border-t-blue-500 dark:border-t-blue-500',
+    },
+    oils: {
+        text: 'text-emerald-600 dark:text-emerald-400',
+        border: 'border-t-emerald-500 dark:border-t-emerald-500',
+    },
+    other: {
+        text: 'text-purple-600 dark:text-purple-400',
+        border: 'border-t-purple-500 dark:border-t-purple-500',
+    },
+};
+
+function categoryColors(category: string | null) {
     switch (category?.trim().toLowerCase()) {
         case 'بنزين':
         case 'محروقات':
-            return 'text-amber-600 dark:text-amber-400';
+            return CATEGORY_COLORS.petrol;
         case 'مازوت':
         case 'بخاخات':
-            return 'text-cyan-600 dark:text-cyan-400';
+            return CATEGORY_COLORS.diesel;
         case 'زيوت':
         case 'إكسسوارات':
-            return 'text-emerald-600 dark:text-emerald-400';
+            return CATEGORY_COLORS.oils;
         default:
-            return 'text-purple-600 dark:text-purple-400';
+            return CATEGORY_COLORS.other;
     }
 }
 
@@ -288,7 +308,12 @@ function ItemCard({ item }: { item: ShopItem }) {
     }
 
     return (
-        <Card className="gap-2 py-2.5 dark:border-slate-700 dark:bg-slate-800/90">
+        <Card
+            className={cn(
+                'gap-2 border-t-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/90',
+                categoryColors(item.category).border,
+            )}
+        >
             <CardHeader className="px-3">
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
@@ -317,10 +342,10 @@ function ItemCard({ item }: { item: ShopItem }) {
             <CardContent className="space-y-2 px-3 text-sm">
                 <div className="flex items-center justify-between">
                     <span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground font-normal dark:text-slate-400">
                             {t('shop.stock')}:
                         </span>{' '}
-                        <span className="font-semibold">
+                        <span className="text-foreground font-bold dark:text-white">
                             {formatNumber(item.stock, 0)}
                         </span>
                     </span>
@@ -740,7 +765,7 @@ export default function ShopIndex() {
                                 <span
                                     className={cn(
                                         'text-xl font-extrabold',
-                                        getCategoryColor(row.category),
+                                        categoryColors(row.category).text,
                                     )}
                                 >
                                     {formatNumber(row.quantity, 0)}
