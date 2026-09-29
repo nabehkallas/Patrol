@@ -355,23 +355,6 @@ export default function InventoryIndex() {
                             ))}
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3">
-                            <DateRangePicker
-                                from={historyFrom}
-                                to={historyTo}
-                                onChange={handleHistoryRangeChange}
-                            />
-                            <GenerateXlsxButton
-                                href={exportTanksXlsx.url({
-                                    query: {
-                                        from: historyFrom,
-                                        to: historyTo,
-                                    },
-                                })}
-                                label={t('inventory.export_tanks_ledger')}
-                            />
-                        </div>
-
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
                             {Object.values(topUpTotalsByFuelType).map(
                                 (total) => (
@@ -396,18 +379,36 @@ export default function InventoryIndex() {
                         </div>
 
                         <div className="space-y-3">
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-4">
                                 <h3 className="font-semibold">
                                     {t('inventory.top_up_history')}
                                 </h3>
-                                <GeneratePdfButton
-                                    href={exportTopupsPdf.url({
-                                        query: {
-                                            from: historyFrom,
-                                            to: historyTo,
-                                        },
-                                    })}
+                                <DateRangePicker
+                                    from={historyFrom}
+                                    to={historyTo}
+                                    onChange={handleHistoryRangeChange}
                                 />
+                                <div className="ms-auto flex flex-wrap items-center gap-2">
+                                    <GenerateXlsxButton
+                                        href={exportTanksXlsx.url({
+                                            query: {
+                                                from: historyFrom,
+                                                to: historyTo,
+                                            },
+                                        })}
+                                        label={t(
+                                            'inventory.export_tanks_ledger',
+                                        )}
+                                    />
+                                    <GeneratePdfButton
+                                        href={exportTopupsPdf.url({
+                                            query: {
+                                                from: historyFrom,
+                                                to: historyTo,
+                                            },
+                                        })}
+                                    />
+                                </div>
                             </div>
 
                             <div className="overflow-x-auto rounded-xl border">

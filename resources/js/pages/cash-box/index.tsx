@@ -505,70 +505,79 @@ export default function CashBoxIndex() {
             <Head title={t('cash_box.title')} />
 
             <div className="space-y-6">
-                <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="space-y-4">
                     <Heading
                         variant="small"
                         title={t('cash_box.title')}
                         description={t('cash_box.description')}
                     />
 
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div className="bg-muted flex items-center gap-1 rounded-lg p-1">
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={mode === 'today' ? 'default' : 'ghost'}
-                                onClick={showToday}
-                            >
-                                {t('cash_box.today')}
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                    mode === 'yesterday' ? 'default' : 'ghost'
-                                }
-                                onClick={showYesterday}
-                            >
-                                {t('cash_box.yesterday')}
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                    mode === 'custom' ? 'default' : 'ghost'
-                                }
-                                onClick={showCustomRange}
-                            >
-                                {t('cash_box.custom_range')}
-                            </Button>
+                    <div className="flex w-full flex-col items-center justify-between gap-4 md:flex-row">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="bg-muted flex items-center gap-1 rounded-lg p-1">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        mode === 'today' ? 'default' : 'ghost'
+                                    }
+                                    onClick={showToday}
+                                >
+                                    {t('cash_box.today')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        mode === 'yesterday'
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
+                                    onClick={showYesterday}
+                                >
+                                    {t('cash_box.yesterday')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        mode === 'custom' ? 'default' : 'ghost'
+                                    }
+                                    onClick={showCustomRange}
+                                >
+                                    {t('cash_box.custom_range')}
+                                </Button>
+                            </div>
+
+                            {mode === 'custom' && (
+                                <>
+                                    <DateRangePicker
+                                        from={fromVal}
+                                        to={toVal}
+                                        onChange={(range) => {
+                                            setFromVal(range.from);
+                                            setToVal(range.to);
+                                        }}
+                                    />
+                                    <Button onClick={apply}>
+                                        {t('statistics.apply')}
+                                    </Button>
+                                </>
+                            )}
                         </div>
 
-                        {mode === 'custom' && (
-                            <>
-                                <DateRangePicker
-                                    from={fromVal}
-                                    to={toVal}
-                                    onChange={(range) => {
-                                        setFromVal(range.from);
-                                        setToVal(range.to);
-                                    }}
-                                />
-                                <Button onClick={apply}>
-                                    {t('statistics.apply')}
-                                </Button>
-                            </>
-                        )}
-                        <GeneratePdfButton
-                            href={exportPdf.url({
-                                query: { from: fromVal, to: toVal },
-                            })}
-                        />
-                        <GenerateXlsxButton
-                            href={exportXlsx.url({
-                                query: { from: fromVal, to: toVal },
-                            })}
-                        />
+                        <div className="flex items-center gap-2">
+                            <GeneratePdfButton
+                                href={exportPdf.url({
+                                    query: { from: fromVal, to: toVal },
+                                })}
+                            />
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({
+                                    query: { from: fromVal, to: toVal },
+                                })}
+                            />
+                        </div>
                     </div>
                 </div>
 
