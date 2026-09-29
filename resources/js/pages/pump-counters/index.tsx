@@ -102,10 +102,10 @@ function tanksFor(
 }
 
 const TOTAL_BOX =
-    'flex items-center justify-between gap-4 rounded-xl border bg-card px-5 py-3 dark:border-slate-700/60 dark:bg-slate-800/80';
+    'flex items-center justify-start gap-3 rounded-xl border bg-card px-4 py-2.5 dark:border-slate-700/60 dark:bg-slate-800/80';
 const TOTAL_LABEL =
-    'text-sm font-medium text-muted-foreground dark:text-slate-300';
-const TOTAL_VALUE = 'text-lg font-extrabold md:text-xl';
+    'text-sm font-medium text-muted-foreground dark:text-slate-400';
+const TOTAL_VALUE = 'text-xl font-extrabold md:text-2xl';
 
 type BulkRow = {
     pump_id: number;
@@ -615,14 +615,14 @@ export default function PumpCountersIndex() {
                                 ? t('pump_counters.sales_summary_daily')
                                 : t('pump_counters.sales_summary_period')}
                         </h3>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+                        <div className="flex flex-wrap gap-3">
                             {fuelTypeTotals.map((total) => (
                                 <div
                                     key={total.fuel_type_id}
                                     className={TOTAL_BOX}
                                 >
                                     <span className={TOTAL_LABEL}>
-                                        {total.fuel_type_name}
+                                        <bdi>{total.fuel_type_name}</bdi>:
                                     </span>
                                     <span
                                         className={cn(
@@ -638,7 +638,7 @@ export default function PumpCountersIndex() {
                             {governmentalTotals.length > 0 && (
                                 <div className={TOTAL_BOX}>
                                     <span className={TOTAL_LABEL}>
-                                        {t('pump_counters.governmental_total')}
+                                        {t('pump_counters.governmental_total')}:
                                     </span>
                                     <span
                                         className={cn(
