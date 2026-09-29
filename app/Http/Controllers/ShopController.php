@@ -12,6 +12,7 @@ use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -27,15 +28,27 @@ class ShopController extends Controller
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
+        [$itemId, $type] = $this->logFilters($request);
+
+        // The totals cards follow the type filter: purchases when filtering to purchases,
+        // otherwise sales (the "All" view keeps showing what was sold, as before).
+        $summaryType = $type ?? TransactionType::OtherIncome;
 
         return Inertia::render('shop/index', [
             'items' => $this->itemOptions(),
-            'history' => $this->historyFor($from, $to),
-            'quantitiesSold' => $this->quantitiesSoldFor($from, $to),
+            'history' => $this->historyFor($from, $to, $itemId, $type),
+            'itemTotals' => $this->itemTotalsFor($from, $to, $itemId, $summaryType),
             'filters' => [
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
+                'shop_item_id' => $itemId,
+                'type' => match ($type) {
+                    TransactionType::Purchase => 'purchase',
+                    TransactionType::OtherIncome => 'sale',
+                    default => null,
+                },
             ],
+            'summaryType' => $summaryType === TransactionType::Purchase ? 'purchase' : 'sale',
         ]);
     }
 
@@ -43,12 +56,11 @@ class ShopController extends Controller
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
+        [$itemId, $type] = $this->logFilters($request);
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
-        $entries = Transaction::whereNotNull('shop_item_id')
+        $entries = $this->logQuery($from, $to, $itemId, $type)
             ->with(['shopItem', 'user'])
-            ->where('occurred_at', '>=', $from->copy()->startOfDay())
-            ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->latest('occurred_at')
             ->latest('id')
             ->get();
@@ -254,12 +266,45 @@ class ShopController extends Controller
         });
     }
 
-    private function historyFor(CarbonInterface $from, CarbonInterface $to)
+    /**
+     * The log's optional item/type filters, validated. Type arrives as "purchase"/"sale" and is
+     * mapped to the transaction type it means (a shop sale is stored as OtherIncome).
+     *
+     * @return array{0: ?int, 1: ?TransactionType}
+     */
+    private function logFilters(Request $request): array
+    {
+        $filters = $request->validate([
+            'shop_item_id' => ['nullable', 'integer', 'exists:shop_items,id'],
+            'type' => ['nullable', 'in:purchase,sale'],
+        ]);
+
+        $type = match ($filters['type'] ?? null) {
+            'purchase' => TransactionType::Purchase,
+            'sale' => TransactionType::OtherIncome,
+            default => null,
+        };
+
+        return [isset($filters['shop_item_id']) ? (int) $filters['shop_item_id'] : null, $type];
+    }
+
+    /**
+     * Shop movements in the date range, narrowed by the optional item/type filters -- the single
+     * query behind the log table, its totals cards and the PDF export, so they always agree.
+     */
+    private function logQuery(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type): Builder
     {
         return Transaction::whereNotNull('shop_item_id')
-            ->with(['shopItem', 'user'])
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->when($itemId, fn (Builder $query) => $query->where('shop_item_id', $itemId))
+            ->when($type, fn (Builder $query) => $query->where('type', $type));
+    }
+
+    private function historyFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type)
+    {
+        return $this->logQuery($from, $to, $itemId, $type)
+            ->with(['shopItem', 'user'])
             ->latest('occurred_at')
             ->latest('id')
             ->get()
@@ -278,15 +323,13 @@ class ShopController extends Controller
     }
 
     /**
-     * Quantity sold of each item within the given range — sales only (type OtherIncome),
-     * purchases/restocking don't count as "sold".
+     * Per-item quantity and amount for one movement type (sales or purchases) within the range,
+     * narrowed by the item filter. Amounts are kept per currency, since an item's price can be
+     * set in different currencies over time and adding them together would be meaningless.
      */
-    private function quantitiesSoldFor(CarbonInterface $from, CarbonInterface $to)
+    private function itemTotalsFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, TransactionType $type)
     {
-        return Transaction::whereNotNull('shop_item_id')
-            ->where('type', TransactionType::OtherIncome)
-            ->where('occurred_at', '>=', $from->copy()->startOfDay())
-            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+        return $this->logQuery($from, $to, $itemId, $type)
             ->with('shopItem')
             ->get()
             ->groupBy('shop_item_id')
@@ -294,6 +337,12 @@ class ShopController extends Controller
                 'id' => $group->first()->shop_item_id,
                 'name' => $group->first()->shopItem?->name ?? '—',
                 'quantity' => (int) $group->sum('quantity'),
+                'amounts' => $group->groupBy(fn (Transaction $t) => $t->currency->value)
+                    ->map(fn ($byCurrency, $currency) => [
+                        'currency' => $currency,
+                        'amount' => round((float) $byCurrency->sum('amount'), 2),
+                    ])
+                    ->values(),
             ])
             ->sortBy('name')
             ->values();

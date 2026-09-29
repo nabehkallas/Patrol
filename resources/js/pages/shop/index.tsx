@@ -62,19 +62,31 @@ type HistoryEntry = {
     notes: string | null;
 };
 
-type QuantitySold = {
+type ItemTotal = {
     id: number;
     name: string;
     quantity: number;
+    amounts: { currency: Currency; amount: number }[];
+};
+
+type LogFilters = {
+    from: string;
+    to: string;
+    shop_item_id: number | null;
+    type: 'purchase' | 'sale' | null;
 };
 
 type PageProps = {
     auth: Auth;
     items: ShopItem[];
     history: HistoryEntry[];
-    quantitiesSold: QuantitySold[];
-    filters: { from: string; to: string };
+    itemTotals: ItemTotal[];
+    filters: LogFilters;
+    summaryType: 'purchase' | 'sale';
 };
+
+// Radix Select can't use an empty string as an item value, so "All" gets a sentinel value.
+const ALL = 'all';
 
 type MovementFormState = {
     quantity: string;
@@ -525,7 +537,7 @@ function ItemCard({ item }: { item: ShopItem }) {
 }
 
 export default function ShopIndex() {
-    const { auth, items, history, quantitiesSold, filters } =
+    const { auth, items, history, itemTotals, filters, summaryType } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
 
@@ -548,12 +560,23 @@ export default function ShopIndex() {
         });
     }
 
-    function applyFilter(range: { from: string; to: string }) {
-        router.get(index.url(), range, {
+    // Any one filter changing keeps the others (date range, item, type) as they are; "All"
+    // (null) is dropped from the URL rather than sent as an empty param.
+    function applyFilter(updates: Partial<LogFilters>) {
+        const next = { ...filters, ...updates };
+        const query = Object.fromEntries(
+            Object.entries(next).filter(([, value]) => value !== null),
+        );
+
+        router.get(index.url(), query, {
             preserveScroll: true,
             preserveState: true,
         });
     }
+
+    const exportQuery = Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== null),
+    );
 
     function removeHistoryEntry(entry: HistoryEntry) {
         if (confirm(t('common.confirm_delete'))) {
@@ -626,15 +649,19 @@ export default function ShopIndex() {
                 <div className="space-y-3">
                     <div>
                         <h3 className="font-semibold">
-                            {t('shop.quantity_sold')}
+                            {summaryType === 'purchase'
+                                ? t('shop.quantity_purchased')
+                                : t('shop.quantity_sold')}
                         </h3>
                         <p className="text-muted-foreground text-sm">
-                            {t('shop.quantity_sold_description')}
+                            {summaryType === 'purchase'
+                                ? t('shop.quantity_purchased_description')
+                                : t('shop.quantity_sold_description')}
                         </p>
                     </div>
 
                     <div className="flex flex-wrap gap-4">
-                        {quantitiesSold.map((row) => (
+                        {itemTotals.map((row) => (
                             <div
                                 key={row.id}
                                 className="rounded-lg border px-4 py-2 text-sm"
@@ -645,9 +672,18 @@ export default function ShopIndex() {
                                 <div className="font-medium">
                                     {formatNumber(row.quantity, 0)}
                                 </div>
+                                {row.amounts.map((total) => (
+                                    <div
+                                        key={total.currency}
+                                        className="text-muted-foreground"
+                                    >
+                                        {formatNumber(total.amount)}{' '}
+                                        {total.currency}
+                                    </div>
+                                ))}
                             </div>
                         ))}
-                        {quantitiesSold.length === 0 && (
+                        {itemTotals.length === 0 && (
                             <p className="text-muted-foreground text-sm">
                                 {t('common.no_results')}
                             </p>
@@ -656,18 +692,96 @@ export default function ShopIndex() {
                 </div>
 
                 <div className="space-y-3">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                         <h3 className="font-semibold">{t('shop.history')}</h3>
                         <DateRangePicker
                             from={filters.from}
                             to={filters.to}
                             onChange={applyFilter}
                         />
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-sm">
+                                {t('shop.item')}
+                            </span>
+                            <Select
+                                value={
+                                    filters.shop_item_id
+                                        ? String(filters.shop_item_id)
+                                        : ALL
+                                }
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        shop_item_id:
+                                            value === ALL
+                                                ? null
+                                                : Number(value),
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    className="w-44"
+                                    aria-label={t('shop.item')}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        {t('common.all')}
+                                    </SelectItem>
+                                    {items.map((item) => (
+                                        <SelectItem
+                                            key={item.id}
+                                            value={String(item.id)}
+                                        >
+                                            {item.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-sm">
+                                {t('common.type')}
+                            </span>
+                            <Select
+                                value={filters.type ?? ALL}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        type:
+                                            value === ALL
+                                                ? null
+                                                : (value as
+                                                      | 'purchase'
+                                                      | 'sale'),
+                                    })
+                                }
+                            >
+                                <SelectTrigger
+                                    className="w-36"
+                                    aria-label={t('common.type')}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        {t('common.all')}
+                                    </SelectItem>
+                                    <SelectItem value="sale">
+                                        {t('shop.type.sale')}
+                                    </SelectItem>
+                                    <SelectItem value="purchase">
+                                        {t('shop.type.purchase')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <GeneratePdfButton
-                            href={exportPdf.url({ query: filters })}
+                            href={exportPdf.url({ query: exportQuery })}
                         />
                         <GenerateXlsxButton
-                            href={exportXlsx.url({ query: filters })}
+                            href={exportXlsx.url({
+                                query: { from: filters.from, to: filters.to },
+                            })}
                         />
                     </div>
 

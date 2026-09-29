@@ -48,6 +48,7 @@ const dictionary = {
         'common.loading': 'Loading…',
         'common.save_changes': 'Save changes',
         'common.confirm_delete': 'Are you sure you want to delete this?',
+        'common.all': 'All',
         'common.all_types': 'All types',
         'common.all_employees': 'All employees',
         'common.employee': 'Employee',
@@ -452,6 +453,9 @@ const dictionary = {
         'shop.quantity_sold': 'Quantity sold',
         'shop.quantity_sold_description':
             'Quantity sold per item in the selected period',
+        'shop.quantity_purchased': 'Quantity purchased',
+        'shop.quantity_purchased_description':
+            'Quantity purchased per item in the selected period',
 
         'fuel_pumps.title': 'Fuel pumps',
         'fuel_pumps.description': 'Define the dispensing pumps at this station',
@@ -594,6 +598,7 @@ const dictionary = {
         'common.loading': 'جارٍ التحميل…',
         'common.save_changes': 'حفظ التغييرات',
         'common.confirm_delete': 'هل أنت متأكد من حذف هذا العنصر؟',
+        'common.all': 'الكل',
         'common.all_types': 'جميع الأنواع',
         'common.all_employees': 'جميع الموظفين',
         'common.employee': 'الموظف',
@@ -989,6 +994,9 @@ const dictionary = {
         'shop.quantity_sold': 'الكمية المباعة',
         'shop.quantity_sold_description':
             'الكمية المباعة لكل صنف خلال الفترة المحددة',
+        'shop.quantity_purchased': 'الكمية المشتراة',
+        'shop.quantity_purchased_description':
+            'الكمية المشتراة لكل صنف خلال الفترة المحددة',
 
         'fuel_pumps.title': 'مضخات الوقود',
         'fuel_pumps.description': 'تعريف مضخات التوزيع في المحطة',
