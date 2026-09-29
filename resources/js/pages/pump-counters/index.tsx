@@ -63,7 +63,7 @@ type PageProps = {
     readings: PumpCounterReading[];
     fuelTypeTotals: FuelTypeTotal[];
     governmentalTotals: FuelTypeTotal[];
-    date: string;
+    filters: { from: string; to: string };
 };
 
 // Defaults to whichever tank was used for this pump's last reading — attendants almost
@@ -129,7 +129,7 @@ export default function PumpCountersIndex() {
         readings,
         fuelTypeTotals,
         governmentalTotals,
-        date,
+        filters,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
@@ -149,11 +149,17 @@ export default function PumpCountersIndex() {
 
     const CARD_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
     const ROW_ACCENT_BORDERS = ['border-s-amber-500', 'border-s-blue-500'];
+    const TEXT_ACCENTS = [
+        'text-amber-600 dark:text-amber-400',
+        'text-blue-600 dark:text-blue-400',
+    ];
     const fuelTypeCardBorder: Record<number, string> = {};
     const fuelTypeRowBorder: Record<number, string> = {};
+    const fuelTypeText: Record<number, string> = {};
     fuelTypeOrder.forEach((fuelTypeId, i) => {
         fuelTypeCardBorder[fuelTypeId] =
             CARD_ACCENT_BORDERS[i] ?? 'border-t-border';
+        fuelTypeText[fuelTypeId] = TEXT_ACCENTS[i] ?? 'text-foreground';
         fuelTypeRowBorder[fuelTypeId] =
             ROW_ACCENT_BORDERS[i] ?? 'border-s-border';
     });
@@ -231,16 +237,21 @@ export default function PumpCountersIndex() {
         return Array.from(seen, ([id, name]) => ({ id, name }));
     }, [tanks]);
 
-    function handleDateChange(newDate: string) {
+    function handleRangeChange(range: { from: string; to: string }) {
         // preserveState keeps the in-progress bulk entry table (whatever counter values are
         // already typed) intact — without it, Inertia remounts the page and every row quietly
         // resets back to blank.
-        router.get(
-            index(),
-            { date: newDate },
-            { preserveScroll: false, preserveState: true },
-        );
+        router.get(index(), range, {
+            preserveScroll: true,
+            preserveState: true,
+        });
     }
+
+    const isSingleDay = filters.from === filters.to;
+    const governmentalLiters = governmentalTotals.reduce(
+        (sum, total) => sum + total.liters_sold,
+        0,
+    );
 
     function removeReading(reading: PumpCounterReading) {
         if (confirm(t('common.confirm_delete'))) {
@@ -592,44 +603,33 @@ export default function PumpCountersIndex() {
 
                 {(fuelTypeTotals.length > 0 ||
                     governmentalTotals.length > 0) && (
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border px-4 py-3 text-sm">
                         {fuelTypeTotals.map((total) => (
-                            <div
-                                key={total.fuel_type_id}
-                                className="rounded-lg border px-4 py-2 text-sm"
-                            >
-                                <div className="text-muted-foreground">
-                                    {total.fuel_type_name}
-                                </div>
-                                <div
+                            <span key={total.fuel_type_id}>
+                                <span className="text-muted-foreground">
+                                    {total.fuel_type_name}:
+                                </span>{' '}
+                                <span
                                     className={cn(
-                                        'font-medium',
-                                        total.liters_sold > 0 && 'text-success',
+                                        'font-bold',
+                                        fuelTypeText[total.fuel_type_id] ??
+                                            'text-foreground',
                                     )}
                                 >
                                     {formatNumber(total.liters_sold)} L
-                                </div>
-                            </div>
+                                </span>
+                            </span>
                         ))}
-                        {governmentalTotals.map((total) => (
-                            <div
-                                key={`governmental-${total.fuel_type_id}`}
-                                className="rounded-lg border px-4 py-2 text-sm"
-                            >
-                                <div className="text-muted-foreground">
-                                    {t('pump_counters.governmental_total')} —{' '}
-                                    {total.fuel_type_name}
-                                </div>
-                                <div
-                                    className={cn(
-                                        'font-medium',
-                                        total.liters_sold > 0 && 'text-success',
-                                    )}
-                                >
-                                    {formatNumber(total.liters_sold)} L
-                                </div>
-                            </div>
-                        ))}
+                        {governmentalTotals.length > 0 && (
+                            <span>
+                                <span className="text-muted-foreground">
+                                    {t('pump_counters.governmental_total')}:
+                                </span>{' '}
+                                <span className="font-bold text-green-600 dark:text-green-400">
+                                    {formatNumber(governmentalLiters)} L
+                                </span>
+                            </span>
+                        )}
                     </div>
                 )}
 
@@ -656,7 +656,9 @@ export default function PumpCountersIndex() {
                             <CardContent className="space-y-2 text-sm">
                                 <div>
                                     <p className="text-muted-foreground text-xs">
-                                        {t('pump_counters.daily_total')}
+                                        {isSingleDay
+                                            ? t('pump_counters.daily_total')
+                                            : t('pump_counters.period_total')}
                                     </p>
                                     <p
                                         className={cn(
@@ -692,18 +694,17 @@ export default function PumpCountersIndex() {
                 </div>
 
                 <div className="space-y-3">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                         <h3 className="font-semibold">
                             {t('pump_counters.history')}
                         </h3>
-                        <Input
-                            type="date"
-                            value={date}
-                            onChange={(e) => handleDateChange(e.target.value)}
-                            className="w-auto"
+                        <DateRangePicker
+                            from={filters.from}
+                            to={filters.to}
+                            onChange={handleRangeChange}
                         />
                         <GeneratePdfButton
-                            href={exportPdf.url({ query: { date } })}
+                            href={exportPdf.url({ query: filters })}
                         />
                     </div>
 
@@ -736,38 +737,38 @@ export default function PumpCountersIndex() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.time')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.pump')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('common.tank')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.previous')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.reading_value')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.liters_sold')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.governmental_sale')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('pump_counters.return_liters')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('common.recorded_by')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-2 text-start">
                                         {t('common.notes')}
                                     </th>
                                     {auth.isAdmin && (
-                                        <th className="px-4 py-2"></th>
+                                        <th className="px-4 py-2 text-start"></th>
                                     )}
                                 </tr>
                             </thead>

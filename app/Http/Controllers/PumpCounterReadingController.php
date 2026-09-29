@@ -32,13 +32,14 @@ class PumpCounterReadingController extends Controller
 
     public function index(Request $request): Response
     {
-        $date = Carbon::parse($request->input('date', today()->toDateString()));
+        [$from, $to] = $this->historyRange($request);
 
         $pumps = FuelPump::with('fuelTypes')->orderBy('name')->get()
-            ->map(function (FuelPump $pump) use ($date) {
+            ->map(function (FuelPump $pump) use ($from, $to) {
                 $latest = $pump->counterReadings()->orderByDesc('date')->orderByDesc('id')->first();
                 $dailyLiters = (float) $pump->counterReadings()
-                    ->whereDate('date', $date)
+                    ->whereDate('date', '>=', $from)
+                    ->whereDate('date', '<=', $to)
                     ->sum('liters_sold');
 
                 return [
@@ -56,7 +57,9 @@ class PumpCounterReadingController extends Controller
             });
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
-            ->whereDate('date', $date)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->orderByDesc('date')
             ->latest('id')
             ->get()
             ->each(function (PumpCounterReading $reading) {
@@ -99,17 +102,19 @@ class PumpCounterReadingController extends Controller
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
             'governmentalTotals' => $governmentalTotals,
-            'date' => $date->toDateString(),
+            'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
         ]);
     }
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $date = Carbon::parse($request->input('date', today()->toDateString()));
+        [$from, $to] = $this->historyRange($request);
         $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
-            ->whereDate('date', $date)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->orderByDesc('date')
             ->latest('id')
             ->get();
 
@@ -144,9 +149,9 @@ class PumpCounterReadingController extends Controller
         ])->all();
 
         return $exporter->download(
-            filename: 'pump-counters-'.$date->toDateString().'.pdf',
+            filename: 'pump-counters-'.$from->toDateString().($from->equalTo($to) ? '' : '-to-'.$to->toDateString()).'.pdf',
             title: $labels['title'],
-            subtitle: $date->toDateString(),
+            subtitle: $from->equalTo($to) ? $from->toDateString() : $from->toDateString().' — '.$to->toDateString(),
             headers: [$labels['pump'], $labels['tank'], $labels['reading'], $labels['liters_sold'], $labels['governmental'], $labels['return'], $labels['recorded_by']],
             rows: $rows,
             direction: $direction,
@@ -360,7 +365,7 @@ class PumpCounterReadingController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
-        return to_route('pump-counters.index', ['date' => $data['date']]);
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
     }
 
     /**
@@ -425,7 +430,7 @@ class PumpCounterReadingController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
-        return to_route('pump-counters.index', ['date' => $validated['date']]);
+        return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date']]);
     }
 
     /**
@@ -592,7 +597,7 @@ class PumpCounterReadingController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading updated.')]);
 
-        return to_route('pump-counters.index', ['date' => $data['date']]);
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
     }
 
     public function destroy(PumpCounterReading $pumpCounterReading): RedirectResponse
@@ -613,7 +618,21 @@ class PumpCounterReadingController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading deleted.')]);
 
-        return to_route('pump-counters.index', ['date' => $date]);
+        return to_route('pump-counters.index', ['from' => $date, 'to' => $date]);
+    }
+
+    /**
+     * The history range from the request -- a single day (today, by default) or any from/to
+     * span. A range with only one end given collapses to that one day.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function historyRange(Request $request): array
+    {
+        $from = $request->date('from') ?? $request->date('to') ?? today();
+        $to = $request->date('to') ?? $from;
+
+        return $from->greaterThan($to) ? [$to->startOfDay(), $from->startOfDay()] : [$from->startOfDay(), $to->startOfDay()];
     }
 
     /**
