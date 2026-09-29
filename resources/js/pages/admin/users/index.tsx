@@ -36,23 +36,23 @@ export default function UsersIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">{t('common.name')}</th>
-                                <th className="px-4 py-2">{t('common.email')}</th>
-                                <th className="px-4 py-2">{t('common.role')}</th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3">{t('common.name')}</th>
+                                <th className="px-4 py-3">{t('common.email')}</th>
+                                <th className="px-4 py-3">{t('common.role')}</th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map((user) => (
                                 <tr key={user.id} className="border-t">
-                                    <td className="px-4 py-2">{user.name}</td>
-                                    <td className="px-4 py-2">{user.email}</td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">{user.name}</td>
+                                    <td className="px-4 py-3">{user.email}</td>
+                                    <td className="px-4 py-3">
                                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                                             {user.role ? t(`roles.${user.role}` as TranslationKey) : ''}
                                         </Badge>
                                     </td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         <Link href={edit(user.id)} className="text-sm underline">
                                             {t('common.edit')}
                                         </Link>

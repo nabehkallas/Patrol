@@ -116,16 +116,16 @@ export default function ExchangeRatesIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('exchange_rates.effective_from')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.currency')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('exchange_rates.rate_to_usd')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.set_by')}
                                 </th>
                             </tr>
@@ -133,16 +133,16 @@ export default function ExchangeRatesIndex() {
                         <tbody>
                             {rates.data.map((rate) => (
                                 <tr key={rate.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDateTime(rate.effective_at)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {rate.currency}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatNumber(rate.rate_to_usd)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {rate.set_by?.name}
                                     </td>
                                 </tr>

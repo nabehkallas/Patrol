@@ -303,38 +303,38 @@ export default function FuelPricesIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('exchange_rates.effective_from')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.fuel_type')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.price')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.set_by')}
                                 </th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {prices.data.map((price) => (
                                 <tr key={price.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDateTime(price.effective_at)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {price.fuel_type?.name}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatNumber(price.price_per_liter)}{' '}
                                         {price.currency}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {price.set_by?.name}
                                     </td>
-                                    <td className="px-4 py-2 text-end">
+                                    <td className="px-4 py-3 text-end">
                                         <Button
                                             variant="ghost"
                                             size="sm"

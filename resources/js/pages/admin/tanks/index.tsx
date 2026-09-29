@@ -61,32 +61,32 @@ export default function TanksIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.fuel_type')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.name')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('tanks.capacity_liters')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('tanks.status')}
                                 </th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {tanks.map((tank) => (
                                 <tr key={tank.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {tank.fuel_type?.name}
                                     </td>
-                                    <td className="px-4 py-2">{tank.name}</td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">{tank.name}</td>
+                                    <td className="px-4 py-3">
                                         {formatNumber(tank.capacity_liters)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         <button
                                             type="button"
                                             onClick={() => toggle(tank)}
@@ -102,7 +102,7 @@ export default function TanksIndex() {
                                                 : t('tanks.inactive')}
                                         </button>
                                     </td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         <Link
                                             href={edit(tank.id)}
                                             className="text-sm underline"

@@ -789,55 +789,55 @@ export default function ShopIndex() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.time')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('common.type')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('shop.item')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('shop.quantity')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('common.amount')}
                                     </th>
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('common.recorded_by')}
                                     </th>
                                     {auth.isAdmin && (
-                                        <th className="px-4 py-2"></th>
+                                        <th className="px-4 py-3"></th>
                                     )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {history.map((entry) => (
                                     <tr key={entry.id} className="border-t">
-                                        <td className="whitespace-nowrap px-4 py-2">
+                                        <td className="whitespace-nowrap px-4 py-3">
                                             {formatDateTime(entry.occurred_at)}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {entry.type === 'purchase'
                                                 ? t('shop.type.purchase')
                                                 : t('shop.type.sale')}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {entry.item_name}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {formatNumber(entry.quantity, 0)}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {formatNumber(entry.amount)}{' '}
                                             {entry.currency}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {entry.recorded_by}
                                         </td>
                                         {auth.isAdmin && (
-                                            <td className="px-4 py-2 text-end">
+                                            <td className="px-4 py-3 text-end">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

@@ -288,51 +288,51 @@ export default function SadcopIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.date')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.type')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.fuel_type')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.liters')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('sadcop.cost_price_per_liter')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.amount')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.recorded_by')}
                                 </th>
                                 {auth.isAdmin && (
-                                    <th className="px-4 py-2"></th>
+                                    <th className="px-4 py-3"></th>
                                 )}
                             </tr>
                         </thead>
                         <tbody>
                             {entries.data.map((entry) => (
                                 <tr key={entry.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDateTime(entry.occurred_at)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {typeLabels[entry.type]}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.transaction?.tank?.fuel_type
                                             ?.name ?? '—'}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.liters !== null
                                             ? formatNumber(entry.liters)
                                             : '—'}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.price_per_liter !== null
                                             ? formatNumber(
                                                   entry.price_per_liter,
@@ -340,15 +340,15 @@ export default function SadcopIndex() {
                                               )
                                             : '—'}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.type === 'delivery' ? '-' : '+'}
                                         {formatSyp(Number(entry.amount))}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {entry.recorded_by?.name}
                                     </td>
                                     {auth.isAdmin && (
-                                        <td className="space-x-2 px-4 py-2 text-end">
+                                        <td className="space-x-2 px-4 py-3 text-end">
                                             <Link
                                                 href={edit(entry.id)}
                                                 className="text-sm underline"

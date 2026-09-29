@@ -252,54 +252,54 @@ export default function StatisticsIndex() {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/50 text-start">
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.date')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.type')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('transactions.description')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.liters')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.amount')}
                                         </th>
-                                        <th className="px-4 py-2"></th>
+                                        <th className="px-4 py-3"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {transactions.map((txn) => (
                                         <tr key={txn.id} className="border-t">
-                                            <td className="px-4 py-2 whitespace-nowrap">
+                                            <td className="whitespace-nowrap px-4 py-3">
                                                 {formatDateTime(
                                                     txn.occurred_at,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {transactionTypeLabels[
                                                     txn.type
                                                 ] ?? txn.type}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {txn.description}
                                                 {txn.tank_name &&
                                                     ` — ${txn.tank_name}`}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {txn.liters !== null
                                                     ? `${formatNumber(txn.liters)} L`
                                                     : '—'}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatCurrencyAmount(
                                                     txn.amount,
                                                     txn.currency,
                                                 )}
                                             </td>
-                                            <td className="space-x-1 px-4 py-2">
+                                            <td className="space-x-1 px-4 py-3">
                                                 {txn.is_governmental && (
                                                     <Badge variant="secondary">
                                                         {t(
@@ -321,7 +321,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -342,22 +342,22 @@ export default function StatisticsIndex() {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/50 text-start">
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.date')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.tank')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.liters')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('sadcop.cost_price_per_liter')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.amount')}
                                         </th>
-                                        <th className="px-4 py-2"></th>
+                                        <th className="px-4 py-3"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -366,20 +366,20 @@ export default function StatisticsIndex() {
                                             key={delivery.id}
                                             className="border-t"
                                         >
-                                            <td className="px-4 py-2 whitespace-nowrap">
+                                            <td className="whitespace-nowrap px-4 py-3">
                                                 {formatDateTime(
                                                     delivery.occurred_at,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {delivery.fuel_type_name} —{' '}
                                                 {delivery.tank_name}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatNumber(delivery.liters)}{' '}
                                                 L
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {delivery.price_per_liter !==
                                                 null
                                                     ? formatNumber(
@@ -387,13 +387,13 @@ export default function StatisticsIndex() {
                                                       )
                                                     : '—'}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatCurrencyAmount(
                                                     delivery.amount,
                                                     delivery.currency,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {delivery.paid_by_sadcop && (
                                                     <Badge variant="secondary">
                                                         {t(
@@ -408,7 +408,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -432,13 +432,13 @@ export default function StatisticsIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.debtor')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('debts.direction')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.amount')}
                                             </th>
                                         </tr>
@@ -449,15 +449,15 @@ export default function StatisticsIndex() {
                                                 key={debt.id}
                                                 className="border-t"
                                             >
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {debt.debtor_name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {t(
                                                         `debts.direction.${debt.direction}`,
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatCurrencyAmount(
                                                         debt.amount,
                                                         debt.currency,
@@ -469,7 +469,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={3}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -492,13 +492,13 @@ export default function StatisticsIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.debtor')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('debts.direction')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.amount')}
                                             </th>
                                         </tr>
@@ -509,17 +509,17 @@ export default function StatisticsIndex() {
                                                 key={payment.id}
                                                 className="border-t"
                                             >
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {payment.debtor_name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {payment.direction
                                                         ? t(
                                                               `debts.direction.${payment.direction}`,
                                                           )
                                                         : '—'}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {payment.currency
                                                         ? formatCurrencyAmount(
                                                               payment.amount,
@@ -533,7 +533,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={3}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>
@@ -557,13 +557,13 @@ export default function StatisticsIndex() {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/50 text-start">
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.fuel_type')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('dashboard.liters_sold')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('dashboard.income')}
                                         </th>
                                     </tr>
@@ -571,13 +571,13 @@ export default function StatisticsIndex() {
                                 <tbody>
                                     {byFuelType.map((row) => (
                                         <tr key={row.name} className="border-t">
-                                            <td className="px-4 py-2 font-medium">
+                                            <td className="px-4 py-3 font-medium">
                                                 {row.name}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatNumber(row.liters)} L
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatSyp(row.income_syp)}
                                             </td>
                                         </tr>
@@ -586,7 +586,7 @@ export default function StatisticsIndex() {
                                         <tr>
                                             <td
                                                 colSpan={3}
-                                                className="px-4 py-6 text-center text-muted-foreground"
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
                                                 {t('common.no_results')}
                                             </td>
@@ -608,19 +608,19 @@ export default function StatisticsIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.employee')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('dashboard.income')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('dashboard.expenses')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('dashboard.net')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('dashboard.liters_sold')}
                                             </th>
                                         </tr>
@@ -631,25 +631,25 @@ export default function StatisticsIndex() {
                                                 key={row.user.id}
                                                 className="border-t"
                                             >
-                                                <td className="px-4 py-2 font-medium">
+                                                <td className="px-4 py-3 font-medium">
                                                     {row.user.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatSyp(
                                                         row.totals.income_syp,
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatSyp(
                                                         row.totals.expense_syp,
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatSyp(
                                                         row.totals.net_syp,
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatNumber(
                                                         row.totals.liters_sold,
                                                     )}{' '}
@@ -661,7 +661,7 @@ export default function StatisticsIndex() {
                                             <tr>
                                                 <td
                                                     colSpan={5}
-                                                    className="px-4 py-6 text-center text-muted-foreground"
+                                                    className="text-muted-foreground px-4 py-6 text-center"
                                                 >
                                                     {t('common.no_results')}
                                                 </td>

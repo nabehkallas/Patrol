@@ -366,22 +366,22 @@ export default function DebtsIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.date')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.debtor')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('debts.what_for')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.amount')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('debts.direction')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     <button
                                         type="button"
                                         onClick={toggleStatusSort}
@@ -397,25 +397,25 @@ export default function DebtsIndex() {
                                         )}
                                     </button>
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.recorded_by')}
                                 </th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {debts.data.map((debt) => (
                                 <tr key={debt.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDate(debt.date)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {debt.debtor?.name}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {whatFor(debt)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {debt.paid_amount > 0 &&
                                         debt.status === 'outstanding' ? (
                                             <div>
@@ -439,20 +439,20 @@ export default function DebtsIndex() {
                                             </>
                                         )}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {debt.direction === 'payable'
                                             ? t('debts.direction.payable')
                                             : t('debts.direction.receivable')}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {debt.status === 'outstanding'
                                             ? t('debts.status.outstanding')
                                             : t('debts.status.settled')}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {debt.recorded_by?.name}
                                     </td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         {debt.status === 'outstanding' &&
                                             auth.isAdmin && (
                                                 <>

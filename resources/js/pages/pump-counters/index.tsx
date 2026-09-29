@@ -301,28 +301,28 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t(
                                                     'pump_counters.reading_value',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t(
                                                     'pump_counters.governmental_sale',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t(
                                                     'pump_counters.return_liters',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 align-top">
+                                            <th className="px-4 py-4 text-center align-top">
                                                 {t('common.notes')}
                                             </th>
                                         </tr>
@@ -609,38 +609,48 @@ export default function PumpCountersIndex() {
 
                 {(fuelTypeTotals.length > 0 ||
                     governmentalTotals.length > 0) && (
-                    <div className="flex flex-wrap gap-3">
-                        {fuelTypeTotals.map((total) => (
-                            <div key={total.fuel_type_id} className={TOTAL_BOX}>
-                                <span className={TOTAL_LABEL}>
-                                    {total.fuel_type_name}
-                                </span>
-                                <span
-                                    className={cn(
-                                        TOTAL_VALUE,
-                                        fuelTypeText[total.fuel_type_id] ??
-                                            'text-foreground',
-                                    )}
+                    <div className="space-y-3">
+                        <h3 className="font-semibold">
+                            {isSingleDay
+                                ? t('pump_counters.sales_summary_daily')
+                                : t('pump_counters.sales_summary_period')}
+                        </h3>
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+                            {fuelTypeTotals.map((total) => (
+                                <div
+                                    key={total.fuel_type_id}
+                                    className={TOTAL_BOX}
                                 >
-                                    {formatNumber(total.liters_sold)} L
-                                </span>
-                            </div>
-                        ))}
-                        {governmentalTotals.length > 0 && (
-                            <div className={TOTAL_BOX}>
-                                <span className={TOTAL_LABEL}>
-                                    {t('pump_counters.governmental_total')}
-                                </span>
-                                <span
-                                    className={cn(
-                                        TOTAL_VALUE,
-                                        'text-green-600 dark:text-green-400',
-                                    )}
-                                >
-                                    {formatNumber(governmentalLiters)} L
-                                </span>
-                            </div>
-                        )}
+                                    <span className={TOTAL_LABEL}>
+                                        {total.fuel_type_name}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            TOTAL_VALUE,
+                                            fuelTypeText[total.fuel_type_id] ??
+                                                'text-foreground',
+                                        )}
+                                    >
+                                        {formatNumber(total.liters_sold)} L
+                                    </span>
+                                </div>
+                            ))}
+                            {governmentalTotals.length > 0 && (
+                                <div className={TOTAL_BOX}>
+                                    <span className={TOTAL_LABEL}>
+                                        {t('pump_counters.governmental_total')}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            TOTAL_VALUE,
+                                            'text-green-600 dark:text-green-400',
+                                        )}
+                                    >
+                                        {formatNumber(governmentalLiters)} L
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -748,56 +758,56 @@ export default function PumpCountersIndex() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.time')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.pump')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('common.tank')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.previous')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.reading_value')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.liters_sold')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.governmental_sale')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('pump_counters.return_liters')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('common.recorded_by')}
                                     </th>
-                                    <th className="px-4 py-2 text-start">
+                                    <th className="px-4 py-3">
                                         {t('common.notes')}
                                     </th>
                                     {auth.isAdmin && (
-                                        <th className="px-4 py-2 text-start"></th>
+                                        <th className="px-4 py-3"></th>
                                     )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
-                                        <td className="whitespace-nowrap px-4 py-2">
+                                        <td className="whitespace-nowrap px-4 py-3">
                                             {formatDateTime(loggedAt(reading))}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.pump?.name}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.tank
                                                 ? `${reading.tank.fuel_type?.name} — ${reading.tank.name}`
                                                 : '—'}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.previous_reading_value !==
                                             null
                                                 ? formatNumber(
@@ -806,36 +816,36 @@ export default function PumpCountersIndex() {
                                                   )
                                                 : '—'}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {formatNumber(
                                                 reading.reading_value,
                                                 0,
                                             )}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.liters_sold !== null
                                                 ? `${formatNumber(reading.liters_sold)} L`
                                                 : '—'}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.governmental_liters !==
                                             null
                                                 ? `${formatNumber(reading.governmental_liters)} L`
                                                 : '—'}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.return_liters !== null
                                                 ? `${formatNumber(reading.return_liters)} L`
                                                 : '—'}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.recorded_by?.name}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {reading.notes}
                                         </td>
                                         {auth.isAdmin && (
-                                            <td className="space-x-2 px-4 py-2 text-end">
+                                            <td className="space-x-2 px-4 py-3 text-end">
                                                 <Link
                                                     href={edit(reading.id)}
                                                     className="text-sm underline"

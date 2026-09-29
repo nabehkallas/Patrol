@@ -32,7 +32,7 @@ export default function FuelPumpsIndex() {
                     />
                     <Link
                         href={create()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('fuel_pumps.new')}
                     </Link>
@@ -42,27 +42,27 @@ export default function FuelPumpsIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.name')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.fuel_types')}
                                 </th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {pumps.map((pump) => (
                                 <tr key={pump.id} className="border-t">
-                                    <td className="px-4 py-2 font-medium">
+                                    <td className="px-4 py-3 font-medium">
                                         {pump.name}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {pump.fuel_type_names.length > 0
                                             ? pump.fuel_type_names.join(', ')
                                             : '—'}
                                     </td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         <Link
                                             href={edit(pump.id)}
                                             className="text-sm underline"
@@ -83,7 +83,7 @@ export default function FuelPumpsIndex() {
                                 <tr>
                                     <td
                                         colSpan={3}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>

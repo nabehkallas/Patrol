@@ -86,7 +86,7 @@ export default function TransactionsIndex() {
                     />
                     <Link
                         href={create()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('transactions.new')}
                     </Link>
@@ -151,53 +151,53 @@ export default function TransactionsIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.date')}
                                 </th>
                                 {auth.isAdmin && (
-                                    <th className="px-4 py-2">
+                                    <th className="px-4 py-3">
                                         {t('common.employee')}
                                     </th>
                                 )}
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.type')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('transactions.detail')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('common.amount')}
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="px-4 py-3">
                                     {t('transactions.debt_label')}
                                 </th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {transactions.data.map((transaction) => (
                                 <tr key={transaction.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDateTime(
                                             transaction.occurred_at,
                                         )}
                                     </td>
                                     {auth.isAdmin && (
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {transaction.user?.name}
                                         </td>
                                     )}
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {typeLabels[transaction.type]}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {detailFor(transaction)}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatNumber(transaction.amount)}{' '}
                                         {transaction.currency}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {transaction.debt && (
                                             <span className="text-xs">
                                                 {t('transactions.debt_label')} —{' '}
@@ -205,7 +205,7 @@ export default function TransactionsIndex() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         <Link
                                             href={edit(transaction.id)}
                                             className="text-sm underline"
@@ -226,7 +226,7 @@ export default function TransactionsIndex() {
                                 <tr>
                                     <td
                                         colSpan={7}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>

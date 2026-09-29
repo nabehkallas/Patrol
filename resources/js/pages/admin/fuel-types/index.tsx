@@ -35,17 +35,17 @@ export default function FuelTypesIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">{t('common.name')}</th>
-                                <th className="px-4 py-2">{t('common.slug')}</th>
-                                <th className="px-4 py-2"></th>
+                                <th className="px-4 py-3">{t('common.name')}</th>
+                                <th className="px-4 py-3">{t('common.slug')}</th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {fuelTypes.map((fuelType) => (
                                 <tr key={fuelType.id} className="border-t">
-                                    <td className="px-4 py-2">{fuelType.name}</td>
-                                    <td className="px-4 py-2">{fuelType.slug}</td>
-                                    <td className="space-x-2 px-4 py-2 text-end">
+                                    <td className="px-4 py-3">{fuelType.name}</td>
+                                    <td className="px-4 py-3">{fuelType.slug}</td>
+                                    <td className="space-x-2 px-4 py-3 text-end">
                                         <Link href={edit(fuelType.id)} className="text-sm underline">
                                             {t('common.edit')}
                                         </Link>

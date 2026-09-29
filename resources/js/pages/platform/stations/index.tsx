@@ -99,18 +99,18 @@ export default function StationsIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-2">Name</th>
-                                <th className="px-4 py-2">Status</th>
-                                <th className="px-4 py-2">Created</th>
+                                <th className="px-4 py-3">Name</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Created</th>
                             </tr>
                         </thead>
                         <tbody>
                             {stations.map((station) => (
                                 <tr key={station.id} className="border-t">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {station.name}
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         <Badge
                                             variant={
                                                 station.onboarded
@@ -123,7 +123,7 @@ export default function StationsIndex() {
                                                 : 'Needs setup'}
                                         </Badge>
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         {formatDate(station.created_at)}
                                     </td>
                                 </tr>

@@ -414,23 +414,23 @@ export default function InventoryIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.date')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.liters')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.recorded_by')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.notes')}
                                             </th>
                                             {auth.isAdmin && (
-                                                <th className="px-4 py-2"></th>
+                                                <th className="px-4 py-3"></th>
                                             )}
                                         </tr>
                                     </thead>
@@ -440,28 +440,28 @@ export default function InventoryIndex() {
                                                 key={topUp.id}
                                                 className="border-t"
                                             >
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatDate(topUp.date)}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {
                                                         topUp.tank?.fuel_type
                                                             ?.name
                                                     }{' '}
                                                     — {topUp.tank?.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatNumber(topUp.liters)}{' '}
                                                     L
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {topUp.recorded_by?.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {topUp.notes}
                                                 </td>
                                                 {auth.isAdmin && (
-                                                    <td className="space-x-2 px-4 py-2 text-end">
+                                                    <td className="space-x-2 px-4 py-3 text-end">
                                                         <Link
                                                             href={editTopUp(
                                                                 topUp.id,
@@ -510,26 +510,26 @@ export default function InventoryIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.date')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('inventory.from_tank')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('inventory.to_tank')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.liters')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.recorded_by')}
                                             </th>
-                                            <th className="px-4 py-2">
+                                            <th className="px-4 py-3">
                                                 {t('common.notes')}
                                             </th>
                                             {auth.isAdmin && (
-                                                <th className="px-4 py-2"></th>
+                                                <th className="px-4 py-3"></th>
                                             )}
                                         </tr>
                                     </thead>
@@ -539,39 +539,39 @@ export default function InventoryIndex() {
                                                 key={transfer.id}
                                                 className="border-t"
                                             >
-                                                <td className="whitespace-nowrap px-4 py-2">
+                                                <td className="whitespace-nowrap px-4 py-3">
                                                     {formatDateTime(
                                                         transfer.created_at,
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {
                                                         transfer.from_tank
                                                             ?.fuel_type?.name
                                                     }{' '}
                                                     — {transfer.from_tank?.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {
                                                         transfer.to_tank
                                                             ?.fuel_type?.name
                                                     }{' '}
                                                     — {transfer.to_tank?.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {formatNumber(
                                                         transfer.liters,
                                                     )}{' '}
                                                     L
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {transfer.recorded_by?.name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {transfer.notes}
                                                 </td>
                                                 {auth.isAdmin && (
-                                                    <td className="space-x-2 px-4 py-2 text-end">
+                                                    <td className="space-x-2 px-4 py-3 text-end">
                                                         <Link
                                                             href={editTransfer(
                                                                 transfer.id,
@@ -804,49 +804,49 @@ export default function InventoryIndex() {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/50 text-start">
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.date')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.tank')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('inventory.quantity')} (L)
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.recorded_by')}
                                         </th>
-                                        <th className="px-4 py-2">
+                                        <th className="px-4 py-3">
                                             {t('common.notes')}
                                         </th>
                                         {auth.isAdmin && (
-                                            <th className="px-4 py-2"></th>
+                                            <th className="px-4 py-3"></th>
                                         )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {entries.data.map((entry) => (
                                         <tr key={entry.id} className="border-t">
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatDate(entry.date)}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {entry.tank?.fuel_type?.name} —{' '}
                                                 {entry.tank?.name}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {formatNumber(
                                                     entry.quantity_liters,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {entry.recorded_by?.name}
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-3">
                                                 {entry.notes}
                                             </td>
                                             {auth.isAdmin && (
-                                                <td className="space-x-2 px-4 py-2 text-end">
+                                                <td className="space-x-2 px-4 py-3 text-end">
                                                     <Link
                                                         href={edit(entry.id)}
                                                         className="text-sm underline"

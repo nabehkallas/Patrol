@@ -216,4 +216,14 @@
     html[dir='rtl'] {
         font-size: 1.125rem;
     }
+
+    /* Browsers center <th> text by default and don't let it inherit the row's text-align, so
+       a `text-start` on the header row never reached the headers -- they drifted off their
+       columns. Start-align every table cell (right in Arabic) and center it vertically; a
+       table that wants something else sets it on the cell. */
+    th,
+    td {
+        text-align: start;
+        vertical-align: middle;
+    }
 }
