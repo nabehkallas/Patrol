@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -216,20 +216,6 @@ export default function PumpCountersIndex() {
             },
         });
     }
-
-    // The monthly ledger export is deliberately a separate control from the single-day filter
-    // above — the export covers a whole range, one row per day, while the rest of this page
-    // stays focused on one day at a time.
-    const [exportRange, setExportRange] = useState(() => {
-        const now = new Date();
-
-        return {
-            from: new Date(now.getFullYear(), now.getMonth(), 1)
-                .toISOString()
-                .slice(0, 10),
-            to: now.toISOString().slice(0, 10),
-        };
-    });
 
     const exportFuelTypes = useMemo(() => {
         const seen = new Map<number, string>();
@@ -724,20 +710,9 @@ export default function PumpCountersIndex() {
                             to={filters.to}
                             onChange={handleRangeChange}
                         />
-                        <GeneratePdfButton
-                            href={exportPdf.url({ query: filters })}
-                        />
-                    </div>
-
-                    {exportFuelTypes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
-                            <span className="text-muted-foreground text-sm font-medium">
-                                {t('pump_counters.monthly_export')}
-                            </span>
-                            <DateRangePicker
-                                from={exportRange.from}
-                                to={exportRange.to}
-                                onChange={setExportRange}
+                        <div className="ms-auto flex flex-wrap items-center gap-2">
+                            <GeneratePdfButton
+                                href={exportPdf.url({ query: filters })}
                             />
                             {exportFuelTypes.map((fuelType) => (
                                 <GenerateXlsxButton
@@ -746,13 +721,13 @@ export default function PumpCountersIndex() {
                                     href={exportXlsx.url({
                                         query: {
                                             fuel_type_id: fuelType.id,
-                                            ...exportRange,
+                                            ...filters,
                                         },
                                     })}
                                 />
                             ))}
                         </div>
-                    )}
+                    </div>
 
                     <div className="overflow-x-auto rounded-xl border">
                         <table className="w-full text-sm">

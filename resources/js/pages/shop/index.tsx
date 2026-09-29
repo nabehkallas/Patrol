@@ -317,12 +317,12 @@ function ItemCard({ item }: { item: ShopItem }) {
             <CardHeader className="px-3">
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1">
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs dark:text-slate-400 dark:hover:text-white"
+                            className="text-muted-foreground hover:text-foreground h-6 rounded-md border px-2 text-xs dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-white"
                             onClick={openEdit}
                         >
                             {t('common.edit')}
@@ -331,7 +331,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs dark:text-slate-400 dark:hover:text-white"
+                            className="text-muted-foreground hover:text-foreground h-6 rounded-md border px-2 text-xs dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-white"
                             onClick={removeItem}
                         >
                             {t('common.delete')}
@@ -342,7 +342,7 @@ function ItemCard({ item }: { item: ShopItem }) {
             <CardContent className="space-y-2 px-3 text-sm">
                 <div className="flex items-center justify-between">
                     <span>
-                        <span className="text-muted-foreground font-normal dark:text-slate-400">
+                        <span className="text-muted-foreground text-xs font-normal dark:text-slate-500">
                             {t('shop.stock')}:
                         </span>{' '}
                         <span className="text-foreground font-bold dark:text-white">
@@ -388,13 +388,17 @@ function ItemCard({ item }: { item: ShopItem }) {
                             onChange={(e) => setSellDate(e.target.value)}
                             className="h-8 min-w-0 flex-1"
                         />
-                        <Button type="submit" size="sm" className="h-8">
+                        <Button
+                            type="submit"
+                            size="sm"
+                            className="h-8 rounded-lg bg-emerald-600 px-3 font-medium text-white hover:bg-emerald-500"
+                        >
                             {t('shop.sell')}
                         </Button>
                         <Button
                             type="button"
                             size="sm"
-                            className="h-8 rounded-lg bg-blue-600 px-3 font-medium text-white hover:bg-blue-500"
+                            className="h-8 rounded-lg bg-indigo-600 px-3 font-medium text-white hover:bg-indigo-500"
                             onClick={openBuy}
                         >
                             {t('shop.buy')}
