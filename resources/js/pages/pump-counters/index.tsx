@@ -424,137 +424,156 @@ export default function PumpCountersIndex() {
                                                             />
                                                         </td>
                                                         <td className="px-4 py-4 align-top">
-                                                            <Input
-                                                                type="number"
-                                                                step="1"
-                                                                min="0"
-                                                                className="w-full"
-                                                                value={
-                                                                    row.reading_value
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateRow(
-                                                                        pump.id,
-                                                                        {
-                                                                            reading_value:
-                                                                                e
-                                                                                    .target
-                                                                                    .value,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            />
-                                                            {pump.latest_reading && (
-                                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                                    {t(
-                                                                        'pump_counters.previous',
-                                                                    )}
-                                                                    :{' '}
-                                                                    {formatNumber(
-                                                                        pump
-                                                                            .latest_reading
-                                                                            .reading_value,
-                                                                        0,
-                                                                    )}
-                                                                </p>
-                                                            )}
-                                                            <InputError
-                                                                message={
-                                                                    form.errors[
-                                                                        `readings.${rowIndex}.reading_value`
-                                                                    ]
-                                                                }
-                                                            />
+                                                            <div className="mx-auto w-36 max-w-full">
+                                                                <Input
+                                                                    type="number"
+                                                                    step="1"
+                                                                    min="0"
+                                                                    className="w-full"
+                                                                    value={
+                                                                        row.reading_value
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        updateRow(
+                                                                            pump.id,
+                                                                            {
+                                                                                reading_value:
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                                {pump.latest_reading && (
+                                                                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                        {t(
+                                                                            'pump_counters.previous',
+                                                                        )}
+                                                                        :{' '}
+                                                                        {formatNumber(
+                                                                            pump
+                                                                                .latest_reading
+                                                                                .reading_value,
+                                                                            0,
+                                                                        )}
+                                                                    </p>
+                                                                )}
+                                                                <InputError
+                                                                    message={
+                                                                        form
+                                                                            .errors[
+                                                                            `readings.${rowIndex}.reading_value`
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 py-4 align-top">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.001"
-                                                                min="0"
-                                                                className="w-full"
-                                                                value={
-                                                                    row.governmental_liters
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateRow(
-                                                                        pump.id,
-                                                                        {
-                                                                            governmental_liters:
-                                                                                e
-                                                                                    .target
-                                                                                    .value,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            />
-                                                            {maxLitersSold !==
-                                                                null && (
-                                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                                    {t(
-                                                                        'pump_counters.max',
-                                                                    )}
-                                                                    :{' '}
-                                                                    {formatNumber(
-                                                                        maxLitersSold,
-                                                                    )}{' '}
-                                                                    L
-                                                                </p>
-                                                            )}
-                                                            <InputError
-                                                                message={
-                                                                    form.errors[
-                                                                        `readings.${rowIndex}.governmental_liters`
-                                                                    ]
-                                                                }
-                                                            />
+                                                            <div className="mx-auto w-32 max-w-full">
+                                                                <Input
+                                                                    type="number"
+                                                                    step="0.001"
+                                                                    min="0"
+                                                                    className="w-full"
+                                                                    value={
+                                                                        row.governmental_liters
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        updateRow(
+                                                                            pump.id,
+                                                                            {
+                                                                                governmental_liters:
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                                {maxLitersSold !==
+                                                                    null && (
+                                                                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                        {t(
+                                                                            'pump_counters.max',
+                                                                        )}
+                                                                        :{' '}
+                                                                        {formatNumber(
+                                                                            maxLitersSold,
+                                                                        )}{' '}
+                                                                        L
+                                                                    </p>
+                                                                )}
+                                                                <InputError
+                                                                    message={
+                                                                        form
+                                                                            .errors[
+                                                                            `readings.${rowIndex}.governmental_liters`
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 py-4 align-top">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.001"
-                                                                min="0"
-                                                                className="w-full"
-                                                                value={
-                                                                    row.return_liters
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateRow(
-                                                                        pump.id,
-                                                                        {
-                                                                            return_liters:
-                                                                                e
-                                                                                    .target
-                                                                                    .value,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    form.errors[
-                                                                        `readings.${rowIndex}.return_liters`
-                                                                    ]
-                                                                }
-                                                            />
+                                                            <div className="mx-auto w-32 max-w-full">
+                                                                <Input
+                                                                    type="number"
+                                                                    step="0.001"
+                                                                    min="0"
+                                                                    className="w-full"
+                                                                    value={
+                                                                        row.return_liters
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        updateRow(
+                                                                            pump.id,
+                                                                            {
+                                                                                return_liters:
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        form
+                                                                            .errors[
+                                                                            `readings.${rowIndex}.return_liters`
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 py-4 align-top">
-                                                            <Input
-                                                                type="text"
-                                                                className="w-full"
-                                                                value={
-                                                                    row.notes
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateRow(
-                                                                        pump.id,
-                                                                        {
-                                                                            notes: e
-                                                                                .target
-                                                                                .value,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            />
+                                                            <div className="mx-auto w-40 max-w-full">
+                                                                <Input
+                                                                    type="text"
+                                                                    className="w-full"
+                                                                    value={
+                                                                        row.notes
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        updateRow(
+                                                                            pump.id,
+                                                                            {
+                                                                                notes: e
+                                                                                    .target
+                                                                                    .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
