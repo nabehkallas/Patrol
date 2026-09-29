@@ -28,6 +28,7 @@ import {
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { index, exportPdf, exportXlsx } from '@/routes/shop';
 import {
     store as storeItem,
@@ -43,6 +44,7 @@ import type { Auth, Currency } from '@/types';
 type ShopItem = {
     id: number;
     name: string;
+    category: string | null;
     stock: number;
     base_price: string | null;
     sell_price: string | null;
@@ -65,6 +67,7 @@ type HistoryEntry = {
 type ItemTotal = {
     id: number;
     name: string;
+    category: string | null;
     quantity: number;
 };
 
@@ -82,10 +85,40 @@ type PageProps = {
     itemTotals: ItemTotal[];
     filters: LogFilters;
     summaryType: 'purchase' | 'sale';
+    categories: string[];
 };
 
 // Radix Select can't use an empty string as an item value, so "All" gets a sentinel value.
 const ALL = 'all';
+
+// Categories the shop commonly uses, offered as suggestions in the item form. Any other
+// category can still be typed in freely.
+const SUGGESTED_CATEGORIES = [
+    'بنزين',
+    'محروقات',
+    'مازوت',
+    'بخاخات',
+    'زيوت',
+    'إكسسوارات',
+];
+
+// Color of an item's sold-quantity badge number, by its category. Anything not listed --
+// including items with no category yet and any new category -- gets purple.
+function getCategoryColor(category: string | null): string {
+    switch (category?.trim().toLowerCase()) {
+        case 'بنزين':
+        case 'محروقات':
+            return 'text-amber-600 dark:text-amber-400';
+        case 'مازوت':
+        case 'بخاخات':
+            return 'text-cyan-600 dark:text-cyan-400';
+        case 'زيوت':
+        case 'إكسسوارات':
+            return 'text-emerald-600 dark:text-emerald-400';
+        default:
+            return 'text-purple-600 dark:text-purple-400';
+    }
+}
 
 type MovementFormState = {
     quantity: string;
@@ -148,6 +181,7 @@ function ItemCard({ item }: { item: ShopItem }) {
 
     const editForm = useForm({
         name: item.name,
+        category: item.category ?? '',
         base_price: item.base_price ?? '',
         sell_price: item.sell_price ?? '',
         currency: item.currency,
@@ -211,6 +245,7 @@ function ItemCard({ item }: { item: ShopItem }) {
     function openEdit() {
         editForm.setData({
             name: item.name,
+            category: item.category ?? '',
             base_price: item.base_price ?? '',
             sell_price: item.sell_price ?? '',
             currency: item.currency,
@@ -454,6 +489,21 @@ function ItemCard({ item }: { item: ShopItem }) {
                             />
                             <InputError message={editForm.errors.name} />
                         </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor={`edit_category_${item.id}`}>
+                                {t('shop.category')}
+                            </Label>
+                            <Input
+                                id={`edit_category_${item.id}`}
+                                list="shop-categories"
+                                value={editForm.data.category}
+                                onChange={(e) =>
+                                    editForm.setData('category', e.target.value)
+                                }
+                                placeholder={t('shop.category_placeholder')}
+                            />
+                            <InputError message={editForm.errors.category} />
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor={`edit_base_price_${item.id}`}>
@@ -540,13 +590,21 @@ function ItemCard({ item }: { item: ShopItem }) {
 }
 
 export default function ShopIndex() {
-    const { auth, items, history, itemTotals, filters, summaryType } =
-        usePage<PageProps>().props;
+    const {
+        auth,
+        items,
+        history,
+        itemTotals,
+        filters,
+        summaryType,
+        categories,
+    } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const [showAddItem, setShowAddItem] = useState(false);
     const newItemForm = useForm({
         name: '',
+        category: '',
         base_price: '',
         sell_price: '',
         currency: 'SYP' as Currency,
@@ -625,6 +683,13 @@ export default function ShopIndex() {
     return (
         <>
             <Head title={t('shop.title')} />
+            <datalist id="shop-categories">
+                {[...new Set([...SUGGESTED_CATEGORIES, ...categories])].map(
+                    (category) => (
+                        <option key={category} value={category} />
+                    ),
+                )}
+            </datalist>
 
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -672,7 +737,12 @@ export default function ShopIndex() {
                                 <span className="text-muted-foreground text-sm font-medium dark:text-slate-400">
                                     <bdi>{row.name}</bdi>:
                                 </span>
-                                <span className="text-xl font-extrabold">
+                                <span
+                                    className={cn(
+                                        'text-xl font-extrabold',
+                                        getCategoryColor(row.category),
+                                    )}
+                                >
                                     {formatNumber(row.quantity, 0)}
                                 </span>
                             </div>
@@ -890,6 +960,24 @@ export default function ShopIndex() {
                                 placeholder={t('shop.item_name_placeholder')}
                             />
                             <InputError message={newItemForm.errors.name} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="new_item_category">
+                                {t('shop.category')}
+                            </Label>
+                            <Input
+                                id="new_item_category"
+                                list="shop-categories"
+                                value={newItemForm.data.category}
+                                onChange={(e) =>
+                                    newItemForm.setData(
+                                        'category',
+                                        e.target.value,
+                                    )
+                                }
+                                placeholder={t('shop.category_placeholder')}
+                            />
+                            <InputError message={newItemForm.errors.category} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">

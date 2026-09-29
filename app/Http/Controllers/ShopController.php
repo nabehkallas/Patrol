@@ -36,6 +36,7 @@ class ShopController extends Controller
 
         return Inertia::render('shop/index', [
             'items' => $this->itemOptions(),
+            'categories' => ShopItem::whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
             'history' => $this->historyFor($from, $to, $itemId, $type),
             'itemTotals' => $this->itemTotalsFor($from, $to, $itemId, $summaryType),
             'filters' => [
@@ -258,6 +259,7 @@ class ShopController extends Controller
             return [
                 'id' => $item->id,
                 'name' => $item->name,
+                'category' => $item->category,
                 'stock' => $item->currentStock(),
                 'base_price' => $price?->base_price,
                 'sell_price' => $price?->sell_price,
@@ -335,6 +337,7 @@ class ShopController extends Controller
             ->map(fn ($group) => [
                 'id' => $group->first()->shop_item_id,
                 'name' => $group->first()->shopItem?->name ?? '—',
+                'category' => $group->first()->shopItem?->category,
                 'quantity' => (int) $group->sum('quantity'),
             ])
             ->sortBy('name')
@@ -345,13 +348,14 @@ class ShopController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:shop_items,name'],
+            'category' => ['nullable', 'string', 'max:100'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'in:SYP,TRY,USD'],
         ]);
 
         DB::transaction(function () use ($request, $data) {
-            $shopItem = ShopItem::create(['name' => $data['name']]);
+            $shopItem = ShopItem::create(['name' => $data['name'], 'category' => $data['category'] ?? null]);
 
             $shopItem->prices()->create([
                 'base_price' => $data['base_price'],
@@ -371,6 +375,7 @@ class ShopController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:shop_items,name,'.$shopItem->id],
+            'category' => ['nullable', 'string', 'max:100'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'in:SYP,TRY,USD'],
@@ -380,7 +385,7 @@ class ShopController extends Controller
         $repriced = 0;
 
         DB::transaction(function () use ($request, $data, $shopItem, &$repriced) {
-            $shopItem->update(['name' => $data['name']]);
+            $shopItem->update(['name' => $data['name'], 'category' => $data['category'] ?? null]);
 
             $currentPrice = $shopItem->currentPrice();
 
