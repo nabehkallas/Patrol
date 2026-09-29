@@ -101,6 +101,12 @@ function tanksFor(
     return matching.length > 0 ? matching : active;
 }
 
+const TOTAL_BOX =
+    'flex items-center justify-between gap-4 rounded-xl border bg-card px-5 py-3 dark:border-slate-700/60 dark:bg-slate-800/80';
+const TOTAL_LABEL =
+    'text-sm font-medium text-muted-foreground dark:text-slate-300';
+const TOTAL_VALUE = 'text-lg font-extrabold md:text-xl';
+
 type BulkRow = {
     pump_id: number;
     tank_id: string;
@@ -603,32 +609,37 @@ export default function PumpCountersIndex() {
 
                 {(fuelTypeTotals.length > 0 ||
                     governmentalTotals.length > 0) && (
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border px-4 py-3 text-sm">
+                    <div className="flex flex-wrap gap-3">
                         {fuelTypeTotals.map((total) => (
-                            <span key={total.fuel_type_id}>
-                                <span className="text-muted-foreground">
-                                    {total.fuel_type_name}:
-                                </span>{' '}
+                            <div key={total.fuel_type_id} className={TOTAL_BOX}>
+                                <span className={TOTAL_LABEL}>
+                                    {total.fuel_type_name}
+                                </span>
                                 <span
                                     className={cn(
-                                        'font-bold',
+                                        TOTAL_VALUE,
                                         fuelTypeText[total.fuel_type_id] ??
                                             'text-foreground',
                                     )}
                                 >
                                     {formatNumber(total.liters_sold)} L
                                 </span>
-                            </span>
+                            </div>
                         ))}
                         {governmentalTotals.length > 0 && (
-                            <span>
-                                <span className="text-muted-foreground">
-                                    {t('pump_counters.governmental_total')}:
-                                </span>{' '}
-                                <span className="font-bold text-green-600 dark:text-green-400">
+                            <div className={TOTAL_BOX}>
+                                <span className={TOTAL_LABEL}>
+                                    {t('pump_counters.governmental_total')}
+                                </span>
+                                <span
+                                    className={cn(
+                                        TOTAL_VALUE,
+                                        'text-green-600 dark:text-green-400',
+                                    )}
+                                >
                                     {formatNumber(governmentalLiters)} L
                                 </span>
-                            </span>
+                            </div>
                         )}
                     </div>
                 )}
