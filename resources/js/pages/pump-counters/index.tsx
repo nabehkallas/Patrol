@@ -351,7 +351,7 @@ export default function PumpCountersIndex() {
                                                         )}
                                                     >
                                                         <td className="px-4 py-4 align-top">
-                                                            <div className="flex min-h-9 items-center gap-1.5 whitespace-nowrap text-base font-semibold">
+                                                            <div className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap text-base font-semibold">
                                                                 {pump.name}
                                                                 {pump.fuel_type_names.map(
                                                                     (name) => (
@@ -387,7 +387,7 @@ export default function PumpCountersIndex() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="mx-auto w-48 max-w-full">
+                                                                <SelectTrigger className="mx-auto w-48 max-w-full dark:border-slate-600 dark:bg-slate-800/80">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -429,7 +429,7 @@ export default function PumpCountersIndex() {
                                                                     type="number"
                                                                     step="1"
                                                                     min="0"
-                                                                    className="w-full"
+                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.reading_value
                                                                     }
@@ -477,7 +477,7 @@ export default function PumpCountersIndex() {
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0"
-                                                                    className="w-full"
+                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.governmental_liters
                                                                     }
@@ -524,7 +524,7 @@ export default function PumpCountersIndex() {
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0"
-                                                                    className="w-full"
+                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.return_liters
                                                                     }
@@ -556,7 +556,7 @@ export default function PumpCountersIndex() {
                                                             <div className="mx-auto w-40 max-w-full">
                                                                 <Input
                                                                     type="text"
-                                                                    className="w-full"
+                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.notes
                                                                     }
