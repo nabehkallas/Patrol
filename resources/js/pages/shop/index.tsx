@@ -66,7 +66,6 @@ type ItemTotal = {
     id: number;
     name: string;
     quantity: number;
-    amounts: { currency: Currency; amount: number }[];
 };
 
 type LogFilters = {
@@ -254,15 +253,16 @@ function ItemCard({ item }: { item: ShopItem }) {
     }
 
     return (
-        <Card>
-            <CardHeader>
+        <Card className="gap-2 py-3">
+            <CardHeader className="px-4">
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center">
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="h-7 px-2 text-xs"
                             onClick={openEdit}
                         >
                             {t('common.edit')}
@@ -271,6 +271,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="h-7 px-2 text-xs"
                             onClick={removeItem}
                         >
                             {t('common.delete')}
@@ -278,15 +279,17 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between font-medium">
-                    <span className="text-muted-foreground">
-                        {t('shop.stock')}
-                    </span>
-                    <span>{formatNumber(item.stock, 0)}</span>
-                </div>
-                <div className="text-muted-foreground flex items-center justify-between text-xs">
+            <CardContent className="space-y-2 px-4 text-sm">
+                <div className="flex items-center justify-between">
                     <span>
+                        <span className="text-muted-foreground">
+                            {t('shop.stock')}:
+                        </span>{' '}
+                        <span className="font-semibold">
+                            {formatNumber(item.stock, 0)}
+                        </span>
+                    </span>
+                    <span className="text-muted-foreground text-xs">
                         {t('shop.sell_price')}:{' '}
                         {item.sell_price
                             ? `${formatNumber(parseFloat(item.sell_price))} ${item.currency}`
@@ -294,7 +297,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </span>
                 </div>
 
-                <form onSubmit={submitSell} className="space-y-1 border-t pt-3">
+                <form onSubmit={submitSell} className="space-y-1.5">
                     <div className="flex gap-2">
                         <Input
                             type="number"
@@ -306,7 +309,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             onChange={(e) =>
                                 handleSellQuantityChange(e.target.value)
                             }
-                            className="flex-1"
+                            className="h-8 flex-1"
                         />
                         <Input
                             type="number"
@@ -315,32 +318,33 @@ function ItemCard({ item }: { item: ShopItem }) {
                             placeholder={t('common.amount')}
                             value={sellAmount}
                             onChange={(e) => setSellAmount(e.target.value)}
-                            className="flex-1"
+                            className="h-8 flex-1"
                         />
-                        <Button type="submit" size="sm">
+                    </div>
+                    <div className="flex gap-2">
+                        <Input
+                            type="date"
+                            value={sellDate}
+                            onChange={(e) => setSellDate(e.target.value)}
+                            className="h-8 min-w-0 flex-1"
+                        />
+                        <Button type="submit" size="sm" className="h-8">
                             {t('shop.sell')}
                         </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={openBuy}
+                        >
+                            {t('shop.buy')}
+                        </Button>
                     </div>
-                    <Input
-                        type="date"
-                        value={sellDate}
-                        onChange={(e) => setSellDate(e.target.value)}
-                        className="w-full"
-                    />
                     <InputError message={sellErrors.quantity} />
                     <InputError message={sellErrors.amount} />
                     <InputError message={sellErrors.date} />
                 </form>
-
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={openBuy}
-                >
-                    {t('shop.buy')}
-                </Button>
             </CardContent>
 
             <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
@@ -660,27 +664,18 @@ export default function ShopIndex() {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-3">
                         {itemTotals.map((row) => (
                             <div
                                 key={row.id}
-                                className="rounded-lg border px-4 py-2 text-sm"
+                                className="bg-card flex items-center gap-3 rounded-xl border px-4 py-2.5 dark:border-slate-700/60 dark:bg-slate-800/80"
                             >
-                                <div className="text-muted-foreground">
-                                    {row.name}
-                                </div>
-                                <div className="font-medium">
+                                <span className="text-muted-foreground text-sm font-medium dark:text-slate-400">
+                                    <bdi>{row.name}</bdi>:
+                                </span>
+                                <span className="text-xl font-extrabold">
                                     {formatNumber(row.quantity, 0)}
-                                </div>
-                                {row.amounts.map((total) => (
-                                    <div
-                                        key={total.currency}
-                                        className="text-muted-foreground"
-                                    >
-                                        {formatNumber(total.amount)}{' '}
-                                        {total.currency}
-                                    </div>
-                                ))}
+                                </span>
                             </div>
                         ))}
                         {itemTotals.length === 0 && (

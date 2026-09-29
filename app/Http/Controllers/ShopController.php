@@ -323,9 +323,8 @@ class ShopController extends Controller
     }
 
     /**
-     * Per-item quantity and amount for one movement type (sales or purchases) within the range,
-     * narrowed by the item filter. Amounts are kept per currency, since an item's price can be
-     * set in different currencies over time and adding them together would be meaningless.
+     * Per-item quantity for one movement type (sales or purchases) within the range, narrowed
+     * by the item filter.
      */
     private function itemTotalsFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, TransactionType $type)
     {
@@ -337,12 +336,6 @@ class ShopController extends Controller
                 'id' => $group->first()->shop_item_id,
                 'name' => $group->first()->shopItem?->name ?? '—',
                 'quantity' => (int) $group->sum('quantity'),
-                'amounts' => $group->groupBy(fn (Transaction $t) => $t->currency->value)
-                    ->map(fn ($byCurrency, $currency) => [
-                        'currency' => $currency,
-                        'amount' => round((float) $byCurrency->sum('amount'), 2),
-                    ])
-                    ->values(),
             ])
             ->sortBy('name')
             ->values();
