@@ -351,7 +351,7 @@ export default function PumpCountersIndex() {
                                                         )}
                                                     >
                                                         <td className="px-4 py-4 align-top">
-                                                            <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap text-base font-semibold">
+                                                            <div className="flex min-h-9 items-center gap-1.5 whitespace-nowrap text-base font-semibold">
                                                                 {pump.name}
                                                                 {pump.fuel_type_names.map(
                                                                     (name) => (
@@ -387,7 +387,7 @@ export default function PumpCountersIndex() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="w-full">
+                                                                <SelectTrigger className="mx-auto w-48 max-w-full">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -424,7 +424,7 @@ export default function PumpCountersIndex() {
                                                             />
                                                         </td>
                                                         <td className="px-4 py-4 align-top">
-                                                            <div className="mx-auto w-36 max-w-full">
+                                                            <div className="mx-auto w-48 max-w-full">
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
@@ -448,7 +448,7 @@ export default function PumpCountersIndex() {
                                                                     }
                                                                 />
                                                                 {pump.latest_reading && (
-                                                                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                    <p className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300">
                                                                         {t(
                                                                             'pump_counters.previous',
                                                                         )}
@@ -497,7 +497,7 @@ export default function PumpCountersIndex() {
                                                                 />
                                                                 {maxLitersSold !==
                                                                     null && (
-                                                                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                    <p className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300">
                                                                         {t(
                                                                             'pump_counters.max',
                                                                         )}
