@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Currency;
+use App\Enums\DebtDirection;
+use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debt;
 use App\Models\DebtPayment;
@@ -83,35 +85,21 @@ class StatisticsController extends Controller
                 ->all(),
         ];
 
-        [$debtsCreated, $debtsSettled] = $this->debtActivity($request, $from, $to);
-
         $props = [
             'totals' => $this->summarize($transactions, $sypRate),
             'byFuelType' => $byFuelType,
             'salesChart' => $salesChart,
-            'transactions' => $transactions
-                ->sortByDesc('occurred_at')
-                ->values()
-                ->map(fn (Transaction $t) => $this->transactionRow($t))
-                ->all(),
-            'deliveries' => $transactions
+            'deliveriesByFuelType' => $transactions
                 ->where('type', TransactionType::FuelDelivery)
-                ->sortByDesc('occurred_at')
-                ->values()
-                ->map(fn (Transaction $t) => [
-                    'id' => $t->id,
-                    'occurred_at' => $t->occurred_at->toIso8601String(),
-                    'tank_name' => $t->tank?->name,
-                    'fuel_type_name' => $t->fuelType?->name,
-                    'liters' => (float) $t->liters,
-                    'price_per_liter' => $t->price_per_liter !== null ? (float) $t->price_per_liter : null,
-                    'amount' => (float) $t->amount,
-                    'currency' => $t->currency->value,
-                    'paid_by_sadcop' => $t->paid_by_sadcop,
+                ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
+                ->map(fn (Collection $txns) => [
+                    'name' => $txns->first()->fuelType?->name ?? '—',
+                    'liters' => round($txns->sum(fn (Transaction $t) => (float) $t->liters), 3),
+                    'cost_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
                 ])
-                ->all(),
-            'debtsCreated' => $debtsCreated,
-            'debtsSettled' => $debtsSettled,
+                ->sortBy('name')
+                ->values(),
+            'debtPosition' => $this->debtPosition(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
         ];
@@ -133,38 +121,6 @@ class StatisticsController extends Controller
         return Inertia::render('statistics/index', $props);
     }
 
-    private function transactionRow(Transaction $t): array
-    {
-        $tankRelevant = in_array($t->type, [TransactionType::FuelSale, TransactionType::FuelDelivery], true);
-
-        return [
-            'id' => $t->id,
-            'type' => $t->type->value,
-            'description' => $this->describeTransaction($t),
-            'tank_name' => $tankRelevant ? $t->tank?->name : null,
-            'liters' => $t->liters !== null ? (float) $t->liters : null,
-            'amount' => (float) $t->amount,
-            'currency' => $t->currency->value,
-            'occurred_at' => $t->occurred_at->toIso8601String(),
-            'is_governmental' => $t->is_governmental,
-            'is_pending_debt' => $t->isPendingDebt(),
-        ];
-    }
-
-    /**
-     * Mirrors CashBoxController::describeTransaction() — a currency exchange has no fuel type
-     * or description of its own, so it needs its own "X → Y" summary instead.
-     */
-    private function describeTransaction(Transaction $t): string
-    {
-        if ($t->type === TransactionType::CurrencyExchange) {
-            return number_format((float) $t->amount, 2).' '.$t->currency->value
-                .' → '.number_format((float) $t->to_amount, 2).' '.$t->to_currency->value;
-        }
-
-        return $t->fuelType?->name ?? $t->description ?? $t->type->value;
-    }
-
     private function filteredTransactions(Request $request, CarbonInterface $from, CarbonInterface $to): Collection
     {
         $user = $request->user();
@@ -174,7 +130,7 @@ class StatisticsController extends Controller
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
-            ->with(['user', 'fuelType', 'tank', 'debt'])
+            ->with(['user', 'fuelType', 'tank', 'debt', 'sadcopLedgerEntry'])
             ->get();
     }
 
@@ -226,6 +182,29 @@ class StatisticsController extends Controller
             ->all();
 
         return [$created, $settled];
+    }
+
+    /**
+     * Outstanding debt balances right now, per currency and direction -- the same remaining-
+     * after-payments figures the Debts page's "unpaid" totals show. Station-wide and not tied
+     * to the selected date range, since it's a current position rather than activity.
+     *
+     * @return array{receivable: array<string, float>, payable: array<string, float>}
+     */
+    private function debtPosition(): array
+    {
+        $outstanding = Debt::where('status', DebtStatus::Outstanding)->with('payments')->get();
+
+        $byCurrency = fn (DebtDirection $direction) => $outstanding
+            ->where('direction', $direction)
+            ->groupBy(fn (Debt $debt) => $debt->currency->value)
+            ->map(fn (Collection $debts) => round($debts->sum(fn (Debt $debt) => $debt->remainingAmount()), 2))
+            ->all();
+
+        return [
+            'receivable' => $byCurrency(DebtDirection::Receivable),
+            'payable' => $byCurrency(DebtDirection::Payable),
+        ];
     }
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
@@ -348,10 +327,12 @@ class StatisticsController extends Controller
             ->reject(fn (Transaction $t) => $t->isPendingDebt())
             ->sum(fn (Transaction $t) => $t->amountInSyp($sypRate));
 
-        $expenseSyp = $transactions
+        // Money out, split the way Cash Box splits it: a payment into Sadcop's balance is a
+        // Purchase linked to a Sadcop ledger entry; everything else is an operating expense.
+        $moneyOut = $transactions
             ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
-            ->reject(fn (Transaction $t) => $t->isPendingDebt())
-            ->sum(fn (Transaction $t) => $t->amountInSyp($sypRate));
+            ->reject(fn (Transaction $t) => $t->isPendingDebt());
+        $isSadcopPayment = fn (Transaction $t) => $t->sadcopLedgerEntry !== null;
 
         $litersSold = $transactions
             ->where('type', TransactionType::FuelSale)
@@ -364,8 +345,8 @@ class StatisticsController extends Controller
 
         return [
             'income_syp' => round($incomeSyp, 0),
-            'expense_syp' => round($expenseSyp, 0),
-            'net_syp' => round($incomeSyp - $expenseSyp, 0),
+            'expense_syp' => round($moneyOut->reject($isSadcopPayment)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'sadcop_syp' => round($moneyOut->filter($isSadcopPayment)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
             'liters_sold' => round($litersSold, 3),
             'liters_delivered' => round($litersDelivered, 3),
         ];

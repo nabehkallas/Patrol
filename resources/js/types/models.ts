@@ -215,7 +215,7 @@ export type FuelTypeLiters = {
 export type TransactionTotals = {
     income_syp: number;
     expense_syp: number;
-    net_syp: number;
+    sadcop_syp: number;
     liters_sold: number;
     liters_delivered: number;
     liters_sold_by_fuel_type: FuelTypeLiters[];
