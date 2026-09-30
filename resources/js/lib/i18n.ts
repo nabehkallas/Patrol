@@ -407,6 +407,9 @@ const dictionary = {
         'statistics.receivable_total': 'Owed to us',
         'statistics.payable_total': 'We owe',
         'statistics.employee_performance': 'Employee performance',
+        'statistics.shop_sales': 'Store sales',
+        'statistics.total': 'Total',
+        'statistics.units': 'units',
 
         'pump_counters.title': 'Pump counters',
         'pump_counters.description':
@@ -951,6 +954,9 @@ const dictionary = {
         'statistics.receivable_total': 'ديون مستحقة لنا',
         'statistics.payable_total': 'ديون مستحقة علينا',
         'statistics.employee_performance': 'أداء الموظفين',
+        'statistics.shop_sales': 'مبيعات المتجر',
+        'statistics.total': 'الإجمالي',
+        'statistics.units': 'وحدة',
 
         'pump_counters.title': 'عدادات المضخات',
         'pump_counters.description':

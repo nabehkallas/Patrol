@@ -100,6 +100,7 @@ class StatisticsController extends Controller
                 ->sortBy('name')
                 ->values(),
             'debtPosition' => $this->debtPosition(),
+            'shopSales' => $this->shopSales($transactions, $sypRate),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
         ];
@@ -130,7 +131,7 @@ class StatisticsController extends Controller
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
-            ->with(['user', 'fuelType', 'tank', 'debt', 'sadcopLedgerEntry'])
+            ->with(['user', 'fuelType', 'tank', 'debt', 'sadcopLedgerEntry', 'shopItem'])
             ->get();
     }
 
@@ -204,6 +205,34 @@ class StatisticsController extends Controller
         return [
             'receivable' => $byCurrency(DebtDirection::Receivable),
             'payable' => $byCurrency(DebtDirection::Payable),
+        ];
+    }
+
+    /**
+     * Shop sales in the range: their total revenue (already part of the revenue KPI, since a
+     * shop sale is recorded as other income) and the best-selling items by revenue.
+     *
+     * @return array{total_syp: float, items: Collection}
+     */
+    private function shopSales(Collection $transactions, float $sypRate): array
+    {
+        $sales = $transactions
+            ->where('type', TransactionType::OtherIncome)
+            ->whereNotNull('shop_item_id')
+            ->reject(fn (Transaction $t) => $t->isPendingDebt());
+
+        return [
+            'total_syp' => round($sales->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+            'items' => $sales
+                ->groupBy('shop_item_id')
+                ->map(fn (Collection $txns) => [
+                    'name' => $txns->first()->shopItem?->name ?? '—',
+                    'quantity' => (int) $txns->sum('quantity'),
+                    'revenue_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
+                ])
+                ->sortByDesc('revenue_syp')
+                ->take(5)
+                ->values(),
         ];
     }
 

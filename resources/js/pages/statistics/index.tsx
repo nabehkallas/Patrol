@@ -47,6 +47,11 @@ type DebtPosition = {
     payable: Partial<Record<Currency, number>>;
 };
 
+type ShopSales = {
+    total_syp: number;
+    items: { name: string; quantity: number; revenue_syp: number }[];
+};
+
 type PageProps = {
     auth: Auth;
     totals: TransactionTotals;
@@ -54,6 +59,7 @@ type PageProps = {
     salesChart: SalesChartData;
     deliveriesByFuelType: DeliveryRow[];
     debtPosition: DebtPosition;
+    shopSales: ShopSales;
     from: string;
     to: string;
     byUser?: ByUserRow[];
@@ -66,6 +72,9 @@ const FUEL_TEXT = [
     'text-amber-600 dark:text-amber-400',
     'text-blue-600 dark:text-blue-400',
 ];
+
+// Store sales use teal so they never read as a fuel type (amber/blue).
+const STORE_TEXT = 'text-teal-600 dark:text-teal-400';
 
 function KpiCard({
     label,
@@ -163,6 +172,7 @@ export default function StatisticsIndex() {
         salesChart,
         deliveriesByFuelType,
         debtPosition,
+        shopSales,
         from,
         to,
         byUser,
@@ -268,7 +278,7 @@ export default function StatisticsIndex() {
 
                 <SalesChart chart={salesChart} />
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
                     <BreakdownCard title={t('statistics.fuel_sales_by_type')}>
                         {byFuelType.map((row) => (
                             <BreakdownRow
@@ -295,6 +305,29 @@ export default function StatisticsIndex() {
                             />
                         ))}
                         {deliveriesByFuelType.length === 0 && (
+                            <Empty label={t('common.no_results')} />
+                        )}
+                    </BreakdownCard>
+
+                    <BreakdownCard title={t('statistics.shop_sales')}>
+                        <BreakdownRow
+                            label={t('statistics.total')}
+                            labelClassName={STORE_TEXT}
+                            value={
+                                <span className={STORE_TEXT}>
+                                    {formatSyp(shopSales.total_syp)}
+                                </span>
+                            }
+                        />
+                        {shopSales.items.map((item) => (
+                            <BreakdownRow
+                                key={item.name}
+                                label={item.name}
+                                value={formatSyp(item.revenue_syp)}
+                                detail={`${formatNumber(item.quantity, 0)} ${t('statistics.units')}`}
+                            />
+                        ))}
+                        {shopSales.items.length === 0 && (
                             <Empty label={t('common.no_results')} />
                         )}
                     </BreakdownCard>
