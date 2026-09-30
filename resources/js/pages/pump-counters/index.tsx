@@ -262,17 +262,15 @@ export default function PumpCountersIndex() {
                     description={t('pump_counters.description')}
                 />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('pump_counters.bulk_entry')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={submitAll} className="space-y-4">
-                            <div className="grid gap-2 sm:max-w-xs">
+                <Card className="py-4">
+                    <CardContent className="px-4">
+                        <form onSubmit={submitAll} className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-3">
                                 <Label htmlFor="date">{t('common.date')}</Label>
                                 <Input
                                     id="date"
                                     type="date"
+                                    className="h-9 w-auto"
                                     value={form.data.date}
                                     onChange={(e) =>
                                         form.setData('date', e.target.value)

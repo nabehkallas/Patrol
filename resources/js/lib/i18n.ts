@@ -412,7 +412,6 @@ const dictionary = {
         'pump_counters.title': 'Pump counters',
         'pump_counters.description':
             'Enter daily pump counter readings — the difference is recorded as a fuel sale',
-        'pump_counters.bulk_entry': 'Bulk entry',
         'pump_counters.save_all': 'Save All Readings',
         'pump_counters.pump': 'Pump',
         'pump_counters.reading_value': 'Counter value',
@@ -958,7 +957,6 @@ const dictionary = {
         'pump_counters.title': 'عدادات المضخات',
         'pump_counters.description':
             'أدخل قراءات العداد اليومية — الفرق يُسجَّل كعملية بيع وقود',
-        'pump_counters.bulk_entry': 'إدخال جماعي',
         'pump_counters.save_all': 'حفظ كافة القراءات',
         'pump_counters.pump': 'المضخة',
         'pump_counters.reading_value': 'قيمة العداد',
