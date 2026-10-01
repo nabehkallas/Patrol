@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Support\StationTimezone;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -71,11 +72,14 @@ class TenancyServiceProvider extends ServiceProvider
             Events\InitializingTenancy::class => [],
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
+                // Run in the station's own timezone while its tenancy is active.
+                fn (Events\TenancyInitialized $event) => StationTimezone::apply($event->tenancy->tenant),
             ],
 
             Events\EndingTenancy::class => [],
             Events\TenancyEnded::class => [
                 Listeners\RevertToCentralContext::class,
+                fn () => StationTimezone::revert(),
             ],
 
             Events\BootstrappingTenancy::class => [],

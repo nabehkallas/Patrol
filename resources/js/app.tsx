@@ -6,12 +6,16 @@ import { initializeLocale } from '@/hooks/use-locale';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { getStationTimeZone } from '@/lib/format';
+import { getStationTimeZone, setStationTimeZone } from '@/lib/format';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
-// Capture the station timezone from the initial page data before Inertia boots.
+// Capture the station timezone from the initial page data before Inertia boots, then keep
+// it in step with every visit (an admin can change it from the preferences page).
 getStationTimeZone();
+router.on('navigate', (event) => {
+    setStationTimeZone(event.detail.page.props.timezone);
+});
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

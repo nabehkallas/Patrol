@@ -85,6 +85,13 @@ export function getStationTimeZone(): string {
     return stationTimeZone as string;
 }
 
+/** Keeps the cached zone current when the station's timezone setting changes mid-session. */
+export function setStationTimeZone(timeZone: unknown): void {
+    if (typeof timeZone === 'string' && timeZone !== '') {
+        stationTimeZone = timeZone;
+    }
+}
+
 /** A bare 'YYYY-MM-DD' is a calendar date with no time or zone -- format it as-is (pinned to
  * UTC, where JS parses it) instead of shifting it into any timezone, which could change the day. */
 function timeZoneFor(value: string): string {

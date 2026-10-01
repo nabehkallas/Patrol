@@ -106,6 +106,13 @@ const dictionary = {
             'Select which calendar date automatically pre-fills when creating new entries across forms (Pump Counters, Cash Box, Debts, Inventory, etc.).',
         'settings.preferences.today': 'Today (default)',
         'settings.preferences.yesterday': 'Yesterday (for closing shifts)',
+        'settings.preferences.timezone': 'System Timezone',
+        'settings.preferences.timezone_description':
+            'The timezone the system uses to work out daily records and reports.',
+        'settings.preferences.timezone_search': 'Search timezones...',
+        'settings.preferences.timezone_none': 'No matching timezone.',
+        'settings.preferences.timezone_admin_only':
+            'Only an admin can change the station timezone.',
         'settings.profile.title': 'Profile settings',
         'settings.profile.heading': 'Profile',
         'settings.profile.description': 'Update your name and email address',
@@ -661,6 +668,13 @@ const dictionary = {
             'اختر التاريخ الذي يُعبّأ تلقائيًا عند إنشاء إدخالات جديدة عبر النماذج (عدادات المضخات، صندوق النقد، الديون، المخزون، وغيرها).',
         'settings.preferences.today': 'اليوم الحالي (افتراضي)',
         'settings.preferences.yesterday': 'اليوم السابق (إغلاق الورديات)',
+        'settings.preferences.timezone': 'المنطقة الزمنية للنظام',
+        'settings.preferences.timezone_description':
+            'التوقيت المعتمد في النظام لحساب السجلات والتقارير اليومية.',
+        'settings.preferences.timezone_search': 'ابحث عن منطقة زمنية...',
+        'settings.preferences.timezone_none': 'لا توجد منطقة زمنية مطابقة.',
+        'settings.preferences.timezone_admin_only':
+            'يمكن للمدير فقط تغيير المنطقة الزمنية للمحطة.',
         'settings.profile.title': 'إعدادات الملف الشخصي',
         'settings.profile.heading': 'الملف الشخصي',
         'settings.profile.description': 'تحديث الاسم والبريد الإلكتروني',

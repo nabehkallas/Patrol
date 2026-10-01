@@ -28,6 +28,9 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(RequireTenant::class)->group(function () {
         Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
         Route::patch('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
+        Route::patch('settings/preferences/timezone', [PreferencesController::class, 'updateTimezone'])
+            ->middleware('role:admin')
+            ->name('preferences.timezone');
     });
 
     Route::middleware([RequireTenant::class, 'role:admin'])->group(function () {

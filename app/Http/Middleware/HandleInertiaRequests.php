@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
-            // The station's timezone, so the frontend shows times and works out "today" in
+            // The station's timezone (its own setting while tenancy is active), so the frontend shows times and works out "today" in
             // station time whatever timezone the viewer's own device is set to.
             'timezone' => config('app.timezone'),
             'auth' => [
