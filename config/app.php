@@ -60,12 +60,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions. Stations operate
+    | in Syria, so a "day" (filters, totals, exports, default entry dates)
+    | starts and ends at local midnight there rather than at UTC midnight.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Damascus'),
 
     /*
     |--------------------------------------------------------------------------

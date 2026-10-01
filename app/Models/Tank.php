@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TransactionType;
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['fuel_type_id', 'name', 'capacity_liters', 'is_active'])]
 class Tank extends Model
 {
+    use SerializesDatesInAppTimezone;
     use SoftDeletes;
 
     protected function casts(): array

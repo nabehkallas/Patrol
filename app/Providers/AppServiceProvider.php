@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Carbon\FactoryImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -49,6 +51,15 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Carbon values placed directly in page props (not through a model) JSON-encode via
+        // Carbon's own serializer -- give them the same local-time-with-offset form models use
+        // (see SerializesDatesInAppTimezone), so every date the frontend receives matches.
+        FactoryImmutable::getDefaultInstance()->serializeUsing(
+            fn (CarbonInterface $date): string => CarbonImmutable::instance($date)
+                ->setTimezone(config('app.timezone'))
+                ->format('Y-m-d\TH:i:s.uP'),
+        );
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

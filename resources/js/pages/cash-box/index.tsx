@@ -30,6 +30,8 @@ import {
     formatNumber,
     formatShortDate,
     formatSyp,
+    startOfMonthInStation,
+    todayInStation,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
@@ -483,10 +485,8 @@ export default function CashBoxIndex() {
         // rather than leaving whatever Today/Yesterday had last set fromVal/toVal to, unless
         // the user is switching back to a custom range they'd already picked themselves.
         if (mode !== 'custom') {
-            const now = new Date();
-            const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-            setFromVal(startOfMonth);
-            setToVal(now.toISOString().slice(0, 10));
+            setFromVal(startOfMonthInStation());
+            setToVal(todayInStation());
         }
 
         setMode('custom');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['transaction_id', 'fuel_type_id', 'fuel_cost_layer_id', 'liters', 'cost_per_liter_syp'])]
 class FuelCostAllocation extends Model
 {
+    use SerializesDatesInAppTimezone;
+
     protected function casts(): array
     {
         return [

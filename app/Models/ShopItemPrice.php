@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['shop_item_id', 'base_price', 'sell_price', 'currency', 'set_by_id', 'effective_at'])]
 class ShopItemPrice extends Model
 {
+    use SerializesDatesInAppTimezone;
+
     protected function casts(): array
     {
         return [

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 class TenantUserDirectory extends Model
 {
     use CentralConnection;
+    use SerializesDatesInAppTimezone;
 
     protected $table = 'tenant_user_directory';
 

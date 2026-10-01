@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     destroy,
@@ -103,7 +103,7 @@ export default function FuelPricesIndex() {
         fuel_type_id: String(fuelTypes[0]?.id ?? ''),
         price_per_liter: '',
         currency: 'SYP' as Currency,
-        effective_at: new Date().toISOString().slice(0, 10),
+        effective_at: todayInStation(),
     });
 
     function submit(event: FormEvent) {

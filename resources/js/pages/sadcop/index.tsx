@@ -18,7 +18,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDateTime, formatNumber, formatSyp } from '@/lib/format';
+import {
+    formatDateTime,
+    formatNumber,
+    formatSyp,
+    todayInStation,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { exportPdf, exportXlsx, index } from '@/routes/sadcop';
 import { create as createDelivery } from '@/routes/sadcop/deliveries';
@@ -63,7 +68,7 @@ export default function SadcopIndex() {
 
     const openingForm = useForm({
         amount: '',
-        occurred_at: new Date().toISOString().slice(0, 10),
+        occurred_at: todayInStation(),
     });
 
     function submitOpeningBalance(event: FormEvent) {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 #[Fillable(['password_hash'])]
 class EarningsPassword extends Model
 {
+    use SerializesDatesInAppTimezone;
+
     protected $table = 'earnings_password';
 
     public static function isSet(): bool

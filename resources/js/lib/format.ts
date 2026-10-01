@@ -63,22 +63,52 @@ export function formatBreakdown(breakdown: CurrencyBreakdown): string {
         .join(' + ');
 }
 
+let stationTimeZone: string | null = null;
+
+/**
+ * The station's timezone (shared by the server as the `timezone` page prop), so times and
+ * "today" are always station time rather than whatever timezone the viewer's device is in.
+ * Read from the initial page data, which is in the document before any component renders.
+ */
+export function getStationTimeZone(): string {
+    if (stationTimeZone === null) {
+        try {
+            const page = document.querySelector('script[data-page="app"]');
+            stationTimeZone =
+                JSON.parse(page?.textContent ?? '{}').props?.timezone ??
+                'Asia/Damascus';
+        } catch {
+            stationTimeZone = 'Asia/Damascus';
+        }
+    }
+
+    return stationTimeZone as string;
+}
+
+/** A bare 'YYYY-MM-DD' is a calendar date with no time or zone -- format it as-is (pinned to
+ * UTC, where JS parses it) instead of shifting it into any timezone, which could change the day. */
+function timeZoneFor(value: string): string {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? 'UTC' : getStationTimeZone();
+}
+
 /**
  * Formats a date/time using a fixed 'en-US' locale regardless of the browser's own locale —
  * otherwise a browser set to Arabic renders these with Arabic-Indic digits and a different
  * layout than the rest of the app (which always shows Western numerals, see formatNumber
- * above), making the two look inconsistent/broken side by side.
+ * above), making the two look inconsistent/broken side by side. Shown in station time.
  */
 export function formatDateTime(value: string): string {
     return new Date(value).toLocaleString('en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone: timeZoneFor(value),
     });
 }
 
 export function formatDate(value: string): string {
     return new Date(value).toLocaleDateString('en-US', {
         dateStyle: 'medium',
+        timeZone: timeZoneFor(value),
     });
 }
 
@@ -89,7 +119,27 @@ export function formatShortDate(value: string): string {
     return new Date(value).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
+        timeZone: timeZoneFor(value),
     });
+}
+
+/**
+ * Today's date in station time as 'YYYY-MM-DD' (optionally shifted by whole days, e.g. -1 for
+ * yesterday). Use this instead of `toISOString().slice(0, 10)`, which gives the UTC date --
+ * still the previous day for the first hours after midnight east of UTC.
+ */
+export function todayInStation(offsetDays = 0): string {
+    const date = new Date(Date.now() + offsetDays * 86_400_000);
+
+    // en-CA formats as YYYY-MM-DD.
+    return date.toLocaleDateString('en-CA', {
+        timeZone: getStationTimeZone(),
+    });
+}
+
+/** The first day of the current station-time month, as 'YYYY-MM-DD'. */
+export function startOfMonthInStation(): string {
+    return `${todayInStation().slice(0, 8)}01`;
 }
 
 /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['from_tank_id', 'to_tank_id', 'liters', 'date', 'recorded_by_id', 'notes'])]
 class TankTransfer extends Model
 {
+    use SerializesDatesInAppTimezone;
+
     protected function casts(): array
     {
         return [

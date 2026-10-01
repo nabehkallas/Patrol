@@ -13,7 +13,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { formatCurrencyAmount, formatNumber, formatSyp } from '@/lib/format';
+import {
+    formatCurrencyAmount,
+    formatNumber,
+    formatSyp,
+    todayInStation,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { exportPdf, index } from '@/routes/statistics';
@@ -191,7 +196,7 @@ export default function StatisticsIndex() {
     }
 
     function goToToday() {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayInStation();
         setFromVal(today);
         setToVal(today);
         router.get(

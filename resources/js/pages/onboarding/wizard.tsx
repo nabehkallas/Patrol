@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/hooks/use-locale';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, todayInStation } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     debts,
@@ -213,7 +213,7 @@ function PumpReadingsSection({
     const form = useForm<{
         date: string;
         readings: Record<number, { reading_value: string; tank_id: string }>;
-    }>({ date: new Date().toISOString().slice(0, 10), readings: {} });
+    }>({ date: todayInStation(), readings: {} });
 
     function setField(
         pumpId: number,

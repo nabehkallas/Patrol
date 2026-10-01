@@ -24,7 +24,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatBreakdown, formatDate, formatNumber } from '@/lib/format';
+import {
+    formatBreakdown,
+    formatDate,
+    formatNumber,
+    startOfMonthInStation,
+    todayInStation,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     create,
@@ -143,14 +149,9 @@ export default function DebtsIndex() {
     }
 
     const [showSettleFiltered, setShowSettleFiltered] = useState(false);
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-    const today = now.toISOString().slice(0, 10);
     const settleFilteredForm = useForm({
-        from: startOfMonth,
-        to: today,
+        from: startOfMonthInStation(),
+        to: todayInStation(),
     });
 
     const [settlePreview, setSettlePreview] = useState<{
