@@ -379,7 +379,9 @@ class ShopController extends Controller
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'in:SYP,TRY,USD'],
-            'effective_at' => ['nullable', 'date'],
+            'effective_at' => ['nullable', 'date', 'before_or_equal:today'],
+        ], [
+            'effective_at.before_or_equal' => __('The effective date cannot be in the future.'),
         ]);
 
         $repriced = 0;

@@ -26,7 +26,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index, exportPdf, exportXlsx } from '@/routes/shop';
@@ -585,6 +585,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                             <Input
                                 id={`edit_effective_at_${item.id}`}
                                 type="date"
+                                max={todayInStation()}
                                 value={editForm.data.effective_at}
                                 onChange={(e) =>
                                     editForm.setData(

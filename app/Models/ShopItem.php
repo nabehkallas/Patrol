@@ -26,22 +26,22 @@ class ShopItem extends Model
 
     public function currentPrice(): ?ShopItemPrice
     {
-        return $this->prices()
-            ->where('effective_at', '<=', now())
-            ->latest('effective_at')
-            ->first();
+        return $this->priceAt(now());
     }
 
     /**
-     * The price in effect on a given date -- mirrors FuelType::priceAt(), same reasoning: a
-     * backdated correction is stored at startOfDay(), so two corrections entered for the same
-     * date share an identical effective_at -- id breaks the tie in entry order.
+     * The price in effect on a given date: of the prices already effective by then, the one
+     * entered most recently. A price edit is never edited in place -- each save adds a row --
+     * so a later entry supersedes every earlier one from its own effective date onward. That
+     * is what makes a backdated edit stick: setting 350 "effective Sep 1" after a 400 that was
+     * effective Sep 6 means 350 from Sep 1 on, not "350 for Sep 1-5, then back to 400".
+     * Ordering by effective_at instead let the older Sep 6 row keep winning, so the edit
+     * looked like it never saved.
      */
     public function priceAt(CarbonInterface $date): ?ShopItemPrice
     {
         return $this->prices()
             ->effectiveAsOf($date)
-            ->latest('effective_at')
             ->latest('id')
             ->first();
     }
