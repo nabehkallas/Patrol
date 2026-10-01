@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\FuelPumpController;
 use App\Http\Controllers\Admin\FuelTypeController;
 use App\Http\Controllers\Admin\TankController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AnnualSummaryAccessController;
 use App\Http\Controllers\CashBoxController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\DebtorController;
@@ -103,6 +104,8 @@ Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->g
 
         Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
         Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
+        Route::post('statistics/annual/unlock', [AnnualSummaryAccessController::class, 'unlock'])->name('statistics.annual.unlock')->middleware('throttle:5,1');
+        Route::post('statistics/annual/lock', [AnnualSummaryAccessController::class, 'lock'])->name('statistics.annual.lock');
 
         Route::get('pump-counters', [PumpCounterReadingController::class, 'index'])->name('pump-counters.index');
         Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');

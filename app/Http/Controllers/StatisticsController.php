@@ -11,6 +11,7 @@ use App\Models\DebtPayment;
 use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
+use App\Services\AnnualFinancialSummary;
 use App\Services\PdfTableExporter;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -21,8 +22,23 @@ use Inertia\Response;
 
 class StatisticsController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, AnnualFinancialSummary $annual): Response
     {
+        $annualUnlocked = (bool) $request->session()->get(AnnualSummaryAccessController::SESSION_KEY);
+
+        // The protected annual tab renders on its own: it needs none of the overview's
+        // date-range figures, and nothing of it is computed or sent until it is unlocked.
+        if ($request->query('tab') === 'annual') {
+            $years = $annual->availableYears();
+            $year = in_array($request->integer('year'), $years, true) ? $request->integer('year') : $years[0];
+
+            return Inertia::render('statistics/index', [
+                'tab' => 'annual',
+                'annualUnlocked' => $annualUnlocked,
+                'annual' => $annualUnlocked ? [...$annual->forYear($year), 'years' => $years] : null,
+            ]);
+        }
+
         $user = $request->user();
         $isAdmin = $user->isAdmin();
 
@@ -103,6 +119,8 @@ class StatisticsController extends Controller
             'shopSales' => $this->shopSales($transactions, $sypRate),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
+            'tab' => 'overview',
+            'annualUnlocked' => $annualUnlocked,
         ];
 
         if ($isAdmin) {

@@ -1,10 +1,14 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { LockIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import { SalesChart } from '@/components/sales-chart';
+import { AnnualSummary } from '@/components/statistics/annual-summary';
+import type { AnnualSummaryData } from '@/components/statistics/annual-summary';
+import { AnnualUnlockDialog } from '@/components/statistics/annual-unlock-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -169,7 +173,108 @@ function currencyLines(balances: Partial<Record<Currency, number>>) {
         );
 }
 
+type Tab = 'overview' | 'annual';
+
+type ShellProps = {
+    tab: Tab;
+    annualUnlocked: boolean;
+    annual: AnnualSummaryData | null;
+};
+
 export default function StatisticsIndex() {
+    const { tab, annualUnlocked, annual } = usePage<ShellProps>().props;
+    const { t } = useTranslation();
+
+    // A direct visit to the locked annual tab opens the prompt straight away.
+    const [unlockOpen, setUnlockOpen] = useState(
+        tab === 'annual' && !annualUnlocked,
+    );
+
+    function openTab(next: Tab) {
+        if (next === tab) {
+            return;
+        }
+
+        if (next === 'annual' && !annualUnlocked) {
+            setUnlockOpen(true);
+
+            return;
+        }
+
+        router.get(
+            index.url(next === 'annual' ? { query: { tab: 'annual' } } : {}),
+        );
+    }
+
+    const tabs: { value: Tab; label: string; locked?: boolean }[] = [
+        { value: 'overview', label: t('statistics.tab_overview') },
+        {
+            value: 'annual',
+            label: t('statistics.tab_annual'),
+            locked: !annualUnlocked,
+        },
+    ];
+
+    return (
+        <>
+            <Head title={t('statistics.title')} />
+
+            <div className="space-y-6">
+                <Heading
+                    variant="small"
+                    title={t('statistics.title')}
+                    description={t('statistics.description')}
+                />
+
+                <div className="inline-flex gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
+                    {tabs.map(({ value, label, locked }) => (
+                        <button
+                            key={value}
+                            type="button"
+                            onClick={() => openTab(value)}
+                            className={cn(
+                                'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors',
+                                tab === value
+                                    ? 'shadow-xs bg-white dark:bg-neutral-700 dark:text-neutral-100'
+                                    : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
+                            )}
+                        >
+                            {locked && <LockIcon className="size-3.5" />}
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
+                {tab === 'annual' ? (
+                    annual ? (
+                        <AnnualSummary data={annual} />
+                    ) : (
+                        <Card>
+                            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+                                <LockIcon className="text-muted-foreground size-8" />
+                                <p className="text-muted-foreground text-sm">
+                                    {t('statistics.annual_locked')}
+                                </p>
+                                <Button onClick={() => setUnlockOpen(true)}>
+                                    {t('statistics.annual_unlock')}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )
+                ) : (
+                    <Overview />
+                )}
+            </div>
+
+            <AnnualUnlockDialog
+                open={unlockOpen}
+                onOpenChange={setUnlockOpen}
+            />
+        </>
+    );
+}
+
+function Overview() {
     const {
         auth,
         totals,
@@ -218,15 +323,7 @@ export default function StatisticsIndex() {
 
     return (
         <>
-            <Head title={t('statistics.title')} />
-
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title={t('statistics.title')}
-                    description={t('statistics.description')}
-                />
-
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex flex-wrap items-end gap-4">
