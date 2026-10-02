@@ -105,5 +105,10 @@
     "passwords.reset": "تمت إعادة تعيين كلمة المرور.",
     "passwords.throttled": "يرجى الانتظار قبل المحاولة مرة أخرى.",
     "passwords.token": "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.",
-    "passwords.user": "لا يوجد مستخدم بهذا البريد الإلكتروني."
+    "passwords.user": "لا يوجد مستخدم بهذا البريد الإلكتروني.",
+    "Your station :station is now active": "تم تفعيل محطتك :station",
+    "Good news: your registration for :station has been approved and your account is now live.": "خبر سار: تمت الموافقة على تسجيل :station وأصبح حسابك مفعّلاً الآن.",
+    "Sign in to set up your station: fuel types, tanks, pumps and prices.": "سجّل الدخول لإعداد محطتك: أنواع الوقود والخزانات والمضخات والأسعار.",
+    "Sign in": "تسجيل الدخول",
+    "Welcome aboard!": "أهلاً بك معنا!"
 }

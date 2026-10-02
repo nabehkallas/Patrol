@@ -73,6 +73,21 @@ const dictionary = {
             'Enter your email and password below to log in',
         'auth.forgot_password_link': 'Forgot your password?',
         'auth.log_in': 'Log in',
+        'auth.register.title': 'Register your station',
+        'auth.register.description':
+            'Create an account for your station. We review every registration before it goes live.',
+        'auth.register.station_name': 'Station name',
+        'auth.register.owner_name': 'Owner name',
+        'auth.register.phone': 'Phone number',
+        'auth.register.submit': 'Create account',
+        'auth.register.have_account': 'Already have an account?',
+        'auth.register.link': 'New station? Register here',
+        'auth.pending.title': 'Awaiting approval',
+        'auth.pending.description': 'Your registration is being reviewed.',
+        'auth.pending.message':
+            'Your account has been verified and is currently awaiting administrator approval.',
+        'auth.pending.next':
+            "We'll email you as soon as your station is approved.",
         'auth.verify_email.title': 'Verify your email',
         'auth.verify_email.description':
             'Confirm your email address before using the app.',
@@ -669,6 +684,21 @@ const dictionary = {
             'أدخل بريدك الإلكتروني وكلمة المرور أدناه لتسجيل الدخول',
         'auth.forgot_password_link': 'هل نسيت كلمة المرور؟',
         'auth.log_in': 'تسجيل الدخول',
+        'auth.register.title': 'تسجيل محطتك',
+        'auth.register.description':
+            'أنشئ حساباً لمحطتك. نراجع كل طلب تسجيل قبل تفعيله.',
+        'auth.register.station_name': 'اسم المحطة',
+        'auth.register.owner_name': 'اسم المالك',
+        'auth.register.phone': 'رقم الهاتف',
+        'auth.register.submit': 'إنشاء الحساب',
+        'auth.register.have_account': 'لديك حساب بالفعل؟',
+        'auth.register.link': 'محطة جديدة؟ سجّل هنا',
+        'auth.pending.title': 'بانتظار الموافقة',
+        'auth.pending.description': 'طلب تسجيلك قيد المراجعة.',
+        'auth.pending.message':
+            'تم تأكيد حسابك وهو الآن بانتظار موافقة المسؤول.',
+        'auth.pending.next':
+            'سنرسل لك بريداً إلكترونياً فور الموافقة على محطتك.',
         'auth.verify_email.title': 'تأكيد البريد الإلكتروني',
         'auth.verify_email.description':
             'يرجى تأكيد بريدك الإلكتروني قبل استخدام التطبيق.',

@@ -18,28 +18,43 @@ use App\Http\Controllers\PumpCounterReadingController;
 use App\Http\Controllers\SadcopController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StationController;
+use App\Http\Controllers\StationRegistrationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TankTopUpController;
 use App\Http\Controllers\TankTransferController;
 use App\Http\Controllers\TankVolumeCalculatorController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\RequireActiveStation;
 use App\Http\Middleware\RequireOnboarding;
 use App\Http\Middleware\RequireSuperAdmin;
 use App\Http\Middleware\RequireTenant;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/cash-box')->name('home');
+Route::redirect('super-admin', '/platform');
+
+// Public sign-up for station owners (see StationRegistrationController).
+Route::middleware('guest')->group(function () {
+    Route::get('register', [StationRegistrationController::class, 'create'])->name('register');
+    Route::post('register', [StationRegistrationController::class, 'store'])->name('register.store')->middleware('throttle:5,1');
+});
+
+Route::get('registration/pending', [StationRegistrationController::class, 'pending'])
+    ->middleware(['auth', 'verified', RequireTenant::class])
+    ->name('registration.pending');
 
 Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name('platform.')->group(function () {
     Route::get('/', [StationController::class, 'index'])->name('home');
     Route::get('stations/create', [StationController::class, 'create'])->name('stations.create');
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
+    Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
+    Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
 });
 
 // 'verified': a station account can't use the app until its email address is confirmed through
 // the link emailed to it (Fortify's verification.* routes and screen handle that step).
-Route::middleware(['auth', 'verified', RequireTenant::class, ForcePasswordChange::class])->group(function () {
+Route::middleware(['auth', 'verified', RequireTenant::class, RequireActiveStation::class, ForcePasswordChange::class])->group(function () {
     Route::get('password/force-change', [ForcePasswordChangeController::class, 'edit'])->name('password.force-change');
     Route::patch('password/force-change', [ForcePasswordChangeController::class, 'update'])->name('password.force-change.update');
 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useTranslation } from '@/lib/i18n';
+import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -99,6 +100,12 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
+
+            <p className="text-muted-foreground mt-6 text-center text-sm">
+                <TextLink href={register()} data-test="register-link">
+                    {t('auth.register.link')}
+                </TextLink>
+            </p>
 
             {status && (
                 <div className="text-success mb-4 text-center text-sm font-medium">
