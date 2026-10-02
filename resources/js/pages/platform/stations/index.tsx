@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Building2,
@@ -11,14 +11,19 @@ import {
     KeyRound,
     Mail,
     MailWarning,
+    PauseCircle,
     Phone,
+    PlayCircle,
     Plus,
+    Trash2,
     UserRound,
     Users,
     X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { ConfirmActionDialog } from '@/components/platform/confirm-action-dialog';
+import type { PendingAction } from '@/components/platform/confirm-action-dialog';
 import { CopyButton } from '@/components/platform/copy-button';
 import { StationUsersDialog } from '@/components/platform/station-users-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -26,11 +31,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
     approve,
     create as createStation,
+    destroy,
+    reactivate,
     reject,
+    suspend,
 } from '@/routes/platform/stations';
 
 type Station = {
@@ -42,6 +51,7 @@ type Station = {
     admin_name: string | null;
     admin_email: string | null;
     owner_phone: string | null;
+    suspended: boolean;
 };
 
 type Registration = {
@@ -63,6 +73,7 @@ type NewStationCredentials = {
 type PageProps = {
     stats: {
         active_stations: number;
+        suspended_stations: number;
         pending_approval: number;
         total_users: number;
     };
@@ -76,11 +87,13 @@ function KpiCard({
     value,
     icon: Icon,
     tone,
+    hint,
 }: {
     label: string;
     value: number;
     icon: LucideIcon;
     tone: string;
+    hint?: string;
 }) {
     return (
         <Card className="py-5">
@@ -98,6 +111,11 @@ function KpiCard({
                     <div className="text-2xl font-bold tabular-nums">
                         {formatNumber(value, 0)}
                     </div>
+                    {hint && (
+                        <div className="text-xs text-rose-600 dark:text-rose-400">
+                            {hint}
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -180,37 +198,59 @@ export default function StationsIndex() {
     const { t } = useTranslation();
     const [usersFor, setUsersFor] = useState<Station | null>(null);
 
-    function approveStation(registration: Registration) {
-        if (
-            confirm(
-                t('platform.confirm_approve').replace(
-                    ':station',
-                    registration.name,
-                ),
-            )
-        ) {
-            router.post(
-                approve.url(registration.id),
-                {},
-                { preserveScroll: true },
-            );
-        }
-    }
+    const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+        null,
+    );
 
-    function rejectStation(registration: Registration) {
-        if (
-            confirm(
-                t('platform.confirm_reject').replace(
-                    ':station',
-                    registration.name,
-                ),
-            )
-        ) {
-            router.delete(reject.url(registration.id), {
-                preserveScroll: true,
-            });
-        }
-    }
+    // Every station action goes through the password confirmation dialog.
+    const ask = (
+        kind: 'approve' | 'reject' | 'suspend' | 'reactivate' | 'delete',
+        target: { id: string; name: string },
+    ) => {
+        const fill = (key: TranslationKey) =>
+            t(key).replace(':station', target.name);
+        const spec = {
+            approve: {
+                url: approve.url(target.id),
+                method: 'post',
+                tone: 'success',
+                icon: CheckCircle2,
+            },
+            reject: {
+                url: reject.url(target.id),
+                method: 'delete',
+                tone: 'danger',
+                icon: X,
+            },
+            suspend: {
+                url: suspend.url(target.id),
+                method: 'post',
+                tone: 'warning',
+                icon: PauseCircle,
+            },
+            reactivate: {
+                url: reactivate.url(target.id),
+                method: 'post',
+                tone: 'success',
+                icon: PlayCircle,
+            },
+            delete: {
+                url: destroy.url(target.id),
+                method: 'delete',
+                tone: 'danger',
+                icon: Trash2,
+            },
+        } as const;
+
+        setPendingAction({
+            ...spec[kind],
+            title: fill(`platform.confirm.${kind}_title` as TranslationKey),
+            message: fill(`platform.confirm.${kind}_message` as TranslationKey),
+            confirmLabel: t(
+                `platform.confirm.${kind}_button` as TranslationKey,
+            ),
+        });
+    };
 
     return (
         <>
@@ -231,6 +271,14 @@ export default function StationsIndex() {
                         label={t('platform.kpi.active_stations')}
                         value={stats.active_stations}
                         icon={Building2}
+                        hint={
+                            stats.suspended_stations > 0
+                                ? t('platform.kpi.suspended_hint').replace(
+                                      ':count',
+                                      String(stats.suspended_stations),
+                                  )
+                                : undefined
+                        }
                         tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                     />
                     <KpiCard
@@ -376,7 +424,8 @@ export default function StationsIndex() {
                                                     <Button
                                                         className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
                                                         onClick={() =>
-                                                            approveStation(
+                                                            ask(
+                                                                'approve',
                                                                 registration,
                                                             )
                                                         }
@@ -394,7 +443,8 @@ export default function StationsIndex() {
                                                             : 'w-full',
                                                     )}
                                                     onClick={() =>
-                                                        rejectStation(
+                                                        ask(
+                                                            'reject',
                                                             registration,
                                                         )
                                                     }
@@ -443,7 +493,12 @@ export default function StationsIndex() {
                             {stations.map((station) => (
                                 <Card
                                     key={station.id}
-                                    className="gap-4 border-s-4 border-s-emerald-500 py-5"
+                                    className={cn(
+                                        'gap-4 border-s-4 py-5',
+                                        station.suspended
+                                            ? 'border-s-rose-500 opacity-90'
+                                            : 'border-s-emerald-500',
+                                    )}
                                     data-test="station-card"
                                 >
                                     <CardContent className="space-y-4 px-5">
@@ -460,20 +515,31 @@ export default function StationsIndex() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <Badge
-                                                variant={
-                                                    station.onboarded
-                                                        ? 'secondary'
-                                                        : 'outline'
-                                                }
-                                                className="shrink-0"
-                                            >
-                                                {station.onboarded
-                                                    ? t('platform.status.live')
-                                                    : t(
-                                                          'platform.status.needs_setup',
-                                                      )}
-                                            </Badge>
+                                            {station.suspended ? (
+                                                <Badge className="shrink-0 gap-1 bg-rose-600 text-white">
+                                                    <PauseCircle className="size-3" />
+                                                    {t(
+                                                        'platform.status.suspended',
+                                                    )}
+                                                </Badge>
+                                            ) : (
+                                                <Badge
+                                                    variant={
+                                                        station.onboarded
+                                                            ? 'secondary'
+                                                            : 'outline'
+                                                    }
+                                                    className="shrink-0"
+                                                >
+                                                    {station.onboarded
+                                                        ? t(
+                                                              'platform.status.live',
+                                                          )
+                                                        : t(
+                                                              'platform.status.needs_setup',
+                                                          )}
+                                                </Badge>
+                                            )}
                                         </div>
 
                                         <div className="bg-muted/50 rounded-lg px-3 py-2">
@@ -497,6 +563,50 @@ export default function StationsIndex() {
                                             )}
                                             <ChevronRight className="size-3.5 opacity-60 rtl:rotate-180" />
                                         </button>
+
+                                        <div className="flex gap-2 border-t pt-4">
+                                            {station.suspended ? (
+                                                <Button
+                                                    size="sm"
+                                                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                                                    onClick={() =>
+                                                        ask(
+                                                            'reactivate',
+                                                            station,
+                                                        )
+                                                    }
+                                                    data-test="station-reactivate"
+                                                >
+                                                    <PlayCircle className="size-4" />
+                                                    {t('platform.reactivate')}
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="flex-1 border-amber-400 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10"
+                                                    onClick={() =>
+                                                        ask('suspend', station)
+                                                    }
+                                                    data-test="station-suspend"
+                                                >
+                                                    <PauseCircle className="size-4" />
+                                                    {t('platform.suspend')}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1 border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
+                                                onClick={() =>
+                                                    ask('delete', station)
+                                                }
+                                                data-test="station-delete"
+                                            >
+                                                <Trash2 className="size-4" />
+                                                {t('platform.delete')}
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -508,6 +618,11 @@ export default function StationsIndex() {
             <StationUsersDialog
                 station={usersFor}
                 onClose={() => setUsersFor(null)}
+            />
+
+            <ConfirmActionDialog
+                action={pendingAction}
+                onClose={() => setPendingAction(null)}
             />
         </>
     );

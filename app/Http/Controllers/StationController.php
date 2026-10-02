@@ -11,6 +11,7 @@ use App\Notifications\StationApproved;
 use App\Services\StationProvisioner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -34,11 +35,12 @@ class StationController extends Controller
         }
 
         $stations = collect($tenants)
-            ->filter(fn (Tenant $tenant) => StationStatus::of($tenant) === StationStatus::Active)
+            ->filter(fn (Tenant $tenant) => in_array(StationStatus::of($tenant), [StationStatus::Active, StationStatus::Suspended], true))
             ->map(fn (Tenant $tenant) => [
                 'id' => $tenant->id,
                 'name' => $tenant->name,
                 'onboarded' => $tenant->onboarded_at !== null,
+                'suspended' => StationStatus::of($tenant) === StationStatus::Suspended,
                 'created_at' => $tenant->created_at,
                 ...$people[$tenant->id],
                 'owner_phone' => $tenant->getAttribute('owner_phone'),
@@ -50,7 +52,7 @@ class StationController extends Controller
         // Self-registered stations not live yet: awaiting approval first (actionable), then
         // those whose owner hasn't confirmed their email yet (shown for context only).
         $registrations = collect($tenants)
-            ->reject(fn (Tenant $tenant) => StationStatus::of($tenant) === StationStatus::Active)
+            ->filter(fn (Tenant $tenant) => in_array(StationStatus::of($tenant), [StationStatus::PendingVerification, StationStatus::PendingApproval], true))
             ->map(fn (Tenant $tenant) => [
                 'id' => $tenant->id,
                 'name' => $tenant->name,
@@ -69,7 +71,8 @@ class StationController extends Controller
 
         return Inertia::render('platform/stations/index', [
             'stats' => [
-                'active_stations' => count($stations),
+                'active_stations' => collect($stations)->where('suspended', false)->count(),
+                'suspended_stations' => collect($stations)->where('suspended', true)->count(),
                 'pending_approval' => collect($registrations)->where('status', StationStatus::PendingApproval->value)->count(),
                 'total_users' => array_sum(array_column($stations, 'users')),
             ],
@@ -129,8 +132,9 @@ class StationController extends Controller
         return response()->json(['users' => $users]);
     }
 
-    public function approve(Tenant $tenant): RedirectResponse
+    public function approve(Request $request, Tenant $tenant): RedirectResponse
     {
+        $this->confirmPassword($request);
         abort_unless(StationStatus::of($tenant) === StationStatus::PendingApproval, 422, 'This station is not awaiting approval.');
 
         $tenant->update(['status' => StationStatus::Active->value]);
@@ -146,9 +150,10 @@ class StationController extends Controller
         return to_route('platform.home');
     }
 
-    public function reject(Tenant $tenant, StationProvisioner $provisioner): RedirectResponse
+    public function reject(Request $request, Tenant $tenant, StationProvisioner $provisioner): RedirectResponse
     {
-        abort_if(StationStatus::of($tenant) === StationStatus::Active, 422, 'Live stations cannot be rejected.');
+        $this->confirmPassword($request);
+        abort_unless(in_array(StationStatus::of($tenant), [StationStatus::PendingVerification, StationStatus::PendingApproval], true), 422, 'Only pending registrations can be rejected.');
 
         $name = $tenant->name;
         $provisioner->discard($tenant);
@@ -156,5 +161,56 @@ class StationController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':station rejected and removed.', ['station' => $name])]);
 
         return to_route('platform.home');
+    }
+
+    /** Freezes a live station: its users can't sign in, and anyone signed in is signed out. */
+    public function suspend(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->confirmPassword($request);
+        abort_unless(StationStatus::of($tenant) === StationStatus::Active, 422, 'Only active stations can be suspended.');
+
+        $tenant->update(['status' => StationStatus::Suspended->value, 'suspended_at' => now()->toIso8601String()]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':station suspended. Its users can no longer sign in.', ['station' => $tenant->name])]);
+
+        return to_route('platform.home');
+    }
+
+    public function reactivate(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->confirmPassword($request);
+        abort_unless(StationStatus::of($tenant) === StationStatus::Suspended, 422, 'Only suspended stations can be reactivated.');
+
+        $tenant->update(['status' => StationStatus::Active->value, 'suspended_at' => null]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':station reactivated. Its users can sign in again.', ['station' => $tenant->name])]);
+
+        return to_route('platform.home');
+    }
+
+    /** Permanently deletes a live or suspended station: its database and every login for it. */
+    public function destroy(Request $request, Tenant $tenant, StationProvisioner $provisioner): RedirectResponse
+    {
+        $this->confirmPassword($request);
+        abort_unless(in_array(StationStatus::of($tenant), [StationStatus::Active, StationStatus::Suspended], true), 422, 'Pending registrations are removed with Reject.');
+
+        $name = $tenant->name;
+        $provisioner->discard($tenant);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':station and all its data were deleted.', ['station' => $name])]);
+
+        return to_route('platform.home');
+    }
+
+    /**
+     * Every action that changes or removes a station needs the platform admin's current
+     * password, entered in the confirmation dialog. Errors go to the 'confirm' bag so the
+     * dialog shows them.
+     */
+    private function confirmPassword(Request $request): void
+    {
+        $request->validateWithBag('confirm', [
+            'current_password' => ['required', 'string', 'current_password'],
+        ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Enums\StationStatus;
 use App\Models\Tenant;
 use App\Models\TenantUserDirectory;
 use App\Models\User;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -105,6 +107,15 @@ class FortifyServiceProvider extends ServiceProvider
         $tenantUser = User::where('email', $email)->first();
 
         if ($tenantUser && Hash::check($password, $tenantUser->password)) {
+            // Correct credentials, but the station's subscription is frozen by the platform admin.
+            if (StationStatus::of($tenant) === StationStatus::Suspended) {
+                tenancy()->end();
+
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('Subscription expired. Please contact support.'),
+                ]);
+            }
+
             session(['tenant_id' => $tenant->getTenantKey()]);
 
             return $tenantUser;

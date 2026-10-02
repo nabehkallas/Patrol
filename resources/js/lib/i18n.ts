@@ -73,6 +73,34 @@ const dictionary = {
             'Enter your email and password below to log in',
         'auth.forgot_password_link': 'Forgot your password?',
         'auth.log_in': 'Log in',
+        'platform.kpi.suspended_hint': '+ :count suspended',
+        'platform.suspend': 'Suspend',
+        'platform.reactivate': 'Reactivate',
+        'platform.delete': 'Delete station',
+        'platform.status.suspended': 'Suspended',
+        'platform.confirm.password_label':
+            'Enter your current password to confirm',
+        'platform.confirm.approve_title': 'Approve :station?',
+        'platform.confirm.approve_message':
+            'The station goes live and its owner is emailed that they can sign in.',
+        'platform.confirm.approve_button': 'Approve station',
+        'platform.confirm.reject_title': 'Reject :station?',
+        'platform.confirm.reject_message':
+            'The registration, its account and its database are deleted permanently. This cannot be undone.',
+        'platform.confirm.reject_button': 'Reject and delete',
+        'platform.confirm.suspend_title':
+            'Are you sure you want to suspend :station?',
+        'platform.confirm.suspend_message':
+            'All of its users are signed out and can no longer sign in. They will see: "Subscription expired. Please contact support." Its data is kept and you can reactivate it at any time.',
+        'platform.confirm.suspend_button': 'Suspend station',
+        'platform.confirm.reactivate_title': 'Reactivate :station?',
+        'platform.confirm.reactivate_message':
+            "The station's users will be able to sign in again straight away.",
+        'platform.confirm.reactivate_button': 'Reactivate station',
+        'platform.confirm.delete_title': 'Permanently delete :station?',
+        'platform.confirm.delete_message':
+            'The station, all of its users and all of its data (sales, cash box, inventory, debts, reports) are deleted permanently. This cannot be undone.',
+        'platform.confirm.delete_button': 'Delete permanently',
         'platform.users.title': 'Users for :station',
         'platform.users.description':
             'Every account that can sign in to this station.',
@@ -113,10 +141,6 @@ const dictionary = {
         'platform.status.needs_setup': 'Needs setup',
         'platform.approve': 'Approve',
         'platform.reject': 'Reject',
-        'platform.confirm_approve':
-            'Approve :station? The owner will be emailed that their station is live.',
-        'platform.confirm_reject':
-            'Reject :station? The registration and its account are deleted permanently.',
         'platform.credentials.title': ':station created',
         'platform.credentials.description':
             "Save these credentials now. This is the only time the password is shown. Relay them to the station owner; they'll be asked to set a new password on first login.",
@@ -752,6 +776,32 @@ const dictionary = {
             'أدخل بريدك الإلكتروني وكلمة المرور أدناه لتسجيل الدخول',
         'auth.forgot_password_link': 'هل نسيت كلمة المرور؟',
         'auth.log_in': 'تسجيل الدخول',
+        'platform.kpi.suspended_hint': '+ :count مجمّدة',
+        'platform.suspend': 'تجميد',
+        'platform.reactivate': 'إعادة التفعيل',
+        'platform.delete': 'حذف المحطة',
+        'platform.status.suspended': 'مجمّدة',
+        'platform.confirm.password_label': 'أدخل كلمة المرور الحالية للتأكيد',
+        'platform.confirm.approve_title': 'الموافقة على :station؟',
+        'platform.confirm.approve_message':
+            'سيتم تفعيل المحطة وإبلاغ مالكها بالبريد الإلكتروني بأنه يمكنه تسجيل الدخول.',
+        'platform.confirm.approve_button': 'الموافقة على المحطة',
+        'platform.confirm.reject_title': 'رفض :station؟',
+        'platform.confirm.reject_message':
+            'سيتم حذف الطلب وحسابه وقاعدة بياناته نهائياً. لا يمكن التراجع عن ذلك.',
+        'platform.confirm.reject_button': 'رفض وحذف',
+        'platform.confirm.suspend_title': 'هل أنت متأكد من تجميد :station؟',
+        'platform.confirm.suspend_message':
+            'سيتم تسجيل خروج جميع مستخدميها ولن يتمكنوا من تسجيل الدخول، وستظهر لهم رسالة: "انتهى الاشتراك. يرجى التواصل مع الدعم." تبقى بياناتها محفوظة ويمكنك إعادة تفعيلها في أي وقت.',
+        'platform.confirm.suspend_button': 'تجميد المحطة',
+        'platform.confirm.reactivate_title': 'إعادة تفعيل :station؟',
+        'platform.confirm.reactivate_message':
+            'سيتمكن مستخدمو المحطة من تسجيل الدخول مجدداً فوراً.',
+        'platform.confirm.reactivate_button': 'إعادة تفعيل المحطة',
+        'platform.confirm.delete_title': 'حذف :station نهائياً؟',
+        'platform.confirm.delete_message':
+            'سيتم حذف المحطة وجميع مستخدميها وكل بياناتها (المبيعات، صندوق النقد، المخزون، الديون، التقارير) نهائياً. لا يمكن التراجع عن ذلك.',
+        'platform.confirm.delete_button': 'حذف نهائي',
         'platform.users.title': 'مستخدمو :station',
         'platform.users.description':
             'جميع الحسابات التي يمكنها تسجيل الدخول إلى هذه المحطة.',
@@ -793,10 +843,6 @@ const dictionary = {
         'platform.status.needs_setup': 'بحاجة إلى إعداد',
         'platform.approve': 'موافقة',
         'platform.reject': 'رفض',
-        'platform.confirm_approve':
-            'الموافقة على :station؟ سيتم إبلاغ المالك بالبريد الإلكتروني بتفعيل محطته.',
-        'platform.confirm_reject':
-            'رفض :station؟ سيتم حذف الطلب وحسابه نهائياً.',
         'platform.credentials.title': 'تم إنشاء :station',
         'platform.credentials.description':
             'احفظ بيانات الدخول الآن، فهذه المرة الوحيدة التي تظهر فيها كلمة المرور. أرسلها إلى مالك المحطة، وسيُطلب منه تعيين كلمة مرور جديدة عند أول تسجيل دخول.',

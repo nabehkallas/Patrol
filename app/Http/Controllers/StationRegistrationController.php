@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Concerns\PasswordValidationRules;
 use App\Enums\StationStatus;
+use App\Http\Middleware\RequireActiveStation;
 use App\Models\Tenant;
 use App\Models\TenantUserDirectory;
 use App\Models\User;
@@ -72,9 +73,13 @@ class StationRegistrationController extends Controller
     }
 
     /** What a verified owner sees until a platform admin approves the station. */
-    public function pending(): Response|RedirectResponse
+    public function pending(Request $request): Response|RedirectResponse|\Symfony\Component\HttpFoundation\Response
     {
         $tenant = tenant();
+
+        if ($tenant instanceof Tenant && StationStatus::of($tenant) === StationStatus::Suspended) {
+            return RequireActiveStation::signOutSuspended($request);
+        }
 
         if (! $tenant instanceof Tenant || StationStatus::of($tenant) === StationStatus::Active) {
             return redirect('/');

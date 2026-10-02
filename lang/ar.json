@@ -117,5 +117,9 @@
     "Account updated.": "تم تحديث الحساب.",
     "validation.current_password": "كلمة المرور غير صحيحة.",
     "validation.unique": "هذه القيمة مستخدمة مسبقاً.",
-    "validation.confirmed": "تأكيد كلمة المرور غير مطابق."
+    "validation.confirmed": "تأكيد كلمة المرور غير مطابق.",
+    "Subscription expired. Please contact support.": "انتهى الاشتراك. يرجى التواصل مع الدعم.",
+    ":station suspended. Its users can no longer sign in.": "تم تجميد :station. لم يعد بإمكان مستخدميها تسجيل الدخول.",
+    ":station reactivated. Its users can sign in again.": "تمت إعادة تفعيل :station. يمكن لمستخدميها تسجيل الدخول مجدداً.",
+    ":station and all its data were deleted.": "تم حذف :station وجميع بياناتها."
 }

@@ -8,6 +8,7 @@ use App\Models\Tenant;
  * Lifecycle of a station (tenant). A station an owner registers publicly starts at
  * PendingVerification, moves to PendingApproval once the owner confirms their email, and becomes
  * Active when a platform admin approves it. Stations created by a platform admin start Active.
+ * A platform admin can suspend an Active station (e.g. unpaid subscription) and reactivate it.
  * Stations from before this existed have no status stored and count as Active.
  */
 enum StationStatus: string
@@ -15,6 +16,7 @@ enum StationStatus: string
     case PendingVerification = 'pending_verification';
     case PendingApproval = 'pending_approval';
     case Active = 'active';
+    case Suspended = 'suspended';
 
     public static function of(Tenant $tenant): self
     {

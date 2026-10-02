@@ -50,8 +50,14 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
     Route::get('stations/create', [StationController::class, 'create'])->name('stations.create');
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
     Route::get('stations/{tenant}/users', [StationController::class, 'users'])->name('stations.users');
-    Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
-    Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
+    // Each of these asks for the platform admin's current password (throttled against guessing).
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
+        Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
+        Route::post('stations/{tenant}/suspend', [StationController::class, 'suspend'])->name('stations.suspend');
+        Route::post('stations/{tenant}/reactivate', [StationController::class, 'reactivate'])->name('stations.reactivate');
+        Route::delete('stations/{tenant}', [StationController::class, 'destroy'])->name('stations.destroy');
+    });
     Route::patch('account', [PlatformAccountController::class, 'updateProfile'])->name('account.update');
     Route::put('account/password', [PlatformAccountController::class, 'updatePassword'])->name('account.password')->middleware('throttle:6,1');
 });

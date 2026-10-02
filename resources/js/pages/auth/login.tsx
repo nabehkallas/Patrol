@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -19,6 +19,10 @@ type Props = {
 
 export default function Login({ status, canResetPassword }: Props) {
     const { t } = useTranslation();
+    // An error handed to the page by a redirect, e.g. a suspended station's users being
+    // signed out ("Subscription expired"), rather than by submitting this form.
+    const pageErrors = usePage<{ errors: Record<string, string> }>().props
+        .errors;
 
     return (
         <>
@@ -46,7 +50,9 @@ export default function Login({ status, canResetPassword }: Props) {
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError
+                                    message={errors.email ?? pageErrors.email}
+                                />
                             </div>
 
                             <div className="grid gap-2">
