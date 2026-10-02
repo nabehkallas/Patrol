@@ -49,6 +49,7 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
     Route::get('/', [StationController::class, 'index'])->name('home');
     Route::get('stations/create', [StationController::class, 'create'])->name('stations.create');
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
+    Route::get('stations/{tenant}/users', [StationController::class, 'users'])->name('stations.users');
     Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
     Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
     Route::patch('account', [PlatformAccountController::class, 'updateProfile'])->name('account.update');

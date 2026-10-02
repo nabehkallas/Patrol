@@ -73,6 +73,17 @@ const dictionary = {
             'Enter your email and password below to log in',
         'auth.forgot_password_link': 'Forgot your password?',
         'auth.log_in': 'Log in',
+        'platform.users.title': 'Users for :station',
+        'platform.users.description':
+            'Every account that can sign in to this station.',
+        'platform.users.name': 'Full name',
+        'platform.users.role': 'Role',
+        'platform.users.verification': 'Email verification',
+        'platform.users.verified': 'Verified',
+        'platform.users.pending': 'Pending',
+        'platform.users.loading': 'Loading users…',
+        'platform.users.empty': 'This station has no users.',
+        'platform.users.error': 'Could not load the users. Please try again.',
         'platform.panel': 'Super Admin',
         'platform.title': 'Platform dashboard',
         'platform.description':
@@ -741,6 +752,18 @@ const dictionary = {
             'أدخل بريدك الإلكتروني وكلمة المرور أدناه لتسجيل الدخول',
         'auth.forgot_password_link': 'هل نسيت كلمة المرور؟',
         'auth.log_in': 'تسجيل الدخول',
+        'platform.users.title': 'مستخدمو :station',
+        'platform.users.description':
+            'جميع الحسابات التي يمكنها تسجيل الدخول إلى هذه المحطة.',
+        'platform.users.name': 'الاسم الكامل',
+        'platform.users.role': 'الدور',
+        'platform.users.verification': 'تأكيد البريد الإلكتروني',
+        'platform.users.verified': 'مؤكد',
+        'platform.users.pending': 'بانتظار التأكيد',
+        'platform.users.loading': 'جارٍ تحميل المستخدمين…',
+        'platform.users.empty': 'لا يوجد مستخدمون في هذه المحطة.',
+        'platform.users.error':
+            'تعذّر تحميل المستخدمين. يرجى المحاولة مرة أخرى.',
         'platform.panel': 'المشرف العام',
         'platform.title': 'لوحة تحكم المنصة',
         'platform.description':

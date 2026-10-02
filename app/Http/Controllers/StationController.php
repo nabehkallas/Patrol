@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\StationApproved;
 use App\Services\StationProvisioner;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
@@ -107,6 +108,25 @@ class StationController extends Controller
         ]);
 
         return to_route('platform.home');
+    }
+
+    /**
+     * The accounts of one station, for the users dialog on its card. Read from that station's
+     * own database; loaded only when the dialog is opened.
+     */
+    public function users(Tenant $tenant): JsonResponse
+    {
+        $users = $tenant->run(fn () => User::with('roles')->orderBy('name')->get()
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->getRoleNames()->first(),
+                'verified' => $user->email_verified_at !== null,
+            ])
+            ->all());
+
+        return response()->json(['users' => $users]);
     }
 
     public function approve(Tenant $tenant): RedirectResponse

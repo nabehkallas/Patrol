@@ -3,10 +3,9 @@ import type { LucideIcon } from 'lucide-react';
 import {
     Building2,
     CalendarDays,
-    Check,
     CheckCircle2,
+    ChevronRight,
     Clock,
-    Copy,
     Hourglass,
     Inbox,
     KeyRound,
@@ -20,6 +19,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { CopyButton } from '@/components/platform/copy-button';
+import { StationUsersDialog } from '@/components/platform/station-users-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -103,31 +104,6 @@ function KpiCard({
     );
 }
 
-function CopyButton({ value }: { value: string }) {
-    const { t } = useTranslation();
-    const [copied, setCopied] = useState(false);
-
-    return (
-        <button
-            type="button"
-            onClick={() => {
-                void navigator.clipboard?.writeText(value);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-            }}
-            className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
-            aria-label={t('platform.copy_email')}
-            title={copied ? t('platform.copied') : t('platform.copy_email')}
-        >
-            {copied ? (
-                <Check className="size-3.5 text-emerald-500" />
-            ) : (
-                <Copy className="size-3.5" />
-            )}
-        </button>
-    );
-}
-
 /** Owner/contact lines: name, email with copy button, labelled phone. */
 function ContactDetails({
     name,
@@ -202,6 +178,7 @@ export default function StationsIndex() {
     const { stats, stations, registrations, newStationCredentials } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
+    const [usersFor, setUsersFor] = useState<Station | null>(null);
 
     function approveStation(registration: Registration) {
         if (
@@ -507,13 +484,19 @@ export default function StationsIndex() {
                                             />
                                         </div>
 
-                                        <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUsersFor(station)}
+                                            className="text-muted-foreground hover:border-primary hover:bg-primary/10 hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
+                                            data-test="station-users-button"
+                                        >
                                             <Users className="size-4" />
                                             {t('platform.users_count').replace(
                                                 ':count',
                                                 String(station.users),
                                             )}
-                                        </div>
+                                            <ChevronRight className="size-3.5 opacity-60 rtl:rotate-180" />
+                                        </button>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -521,6 +504,11 @@ export default function StationsIndex() {
                     )}
                 </section>
             </div>
+
+            <StationUsersDialog
+                station={usersFor}
+                onClose={() => setUsersFor(null)}
+            />
         </>
     );
 }
