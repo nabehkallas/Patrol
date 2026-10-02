@@ -13,6 +13,7 @@ use App\Http\Controllers\DebtController;
 use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryEntryController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlatformAccountController;
 use App\Http\Controllers\PumpCounterReadingController;
@@ -32,7 +33,7 @@ use App\Http\Middleware\RequireSuperAdmin;
 use App\Http\Middleware\RequireTenant;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/cash-box')->name('home');
+Route::get('/', LandingController::class)->name('home');
 Route::redirect('super-admin', '/platform');
 
 // Public sign-up for station owners (see StationRegistrationController).
