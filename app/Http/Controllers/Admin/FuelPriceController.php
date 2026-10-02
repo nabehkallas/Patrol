@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFuelPriceRequest;
@@ -15,6 +14,7 @@ use App\Models\FuelPrice;
 use App\Models\FuelType;
 use App\Models\Tank;
 use App\Models\Transaction;
+use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;

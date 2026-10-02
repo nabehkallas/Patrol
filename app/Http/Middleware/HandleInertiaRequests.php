@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Currency;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -52,6 +53,9 @@ class HandleInertiaRequests extends Middleware
                 'isSuperAdmin' => $isSuperAdmin,
             ],
             'tenant' => tenancy()->initialized ? ['name' => tenant('name')] : null,
+            // The station's currencies and its primary (reporting) currency, for pickers and formatting.
+            'currencies' => tenancy()->initialized ? Currency::forFrontend() : [],
+            'primaryCurrency' => tenancy()->initialized ? Currency::primary() : Currency::SYP,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\ExchangeRate;
 use App\Models\FuelCostAllocation;
@@ -13,6 +12,7 @@ use App\Models\Tank;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Services\FuelCostAllocationService;
+use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;

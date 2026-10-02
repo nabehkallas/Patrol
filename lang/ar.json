@@ -128,5 +128,10 @@
     "The backup file is damaged and cannot be restored.": "ملف النسخة الاحتياطية تالف ولا يمكن استعادته.",
     "This backup was made by a newer version of the system and cannot be restored here.": "تم إنشاء هذه النسخة بإصدار أحدث من النظام ولا يمكن استعادتها هنا.",
     "validation.extensions": "يجب أن يكون الملف من نوع: :values.",
-    "validation.max.file": "يجب ألا يتجاوز حجم الملف :max كيلوبايت."
+    "validation.max.file": "يجب ألا يتجاوز حجم الملف :max كيلوبايت.",
+    ":code added.": "تمت إضافة :code.",
+    ":code updated.": "تم تحديث :code.",
+    ":code is now the primary currency.": "أصبحت :code العملة الرئيسية.",
+    "The primary currency cannot be turned off. Choose another primary currency first.": "لا يمكن إيقاف العملة الرئيسية. اختر عملة رئيسية أخرى أولاً.",
+    "Set an exchange rate for :code before making it the primary currency.": "حدد سعر صرف لـ :code قبل تعيينها كعملة رئيسية."
 }

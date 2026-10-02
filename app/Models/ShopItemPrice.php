@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\Currency;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,7 +19,6 @@ class ShopItemPrice extends Model
         return [
             'base_price' => 'decimal:2',
             'sell_price' => 'decimal:2',
-            'currency' => Currency::class,
             'effective_at' => 'datetime',
         ];
     }

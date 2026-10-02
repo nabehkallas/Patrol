@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -16,7 +17,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
+import {
+    formatDateTime,
+    formatNumber,
+    todayInStation,
+    getPrimaryCurrency,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     destroy,
@@ -102,7 +108,7 @@ export default function FuelPricesIndex() {
     const form = useForm({
         fuel_type_id: String(fuelTypes[0]?.id ?? ''),
         price_per_liter: '',
-        currency: 'SYP' as Currency,
+        currency: getPrimaryCurrency() as Currency,
         effective_at: todayInStation(),
     });
 
@@ -230,15 +236,7 @@ export default function FuelPricesIndex() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="SYP">
-                                            {t('currency.syp')}
-                                        </SelectItem>
-                                        <SelectItem value="TRY">
-                                            {t('currency.try')}
-                                        </SelectItem>
-                                        <SelectItem value="USD">
-                                            {t('currency.usd')}
-                                        </SelectItem>
+                                        <CurrencyOptions />
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.currency} />

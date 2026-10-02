@@ -51,12 +51,16 @@ export function formatCurrencyAmount(
 
 /**
  * Joins every non-zero currency in a breakdown into one string (e.g. "1,000 SYP + 50.00 USD") —
- * SYP is always included even at zero, matching CurrencyCard's convention of always showing a
+ * the primary currency is always included even at zero, matching CurrencyCard's convention of
+ * always showing a
  * primary figure.
  */
 export function formatBreakdown(breakdown: CurrencyBreakdown): string {
     return Object.entries(breakdown)
-        .filter(([currency, amount]) => currency === 'SYP' || amount !== 0)
+        .filter(
+            ([currency, amount]) =>
+                currency === getPrimaryCurrency() || amount !== 0,
+        )
         .map(([currency, amount]) =>
             formatCurrencyAmount(amount as number, currency as Currency),
         )
@@ -83,6 +87,38 @@ export function getStationTimeZone(): string {
     }
 
     return stationTimeZone as string;
+}
+
+let primaryCurrency: string | null = null;
+
+/**
+ * The station's primary currency (Settings > Currencies), shared by the server as the
+ * `primaryCurrency` page prop: what reports are shown in and what new entries default to.
+ */
+export function getPrimaryCurrency(): string {
+    if (primaryCurrency === null) {
+        try {
+            const page = document.querySelector('script[data-page="app"]');
+            primaryCurrency =
+                JSON.parse(page?.textContent ?? '{}').props?.primaryCurrency ??
+                'SYP';
+        } catch {
+            primaryCurrency = 'SYP';
+        }
+    }
+
+    return primaryCurrency as string;
+}
+
+export function setPrimaryCurrency(code: unknown): void {
+    if (typeof code === 'string' && code !== '') {
+        primaryCurrency = code;
+    }
+}
+
+/** An amount in the station's primary currency, e.g. "1,250.0 SYP" or "$1,250.00". */
+export function formatPrimary(amount: number): string {
+    return formatCurrencyAmount(amount, getPrimaryCurrency());
 }
 
 /** Keeps the cached zone current when the station's timezone setting changes mid-session. */

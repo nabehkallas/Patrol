@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
@@ -17,6 +16,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
+use App\Support\Currency;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -93,7 +93,7 @@ class TransactionController extends Controller
             $transaction->type->value,
             $transaction->description ?? $transaction->fuelType->name ?? '—',
             $transaction->liters !== null ? number_format((float) $transaction->liters, 3) : '—',
-            number_format((float) $transaction->amount, 1).' '.$transaction->currency->value,
+            number_format((float) $transaction->amount, 1).' '.$transaction->currency,
             $transaction->user->name ?? '—',
         ])->all();
 
@@ -113,8 +113,8 @@ class TransactionController extends Controller
             'tanks' => $this->tankOptions(),
             'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
-            'exchangeRates' => collect(Currency::cases())->mapWithKeys(
-                fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
+            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
+                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
         ]);
     }
@@ -134,7 +134,7 @@ class TransactionController extends Controller
         }
 
         if (empty($data['exchange_rate_to_usd'])) {
-            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor(Currency::from($data['currency']));
+            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor((string) $data['currency']);
         }
 
         $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;
@@ -188,8 +188,8 @@ class TransactionController extends Controller
             'tanks' => $this->tankOptions(),
             'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
-            'exchangeRates' => collect(Currency::cases())->mapWithKeys(
-                fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
+            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
+                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
         ]);
     }

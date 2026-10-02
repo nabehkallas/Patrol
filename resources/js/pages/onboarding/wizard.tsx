@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import LocaleTabs from '@/components/locale-tabs';
 import { MoneyInput } from '@/components/money-input';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/hooks/use-locale';
-import { formatNumber, todayInStation } from '@/lib/format';
+import { formatNumber, todayInStation, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     debts,
@@ -380,7 +381,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
     ) {
         const existing = form.data.prices[fuelTypeId] ?? {
             price: '',
-            currency: 'SYP',
+            currency: getPrimaryCurrency(),
         };
 
         form.setData('prices', {
@@ -396,7 +397,8 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
             .map((ft) => ({
                 fuel_type_id: ft.id,
                 price_per_liter: form.data.prices[ft.id].price,
-                currency: form.data.prices[ft.id].currency ?? 'SYP',
+                currency:
+                    form.data.prices[ft.id].currency ?? getPrimaryCurrency(),
             }));
 
         if (prices.length === 0) {
@@ -449,7 +451,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
                                 <Select
                                     value={
                                         form.data.prices[ft.id]?.currency ??
-                                        'SYP'
+                                        getPrimaryCurrency()
                                     }
                                     onValueChange={(value) =>
                                         setField(ft.id, 'currency', value)
@@ -459,9 +461,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="SYP">SYP</SelectItem>
-                                        <SelectItem value="TRY">TRY</SelectItem>
-                                        <SelectItem value="USD">USD</SelectItem>
+                                        <CurrencyOptions />
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -481,7 +481,7 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
     const form = useForm({
         debtor_name: '',
         amount: '',
-        currency: 'SYP',
+        currency: getPrimaryCurrency(),
         details: '',
     });
 
@@ -560,9 +560,7 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="SYP">SYP</SelectItem>
-                                <SelectItem value="TRY">TRY</SelectItem>
-                                <SelectItem value="USD">USD</SelectItem>
+                                <CurrencyOptions />
                             </SelectContent>
                         </Select>
                     </div>

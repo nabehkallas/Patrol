@@ -20,7 +20,8 @@ import {
 import {
     formatCurrencyAmount,
     formatNumber,
-    formatSyp,
+    formatPrimary,
+    getPrimaryCurrency,
     todayInStation,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -156,21 +157,23 @@ function Empty({ label }: { label: string }) {
     return <p className="text-muted-foreground py-2 text-sm">{label}</p>;
 }
 
-/** SYP first, then any other currency with a balance, one line each. */
+/** The primary currency first, then any other currency with a balance, one line each. */
 function currencyLines(balances: Partial<Record<Currency, number>>) {
     const entries = Object.entries(balances) as [Currency, number][];
 
     if (entries.length === 0) {
-        return [formatSyp(0)];
+        return [formatPrimary(0)];
     }
 
     return entries
-        .sort(([a], [b]) => (a === 'SYP' ? -1 : b === 'SYP' ? 1 : 0))
-        .map(([currency, amount]) =>
-            currency === 'SYP'
-                ? formatSyp(amount)
-                : formatCurrencyAmount(amount, currency),
-        );
+        .sort(([a], [b]) =>
+            a === getPrimaryCurrency()
+                ? -1
+                : b === getPrimaryCurrency()
+                  ? 1
+                  : 0,
+        )
+        .map(([currency, amount]) => formatCurrencyAmount(amount, currency));
 }
 
 type Tab = 'overview' | 'annual';
@@ -353,17 +356,17 @@ function Overview() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <KpiCard
                         label={t('dashboard.income')}
-                        value={formatSyp(totals.income_syp)}
+                        value={formatPrimary(totals.income_syp)}
                         accent="border-t-emerald-500"
                     />
                     <KpiCard
                         label={t('dashboard.expenses')}
-                        value={formatSyp(totals.expense_syp)}
+                        value={formatPrimary(totals.expense_syp)}
                         accent="border-t-rose-500"
                     />
                     <KpiCard
                         label={t('statistics.sadcop_payments')}
-                        value={formatSyp(totals.sadcop_syp)}
+                        value={formatPrimary(totals.sadcop_syp)}
                         accent="border-t-indigo-500"
                     />
                     <KpiCard
@@ -388,7 +391,7 @@ function Overview() {
                                 label={row.name}
                                 labelClassName={fuelText(row.name)}
                                 value={`${formatNumber(row.liters)} L`}
-                                detail={formatSyp(row.income_syp)}
+                                detail={formatPrimary(row.income_syp)}
                             />
                         ))}
                         {byFuelType.length === 0 && (
@@ -403,7 +406,7 @@ function Overview() {
                                 label={row.name}
                                 labelClassName={fuelText(row.name)}
                                 value={`${formatNumber(row.liters)} L`}
-                                detail={formatSyp(row.cost_syp)}
+                                detail={formatPrimary(row.cost_syp)}
                             />
                         ))}
                         {deliveriesByFuelType.length === 0 && (
@@ -417,7 +420,7 @@ function Overview() {
                             labelClassName={STORE_TEXT}
                             value={
                                 <span className={STORE_TEXT}>
-                                    {formatSyp(shopSales.total_syp)}
+                                    {formatPrimary(shopSales.total_syp)}
                                 </span>
                             }
                         />
@@ -425,7 +428,7 @@ function Overview() {
                             <BreakdownRow
                                 key={item.name}
                                 label={item.name}
-                                value={formatSyp(item.revenue_syp)}
+                                value={formatPrimary(item.revenue_syp)}
                                 detail={`${formatNumber(item.quantity, 0)} ${t('statistics.units')}`}
                             />
                         ))}
@@ -460,7 +463,7 @@ function Overview() {
                                 <BreakdownRow
                                     key={row.user.id ?? row.user.name}
                                     label={row.user.name}
-                                    value={formatSyp(row.totals.income_syp)}
+                                    value={formatPrimary(row.totals.income_syp)}
                                     detail={`${formatNumber(row.totals.liters_sold)} L`}
                                 />
                             ))}

@@ -6,13 +6,17 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { formatCurrencyAmount, formatSyp } from '@/lib/format';
+import {
+    formatCurrencyAmount,
+    formatPrimary,
+    getPrimaryCurrency,
+} from '@/lib/format';
 import type { Currency, CurrencyBreakdown } from '@/types';
 
-/** Every currency in the breakdown besides SYP (SYP is always shown as the card's main figure). */
+/** Every currency besides the primary one (shown as the card's main figure). */
 function extraCurrencies(breakdown: CurrencyBreakdown): [Currency, number][] {
     return Object.entries(breakdown).filter(
-        ([currency]) => currency !== 'SYP',
+        ([currency]) => currency !== getPrimaryCurrency(),
     ) as [Currency, number][];
 }
 
@@ -39,7 +43,7 @@ export function CurrencyCard({
             <CardHeader>
                 <CardDescription>{label}</CardDescription>
                 <CardTitle className="text-2xl font-bold">
-                    {formatSyp(breakdown.SYP)}
+                    {formatPrimary(breakdown[getPrimaryCurrency()] ?? 0)}
                 </CardTitle>
             </CardHeader>
             {(extras.length > 0 || extraContent) && (

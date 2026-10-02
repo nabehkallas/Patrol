@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Enums\Currency;
 use App\Models\ExchangeRate;
 use App\Models\FuelCostAllocation;
 use App\Models\FuelCostLayer;
 use App\Models\FuelType;
 use App\Models\Transaction;
+use App\Support\Currency;
 
 /**
  * FIFO cost allocation for fuel sales, prospective from whenever this feature shipped --

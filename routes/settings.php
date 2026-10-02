@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\CurrencyController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -36,6 +37,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware([RequireTenant::class, 'verified', RequireActiveStation::class, 'role:admin'])->group(function () {
         Route::get('settings/data', [StationDataController::class, 'edit'])->name('data.edit');
+        Route::get('settings/currencies', [CurrencyController::class, 'index'])->name('currencies.index');
+        Route::post('settings/currencies', [CurrencyController::class, 'store'])->name('currencies.store');
+        Route::patch('settings/currencies/{code}', [CurrencyController::class, 'update'])->name('currencies.update');
+        Route::post('settings/currencies/{code}/primary', [CurrencyController::class, 'makePrimary'])->name('currencies.primary');
         Route::get('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');
         Route::post('settings/data/restore', [StationDataController::class, 'restore'])->name('data.restore')->middleware('throttle:5,1');

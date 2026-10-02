@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\ExchangeRate;
 use App\Models\ShopItem;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
+use App\Support\Currency;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
@@ -93,7 +93,7 @@ class ShopController extends Controller
             $transaction->type === TransactionType::Purchase ? $labels['purchase'] : $labels['sale'],
             $transaction->shopItem->name ?? '—',
             (string) $transaction->quantity,
-            number_format((float) $transaction->amount, 2).' '.$transaction->currency->value,
+            number_format((float) $transaction->amount, 2).' '.$transaction->currency,
             $transaction->user->name ?? '—',
         ])->all();
 
@@ -180,7 +180,7 @@ class ShopController extends Controller
         $col = 1;
 
         foreach ($items as $item) {
-            $currency = $currentPriceByItem[$item->id]?->currency->value ?? Currency::SYP->value;
+            $currency = $currentPriceByItem[$item->id]->currency ?? Currency::primary();
 
             $headerRow[] = null;
             $headerRow[] = $item->name.' — '.$labels['stock'];
@@ -193,7 +193,7 @@ class ShopController extends Controller
             $col += 4;
         }
 
-        $currencies = $items->map(fn (ShopItem $item) => $currentPriceByItem[$item->id]?->currency->value ?? Currency::SYP->value)->unique()->sort()->values();
+        $currencies = $items->map(fn (ShopItem $item) => $currentPriceByItem[$item->id]->currency ?? Currency::primary())->unique()->sort()->values();
         $overallColByCurrency = [];
 
         foreach ($currencies as $currency) {
@@ -266,7 +266,7 @@ class ShopController extends Controller
                 'stock' => $item->currentStock(),
                 'base_price' => $price?->base_price,
                 'sell_price' => $price?->sell_price,
-                'currency' => $price?->currency->value ?? Currency::SYP->value,
+                'currency' => $price->currency ?? Currency::primary(),
             ];
         })->all();
     }
@@ -325,7 +325,7 @@ class ShopController extends Controller
                 'item_name' => $transaction->shopItem->name ?? '—',
                 'quantity' => $transaction->quantity,
                 'amount' => $transaction->amount,
-                'currency' => $transaction->currency->value,
+                'currency' => $transaction->currency,
                 'occurred_at' => $transaction->occurred_at,
                 'recorded_by' => $transaction->user?->name,
                 'notes' => $transaction->notes,
@@ -363,7 +363,7 @@ class ShopController extends Controller
             'category' => ['nullable', 'string', 'max:100'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', 'in:SYP,TRY,USD'],
+            'currency' => ['required', Currency::rule()],
         ]);
 
         DB::transaction(function () use ($request, $data) {
@@ -390,7 +390,7 @@ class ShopController extends Controller
             'category' => ['nullable', 'string', 'max:100'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', 'in:SYP,TRY,USD'],
+            'currency' => ['required', Currency::rule()],
             'effective_at' => ['nullable', 'date', 'before_or_equal:today'],
         ], [
             'effective_at.before_or_equal' => __('The effective date cannot be in the future.'),
@@ -411,7 +411,7 @@ class ShopController extends Controller
             $priceChanged = ! $currentPrice
                 || (float) $currentPrice->base_price !== (float) $data['base_price']
                 || (float) $currentPrice->sell_price !== (float) $data['sell_price']
-                || $currentPrice->currency->value !== $data['currency'];
+                || $currentPrice->currency !== $data['currency'];
 
             if (! $priceChanged) {
                 return;
@@ -574,7 +574,7 @@ class ShopController extends Controller
             'description' => $item->name.' × '.$data['quantity'],
             'amount' => $data['amount'],
             'currency' => $data['currency'],
-            'exchange_rate_to_usd' => ExchangeRate::currentRateFor(Currency::from($data['currency'])),
+            'exchange_rate_to_usd' => ExchangeRate::currentRateFor((string) $data['currency']),
             'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
             'notes' => $data['notes'] ?? null,
         ]);
@@ -593,7 +593,7 @@ class ShopController extends Controller
             'shop_item_id' => ['required', 'exists:shop_items,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['required', 'in:SYP,TRY,USD'],
+            'currency' => ['required', Currency::rule()],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
@@ -605,7 +605,7 @@ class ShopController extends Controller
     private function recordMovement(Request $request, array $data, TransactionType $type): void
     {
         $item = ShopItem::findOrFail($data['shop_item_id']);
-        $currency = Currency::from($data['currency']);
+        $currency = (string) $data['currency'];
 
         Transaction::create([
             'user_id' => $request->user()->id,

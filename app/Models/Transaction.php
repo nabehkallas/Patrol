@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Enums\Currency;
 use App\Enums\DebtStatus;
 use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -43,8 +43,6 @@ class Transaction extends Model
     {
         return [
             'type' => TransactionType::class,
-            'currency' => Currency::class,
-            'to_currency' => Currency::class,
             'liters' => 'decimal:3',
             'quantity' => 'integer',
             'price_per_liter' => 'decimal:4',

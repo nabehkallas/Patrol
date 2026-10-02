@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\GroupsByCurrency;
-use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
@@ -17,6 +16,7 @@ use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Support\Currency;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -152,7 +152,7 @@ class DebtController extends Controller
                 $debt->date->format('Y-m-d'),
                 $debt->debtor->name ?? '—',
                 $whatFor,
-                number_format((float) $debt->amount, 1).' '.$debt->currency->value,
+                number_format((float) $debt->amount, 1).' '.$debt->currency,
                 $debt->direction === DebtDirection::Payable ? $labels['payable'] : $labels['receivable'],
                 $debt->status === DebtStatus::Outstanding ? $labels['outstanding'] : $labels['settled'],
                 $debt->recordedBy->name ?? '—',
@@ -222,8 +222,8 @@ class DebtController extends Controller
         return Inertia::render('debts/create', [
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'fuelTypes' => $this->fuelTypeOptions(),
-            'exchangeRates' => collect(Currency::cases())->mapWithKeys(
-                fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
+            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
+                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
         ]);
     }
@@ -247,7 +247,7 @@ class DebtController extends Controller
         $data['status'] = DebtStatus::Outstanding->value;
 
         if (empty($data['exchange_rate_to_usd'])) {
-            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor(Currency::from($data['currency']));
+            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor((string) $data['currency']);
         }
 
         $affectCashBoxNow = $data['affect_cash_box'] ?? false;
@@ -299,8 +299,8 @@ class DebtController extends Controller
             ]),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'fuelTypes' => $this->fuelTypeOptions(),
-            'exchangeRates' => collect(Currency::cases())->mapWithKeys(
-                fn (Currency $currency) => [$currency->value => ExchangeRate::currentRateFor($currency)]
+            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
+                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
         ]);
     }

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\GroupsByCurrency;
-use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\OtherIncomeCategory;
@@ -15,6 +14,7 @@ use App\Models\ExchangeRate;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
+use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -69,14 +69,32 @@ class CashBoxController extends Controller
         // net" one day at a time, just computed in one pass instead of recursively.
         $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), true, $user->id, $sypRate)['net'];
 
+        $cashBox = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
+        $primary = Currency::primary();
+
+        // Closing balance per currency: what was there at the start plus this period's net.
+        $balance = [];
+        $net = array_map(floatval(...), (array) $cashBox['net']);
+        foreach (array_unique([...array_keys($openingBalance), ...array_keys($net)]) as $currency) {
+            $balance[(string) $currency] = ($openingBalance[$currency] ?? 0.0) + ($net[$currency] ?? 0.0);
+        }
+
         return Inertia::render('cash-box/index', [
             'filters' => [
                 'mode' => $mode,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
-            'cashBox' => $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate),
+            'cashBox' => $cashBox,
             'openingBalance' => $openingBalance,
+            // Every currency's balance converted into the primary currency at today's rates,
+            // for the "total in <primary>" card when the box holds more than one currency.
+            'converted' => [
+                'currency' => $primary,
+                'opening' => ExchangeRate::convertBreakdown($openingBalance, $primary),
+                'net' => ExchangeRate::convertBreakdown($net, $primary),
+                'balance' => ExchangeRate::convertBreakdown($balance, $primary),
+            ],
             'history' => $this->historyEntries($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id),
         ]);
     }
@@ -127,7 +145,7 @@ class CashBoxController extends Controller
         ];
 
         $formatBreakdown = fn (array $breakdown) => collect($breakdown)
-            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->map(fn ($amount, $currency) => number_format($amount, Currency::decimals($currency)).' '.$currency)
             ->implode(' + ');
 
         $rowsFor = fn (array $summary) => [
@@ -239,8 +257,8 @@ class CashBoxController extends Controller
         $governmentPayments = $receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
         $customerReceivablePayments = $receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
 
-        $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'SYP')->sum('amount');
-        $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath)->value === 'USD')->sum('amount');
+        $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'SYP')->sum('amount');
+        $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'USD')->sum('amount');
 
         // The seed for row 1: there's no dedicated "opening balance" feature for Cash Box, but a
         // starting balance recorded as an ordinary Other Income entry (the station's own
@@ -469,11 +487,17 @@ class CashBoxController extends Controller
         // shape, so this is additive rather than a change to what income/incomeBreakdown mean.
         $fuelSaleIncomeTransactions = $incomeTransactions->where('type', TransactionType::FuelSale);
 
+        // Converted into the station's primary currency (the key name predates configurable
+        // currencies). Sadcop figures above stay in SYP: Sadcop always bills in Syrian pounds.
+        $primary = Currency::primary();
+        $primaryRate = ExchangeRate::currentRateFor($primary);
+        $primaryDecimals = Currency::decimals($primary);
+
         $incomeBySourceSyp = [
-            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
-            'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions, $sypRate),
-            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
-            'debt_collections' => round($receivablePayments->sum(fn ($p) => $p->currency === Currency::SYP ? $p->amount : 0), 0),
+            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate)), $primaryDecimals),
+            'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions, $primaryRate),
+            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate)), $primaryDecimals),
+            'debt_collections' => round($receivablePayments->sum(fn ($p) => ExchangeRate::convert((float) $p->amount, $p->currency, $primary)), $primaryDecimals),
         ];
 
         $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
@@ -584,7 +608,7 @@ class CashBoxController extends Controller
      * Debt payments of the given direction within a window, as plain currency/amount pairs
      * (a payment has no currency of its own — it's always in its parent debt's currency).
      *
-     * @return Collection<int, object{currency: Currency, amount: float}&\stdClass>
+     * @return Collection<int, object{currency: string, amount: float}&\stdClass>
      */
     private function debtPaymentsFor(DebtDirection $direction, CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): Collection
     {
@@ -650,7 +674,7 @@ class CashBoxController extends Controller
                 },
                 'description' => $this->describeTransaction($transaction, $labels),
                 'amount' => (float) $transaction->amount,
-                'currency' => $transaction->currency->value,
+                'currency' => $transaction->currency,
             ]);
 
         $debtPayments = DebtPayment::query()
@@ -665,7 +689,7 @@ class CashBoxController extends Controller
                 'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
                 'description' => ($payment->debt->debtor->name ?? '—').' — '.$labels['debt_payment'],
                 'amount' => (float) $payment->amount,
-                'currency' => $payment->debt->currency->value,
+                'currency' => $payment->debt->currency,
             ]);
 
         return $transactions->concat($debtPayments)
@@ -680,8 +704,8 @@ class CashBoxController extends Controller
     private function describeTransaction(Transaction $transaction, array $labels): string
     {
         if ($transaction->type === TransactionType::CurrencyExchange) {
-            return number_format((float) $transaction->amount, 2).' '.$transaction->currency->value
-                .' → '.number_format((float) $transaction->to_amount, 2).' '.$transaction->to_currency->value;
+            return number_format((float) $transaction->amount, 2).' '.$transaction->currency
+                .' → '.number_format((float) $transaction->to_amount, 2).' '.$transaction->to_currency;
         }
 
         if ($transaction->sadcopLedgerEntry !== null) {
@@ -709,8 +733,8 @@ class CashBoxController extends Controller
         $totals = [];
 
         foreach ($exchanges as $transaction) {
-            $from = $transaction->currency->value;
-            $to = $transaction->to_currency->value;
+            $from = $transaction->currency;
+            $to = $transaction->to_currency;
 
             $totals[$from] = ($totals[$from] ?? 0.0) - (float) $transaction->amount;
             $totals[$to] = ($totals[$to] ?? 0.0) + (float) $transaction->to_amount;
@@ -719,9 +743,9 @@ class CashBoxController extends Controller
         $result = [];
 
         foreach ($totals as $currency => $amount) {
-            $rounded = round($amount, $currency === 'SYP' ? 0 : 2);
+            $rounded = round($amount, Currency::decimals($currency));
 
-            if ($currency === 'SYP' || $rounded != 0) {
+            if ($currency === Currency::primary() || $rounded != 0) {
                 $result[$currency] = $rounded;
             }
         }
@@ -730,9 +754,9 @@ class CashBoxController extends Controller
     }
 
     /**
-     * Income minus expenses plus the net effect of currency exchanges, per currency — sadcop
-     * expenses are always SYP by construction (see SadcopController), so they only ever
-     * reduce the SYP side.
+     * Income minus expenses plus the net effect of currency exchanges, per currency, with the
+     * station's primary currency always first — sadcop expenses are always SYP by construction
+     * (see SadcopController), so they only ever reduce the SYP side.
      *
      * @param  array<string, float>  $income
      * @param  array<string, float>  $otherExpense
@@ -741,7 +765,8 @@ class CashBoxController extends Controller
      */
     private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp, array $exchanged): array
     {
-        $currencies = array_unique([...array_keys($income), ...array_keys($otherExpense), ...array_keys($exchanged), 'SYP']);
+        $primary = Currency::primary();
+        $currencies = array_unique([$primary, ...array_keys($income), ...array_keys($otherExpense), ...array_keys($exchanged), ...($sadcopExpenseSyp != 0 ? [Currency::SYP] : [])]);
 
         $result = [];
 
@@ -749,11 +774,11 @@ class CashBoxController extends Controller
             $value = ($income[$currency] ?? 0.0)
                 - ($otherExpense[$currency] ?? 0.0)
                 + ($exchanged[$currency] ?? 0.0)
-                - ($currency === 'SYP' ? $sadcopExpenseSyp : 0.0);
+                - ($currency === Currency::SYP ? $sadcopExpenseSyp : 0.0);
 
-            $rounded = round($value, $currency === 'SYP' ? 0 : 2);
+            $rounded = round($value, Currency::decimals($currency));
 
-            if ($currency === 'SYP' || $rounded != 0) {
+            if ($currency === $primary || $rounded != 0) {
                 $result[$currency] = $rounded;
             }
         }

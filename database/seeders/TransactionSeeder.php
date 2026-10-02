@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -44,7 +44,7 @@ class TransactionSeeder extends Seeder
     {
         $users = User::all();
         $fuelTypes = FuelType::with('tanks')->get();
-        $rates = ExchangeRate::all()->keyBy(fn (ExchangeRate $rate) => $rate->currency->value);
+        $rates = ExchangeRate::all()->keyBy(fn (ExchangeRate $rate) => $rate->currency);
         $prices = $fuelTypes->mapWithKeys(fn (FuelType $fuelType) => [
             $fuelType->id => (float) ($fuelType->currentPrice()->price_per_liter ?? 1.0),
         ]);
@@ -194,14 +194,14 @@ class TransactionSeeder extends Seeder
         return $day->copy()->setTime(random_int(6, 21), random_int(0, 59), random_int(0, 59));
     }
 
-    private function randomCurrency(): Currency
+    private function randomCurrency(): string
     {
         $roll = random_int(1, 100);
 
         return match (true) {
             $roll <= 55 => Currency::USD,
             $roll <= 85 => Currency::SYP,
-            default => Currency::TRY,
+            default => 'TRY',
         };
     }
 
@@ -209,13 +209,13 @@ class TransactionSeeder extends Seeder
      * @param  Collection<string, ExchangeRate>  $rates
      * @return array{0: float, 1: float|null}
      */
-    private function convert(float $usdValue, Currency $currency, Collection $rates): array
+    private function convert(float $usdValue, string $currency, Collection $rates): array
     {
         if ($currency === Currency::USD) {
             return [$usdValue, null];
         }
 
-        $rate = (float) ($rates[$currency->value]->rate_to_usd ?? 0);
+        $rate = (float) ($rates[$currency]->rate_to_usd ?? 0);
 
         if ($rate <= 0) {
             return [$usdValue, null];

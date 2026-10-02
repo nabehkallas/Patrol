@@ -25,7 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatNumber, formatSyp } from '@/lib/format';
+import { formatNumber, formatPrimary } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index } from '@/routes/statistics';
@@ -138,7 +138,9 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
         ];
 
     const cell = (row: AnnualMonth, key: keyof AnnualMonth, liters?: true) =>
-        liters ? `${formatNumber(row[key])} L` : formatSyp(row[key] as number);
+        liters
+            ? `${formatNumber(row[key])} L`
+            : formatPrimary(row[key] as number);
 
     return (
         <div className="space-y-6">
@@ -188,7 +190,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                     accent="border-t-emerald-500"
                     value={
                         data.peak_revenue
-                            ? formatSyp(data.peak_revenue.value)
+                            ? formatPrimary(data.peak_revenue.value)
                             : '—'
                     }
                     detail={
@@ -211,7 +213,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                     accent="border-t-rose-500"
                     value={
                         data.peak_expense
-                            ? formatSyp(data.peak_expense.value)
+                            ? formatPrimary(data.peak_expense.value)
                             : '—'
                     }
                     detail={
@@ -299,7 +301,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 <Tooltip
                                     cursor={{ fillOpacity: 0.08 }}
                                     formatter={(value) =>
-                                        formatSyp(Number(value))
+                                        formatPrimary(Number(value))
                                     }
                                     contentStyle={{
                                         background: 'var(--popover)',

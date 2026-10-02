@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Currency;
 use App\Enums\DebtStatus;
 use App\Enums\SadcopLedgerEntryType;
 use App\Models\Debt;
@@ -15,9 +14,9 @@ use App\Models\PumpCounterReading;
 use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
 use App\Models\TankTopUp;
+use App\Support\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Enum;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -147,7 +146,7 @@ class OnboardingController extends Controller
             'prices' => ['required', 'array'],
             'prices.*.fuel_type_id' => ['required', 'exists:fuel_types,id'],
             'prices.*.price_per_liter' => ['required', 'numeric', 'min:0'],
-            'prices.*.currency' => ['required', new Enum(Currency::class)],
+            'prices.*.currency' => ['required', Currency::rule()],
         ]);
 
         foreach ($data['prices'] as $price) {
@@ -168,12 +167,12 @@ class OnboardingController extends Controller
         $data = $request->validate([
             'debtor_name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['required', new Enum(Currency::class)],
+            'currency' => ['required', Currency::rule()],
             'details' => ['nullable', 'string', 'max:255'],
         ]);
 
         $debtor = Debtor::firstOrCreate(['name' => $data['debtor_name']]);
-        $currency = Currency::from($data['currency']);
+        $currency = (string) $data['currency'];
 
         Debt::create([
             'debtor_id' => $debtor->id,

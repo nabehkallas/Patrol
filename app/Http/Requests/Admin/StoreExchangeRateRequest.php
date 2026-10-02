@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\Currency;
+use App\Support\Currency;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rule;
 
 class StoreExchangeRateRequest extends FormRequest
 {
@@ -15,7 +15,8 @@ class StoreExchangeRateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'currency' => ['required', new Enum(Currency::class), 'in:SYP,TRY'],
+            // Any of the station's currencies except USD, the pivot every rate is quoted against.
+            'currency' => ['required', Currency::rule(), Rule::notIn([Currency::USD])],
             'rate_to_usd' => ['required', 'numeric', 'min:0.000001'],
             'effective_at' => ['nullable', 'date'],
         ];

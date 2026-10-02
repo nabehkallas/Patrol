@@ -1,6 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debts';
 import type {
@@ -48,7 +49,7 @@ export default function DebtCreate() {
         liters: '',
         price_per_liter: '',
         amount: '',
-        currency: 'SYP' as Currency,
+        currency: getPrimaryCurrency() as Currency,
         exchange_rate_to_usd: '',
         date: defaultEntryDate,
         details: '',
@@ -340,15 +341,7 @@ export default function DebtCreate() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SYP">
-                                        Syrian Pound
-                                    </SelectItem>
-                                    <SelectItem value="TRY">
-                                        Turkish Lira
-                                    </SelectItem>
-                                    <SelectItem value="USD">
-                                        US Dollar
-                                    </SelectItem>
+                                    <CurrencyOptions />
                                 </SelectContent>
                             </Select>
                             <InputError message={form.errors.currency} />

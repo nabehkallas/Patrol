@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -10,11 +11,10 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime, formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/admin/exchange-rates';
 import type { ExchangeRate, Paginated } from '@/types';
@@ -28,7 +28,9 @@ export default function ExchangeRatesIndex() {
     const { t } = useTranslation();
 
     const form = useForm({
-        currency: 'SYP' as 'SYP' | 'TRY',
+        currency: (getPrimaryCurrency() === 'USD'
+            ? ''
+            : getPrimaryCurrency()) as string,
         rate_to_usd: '',
         effective_at: '',
     });
@@ -78,12 +80,7 @@ export default function ExchangeRatesIndex() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="SYP">
-                                            {t('currency.syp')}
-                                        </SelectItem>
-                                        <SelectItem value="TRY">
-                                            {t('currency.try')}
-                                        </SelectItem>
+                                        <CurrencyOptions exclude={['USD']} />
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.currency} />

@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -26,7 +27,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
+import {
+    formatDateTime,
+    formatNumber,
+    todayInStation,
+    getPrimaryCurrency,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index, exportPdf, exportXlsx } from '@/routes/shop';
@@ -174,9 +180,7 @@ function CurrencySelect({
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="SYP">SYP</SelectItem>
-                <SelectItem value="TRY">TRY</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
+                <CurrencyOptions />
             </SelectContent>
         </Select>
     );
@@ -637,7 +641,7 @@ export default function ShopIndex() {
         category: '',
         base_price: '',
         sell_price: '',
-        currency: 'SYP' as Currency,
+        currency: getPrimaryCurrency() as Currency,
     });
 
     function submitNewItem(event: FormEvent) {
@@ -682,7 +686,7 @@ export default function ShopIndex() {
         shop_item_id: 0,
         quantity: '',
         amount: '',
-        currency: 'SYP' as Currency,
+        currency: getPrimaryCurrency() as Currency,
         date: '',
     });
 

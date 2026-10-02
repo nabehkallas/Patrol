@@ -28,8 +28,10 @@ import {
     formatCurrencyAmount,
     formatDateTime,
     formatNumber,
+    formatPrimary,
     formatShortDate,
     formatSyp,
+    getPrimaryCurrency,
     startOfMonthInStation,
     todayInStation,
 } from '@/lib/format';
@@ -53,10 +55,19 @@ type PageProps = {
     };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
+    converted: ConvertedTotals;
     history: CashBoxHistoryEntry[];
 };
 
-/** Every currency besides SYP that has activity anywhere in this summary. */
+type ConvertedTotals = {
+    currency: string;
+    opening: number;
+    net: number;
+    balance: number;
+};
+
+/** Every currency besides the primary one that has activity anywhere in this summary (SYP
+ * whenever Sadcop payments were made, since those are always in SYP). */
 function otherCurrencies(
     totals: CashBoxSummary,
     openingBalance: CurrencyBreakdown,
@@ -72,10 +83,14 @@ function otherCurrencies(
         openingBalance,
     ]) {
         for (const currency of Object.keys(breakdown) as Currency[]) {
-            if (currency !== 'SYP') {
+            if (currency !== getPrimaryCurrency()) {
                 found.add(currency);
             }
         }
+    }
+
+    if (totals.sadcop_expense_syp !== 0 && getPrimaryCurrency() !== 'SYP') {
+        found.add('SYP');
     }
 
     return Array.from(found);
@@ -257,6 +272,70 @@ function CategorySection({
     );
 }
 
+/**
+ * Every currency's balance converted into the primary one at today's rates and added up, so a
+ * station holding several currencies sees one overall figure. Shown only when the cash box
+ * holds more than the primary currency.
+ */
+function ConvertedTotalCard({
+    converted,
+    t,
+}: {
+    converted: ConvertedTotals;
+    t: (key: TranslationKey) => string;
+}) {
+    const amount = (value: number) =>
+        formatCurrencyAmount(value, converted.currency);
+
+    return (
+        <Card
+            className="border-sky-500/30 bg-sky-500/5"
+            data-test="cash-box-converted"
+        >
+            <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-2 font-semibold">
+                        <Coins className="size-4 text-sky-500" />
+                        {t('cash_box.converted_title').replace(
+                            ':currency',
+                            converted.currency,
+                        )}
+                    </p>
+                    <span className="text-muted-foreground text-xs">
+                        {t('cash_box.converted_note')}
+                    </span>
+                </div>
+                <div className="grid gap-3 text-sm sm:grid-cols-3">
+                    <div>
+                        <div className="text-muted-foreground text-xs">
+                            {t('cash_box.opening_balance')}
+                        </div>
+                        <div className="font-semibold">
+                            {amount(converted.opening)}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-muted-foreground text-xs">
+                            {t('dashboard.net')}
+                        </div>
+                        <div className="font-semibold">
+                            {amount(converted.net)}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-muted-foreground text-xs">
+                            {t('cash_box.current_balance')}
+                        </div>
+                        <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
+                            {amount(converted.balance)}
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 function OtherCurrencyBoxes({
     totals,
     openingBalance,
@@ -295,7 +374,10 @@ function OtherCurrencyBoxes({
                         <BreakdownRow
                             label={t('cash_box.other_expenses')}
                             value={formatCurrencyAmount(
-                                totals.other_expense[currency] ?? 0,
+                                (totals.other_expense[currency] ?? 0) +
+                                    (currency === 'SYP'
+                                        ? totals.sadcop_expense_syp
+                                        : 0),
                                 currency,
                             )}
                         />
@@ -441,9 +523,12 @@ export default function CashBoxIndex() {
         filters,
         cashBox: totals,
         openingBalance,
+        converted,
         history,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    // The main row of cards shows the station's primary currency; others get their own boxes.
+    const primary = getPrimaryCurrency();
 
     // Itemized rows for the Total Expenses popup's category sections -- SYP only, matching
     // sadcop_expense_syp/other_expense.SYP's precedent (other currencies get their own card
@@ -451,12 +536,12 @@ export default function CashBoxIndex() {
     // and non-Sadcop Purchases (e.g. shop restocking), the same two types other_expense.SYP
     // already sums together.
     const sadcopItems = history.filter(
-        (entry) => entry.type === 'sadcop' && entry.currency === 'SYP',
+        (entry) => entry.type === 'sadcop' && entry.currency === primary,
     );
     const generalExpenseItems = history.filter(
         (entry) =>
             (entry.type === 'expense' || entry.type === 'purchase') &&
-            entry.currency === 'SYP',
+            entry.currency === primary,
     );
 
     const [mode, setMode] = useState(filters.mode);
@@ -586,21 +671,21 @@ export default function CashBoxIndex() {
                         accent="blue"
                         icon={<Wallet className="size-5" />}
                         label={t('cash_box.opening_balance')}
-                        value={formatSyp(openingBalance.SYP)}
+                        value={formatPrimary(openingBalance[primary] ?? 0)}
                     />
 
                     <StatCard
                         accent="green"
                         icon={<TrendingUp className="size-5" />}
                         label={t('cash_box.total_income')}
-                        value={formatSyp(totals.income.SYP)}
+                        value={formatPrimary(totals.income[primary] ?? 0)}
                         breakdownLabel={t('cash_box.income_breakdown')}
                         breakdown={
                             <>
                                 <CategorySection
                                     icon={<Fuel className="size-4" />}
                                     label={t('cash_box.total_fuel_sales')}
-                                    total={formatSyp(
+                                    total={formatPrimary(
                                         totals.income_by_source_syp.fuel_sales,
                                     )}
                                 >
@@ -610,10 +695,10 @@ export default function CashBoxIndex() {
                                                 key={row.name}
                                                 tone="income"
                                                 label={row.name}
-                                                value={formatSyp(
+                                                value={formatPrimary(
                                                     row.revenue_syp,
                                                 )}
-                                                subLine={`${formatNumber(row.liters)} L × ${formatSyp(row.unit_price_syp)}`}
+                                                subLine={`${formatNumber(row.liters)} L × ${formatPrimary(row.unit_price_syp)}`}
                                             />
                                         ),
                                     )}
@@ -626,7 +711,7 @@ export default function CashBoxIndex() {
                                     <ItemRow
                                         tone="income"
                                         label={t('cash_box.store_income')}
-                                        value={formatSyp(
+                                        value={formatPrimary(
                                             totals.income_by_source_syp
                                                 .store_income,
                                         )}
@@ -640,7 +725,7 @@ export default function CashBoxIndex() {
                                     <ItemRow
                                         tone="income"
                                         label={t('cash_box.debt_collections')}
-                                        value={formatSyp(
+                                        value={formatPrimary(
                                             totals.income_by_source_syp
                                                 .debt_collections,
                                         )}
@@ -654,41 +739,46 @@ export default function CashBoxIndex() {
                         accent="red"
                         icon={<TrendingDown className="size-5" />}
                         label={t('cash_box.total_outflow')}
-                        value={formatSyp(
-                            totals.sadcop_expense_syp +
-                                (totals.other_expense.SYP ?? 0),
+                        value={formatPrimary(
+                            (primary === 'SYP'
+                                ? totals.sadcop_expense_syp
+                                : 0) + (totals.other_expense[primary] ?? 0),
                         )}
                         breakdownLabel={t('cash_box.outflow_breakdown')}
                         breakdown={
                             <>
-                                <CategorySection
-                                    icon={<Fuel className="size-4" />}
-                                    label={t('cash_box.sadcop_payments')}
-                                    total={formatSyp(totals.sadcop_expense_syp)}
-                                >
-                                    {sadcopItems.map((entry) => (
-                                        <ItemRow
-                                            key={entry.id}
-                                            tone="expense"
-                                            label={entry.description}
-                                            value={formatSyp(entry.amount)}
-                                            subLine={formatShortDate(
-                                                entry.date,
-                                            )}
-                                        />
-                                    ))}
-                                    {sadcopItems.length === 0 && (
-                                        <p className="text-muted-foreground text-xs">
-                                            {t('common.no_results')}
-                                        </p>
-                                    )}
-                                </CategorySection>
+                                {primary === 'SYP' && (
+                                    <CategorySection
+                                        icon={<Fuel className="size-4" />}
+                                        label={t('cash_box.sadcop_payments')}
+                                        total={formatSyp(
+                                            totals.sadcop_expense_syp,
+                                        )}
+                                    >
+                                        {sadcopItems.map((entry) => (
+                                            <ItemRow
+                                                key={entry.id}
+                                                tone="expense"
+                                                label={entry.description}
+                                                value={formatSyp(entry.amount)}
+                                                subLine={formatShortDate(
+                                                    entry.date,
+                                                )}
+                                            />
+                                        ))}
+                                        {sadcopItems.length === 0 && (
+                                            <p className="text-muted-foreground text-xs">
+                                                {t('common.no_results')}
+                                            </p>
+                                        )}
+                                    </CategorySection>
+                                )}
 
                                 <CategorySection
                                     icon={<Wrench className="size-4" />}
                                     label={t('cash_box.general_expenses')}
-                                    total={formatSyp(
-                                        totals.other_expense.SYP ?? 0,
+                                    total={formatPrimary(
+                                        totals.other_expense[primary] ?? 0,
                                     )}
                                 >
                                     {generalExpenseItems.map((entry) => (
@@ -696,7 +786,7 @@ export default function CashBoxIndex() {
                                             key={entry.id}
                                             tone="expense"
                                             label={entry.description}
-                                            value={formatSyp(entry.amount)}
+                                            value={formatPrimary(entry.amount)}
                                             subLine={formatShortDate(
                                                 entry.date,
                                             )}
@@ -716,7 +806,10 @@ export default function CashBoxIndex() {
                         accent="amber"
                         icon={<Coins className="size-5" />}
                         label={t('cash_box.current_balance')}
-                        value={formatSyp(openingBalance.SYP + totals.net.SYP)}
+                        value={formatPrimary(
+                            (openingBalance[primary] ?? 0) +
+                                (totals.net[primary] ?? 0),
+                        )}
                     >
                         <div className="border-border space-y-1 border-t pt-2">
                             <div className="flex items-center justify-between text-sm">
@@ -724,7 +817,7 @@ export default function CashBoxIndex() {
                                     {t('dashboard.debts')}
                                 </span>
                                 <span className="font-medium">
-                                    {formatSyp(totals.debts.SYP)}
+                                    {formatPrimary(totals.debts[primary] ?? 0)}
                                 </span>
                             </div>
                         </div>
@@ -736,6 +829,10 @@ export default function CashBoxIndex() {
                     openingBalance={openingBalance}
                     t={t}
                 />
+
+                {otherCurrencies(totals, openingBalance).length > 0 && (
+                    <ConvertedTotalCard converted={converted} t={t} />
+                )}
 
                 <div className="flex items-center gap-3 rounded-xl border p-3">
                     <Button

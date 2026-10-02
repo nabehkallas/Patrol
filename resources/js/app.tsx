@@ -7,7 +7,11 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import PlatformLayout from '@/layouts/platform-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { getStationTimeZone, setStationTimeZone } from '@/lib/format';
+import {
+    getStationTimeZone,
+    setPrimaryCurrency,
+    setStationTimeZone,
+} from '@/lib/format';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -16,6 +20,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 getStationTimeZone();
 router.on('navigate', (event) => {
     setStationTimeZone(event.detail.page.props.timezone);
+    setPrimaryCurrency(event.detail.page.props.primaryCurrency);
 });
 
 createInertiaApp({

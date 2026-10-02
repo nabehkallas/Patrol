@@ -1,6 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -567,15 +568,7 @@ export default function TransactionEdit() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SYP">
-                                        Syrian Pound
-                                    </SelectItem>
-                                    <SelectItem value="TRY">
-                                        Turkish Lira
-                                    </SelectItem>
-                                    <SelectItem value="USD">
-                                        US Dollar
-                                    </SelectItem>
+                                    <CurrencyOptions />
                                 </SelectContent>
                             </Select>
                             <InputError message={form.errors.currency} />
@@ -614,15 +607,7 @@ export default function TransactionEdit() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="SYP">
-                                            Syrian Pound
-                                        </SelectItem>
-                                        <SelectItem value="TRY">
-                                            Turkish Lira
-                                        </SelectItem>
-                                        <SelectItem value="USD">
-                                            US Dollar
-                                        </SelectItem>
+                                        <CurrencyOptions />
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.to_currency} />

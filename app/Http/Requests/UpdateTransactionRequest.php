@@ -2,13 +2,13 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\FuelPump;
 use App\Models\Tank;
 use App\Models\Transaction;
+use App\Support\Currency;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,8 +29,8 @@ class UpdateTransactionRequest extends FormRequest
             'price_per_liter' => ['required_if:type,fuel_sale', 'nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['required', new Enum(Currency::class)],
-            'to_currency' => ['nullable', 'required_if:type,currency_exchange', new Enum(Currency::class)],
+            'currency' => ['required', Currency::rule()],
+            'to_currency' => ['nullable', 'required_if:type,currency_exchange', Currency::rule()],
             'to_amount' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'min:0.01'],
             'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
             'occurred_at' => ['nullable', 'date'],

@@ -1,6 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
 import type { FormEvent } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index, store } from '@/routes/transactions';
@@ -108,7 +109,8 @@ export default function TransactionCreate() {
         price_per_liter: initialTank?.currentPrice?.price_per_liter ?? '',
         description: '',
         amount: '',
-        currency: (initialTank?.currentPrice?.currency ?? 'SYP') as Currency,
+        currency: (initialTank?.currentPrice?.currency ??
+            getPrimaryCurrency()) as Currency,
         to_currency: 'USD' as Currency,
         to_amount: '',
         exchange_rate_to_usd: '',
@@ -591,15 +593,7 @@ export default function TransactionCreate() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SYP">
-                                        Syrian Pound
-                                    </SelectItem>
-                                    <SelectItem value="TRY">
-                                        Turkish Lira
-                                    </SelectItem>
-                                    <SelectItem value="USD">
-                                        US Dollar
-                                    </SelectItem>
+                                    <CurrencyOptions />
                                 </SelectContent>
                             </Select>
                             <InputError message={form.errors.currency} />
@@ -640,15 +634,7 @@ export default function TransactionCreate() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="SYP">
-                                            Syrian Pound
-                                        </SelectItem>
-                                        <SelectItem value="TRY">
-                                            Turkish Lira
-                                        </SelectItem>
-                                        <SelectItem value="USD">
-                                            US Dollar
-                                        </SelectItem>
+                                        <CurrencyOptions />
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.to_currency} />

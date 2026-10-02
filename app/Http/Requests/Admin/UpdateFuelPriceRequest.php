@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\Currency;
+use App\Support\Currency;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
 class UpdateFuelPriceRequest extends FormRequest
 {
@@ -17,7 +16,7 @@ class UpdateFuelPriceRequest extends FormRequest
         return [
             'fuel_type_id' => ['required', 'exists:fuel_types,id'],
             'price_per_liter' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', new Enum(Currency::class)],
+            'currency' => ['required', Currency::rule()],
             'effective_at' => ['nullable', 'date'],
         ];
     }

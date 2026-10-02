@@ -1,6 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { CurrencyOptions } from '@/components/currency-options';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -313,7 +314,7 @@ export default function DebtEdit() {
                             <Label htmlFor="amount">
                                 {t('common.amount')}
                                 {debtKind === 'liters' && (
-                                    <span className="ms-1 text-xs text-muted-foreground">
+                                    <span className="text-muted-foreground ms-1 text-xs">
                                         ({t('debts.computed_from_liters')})
                                     </span>
                                 )}
@@ -344,15 +345,7 @@ export default function DebtEdit() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SYP">
-                                        Syrian Pound
-                                    </SelectItem>
-                                    <SelectItem value="TRY">
-                                        Turkish Lira
-                                    </SelectItem>
-                                    <SelectItem value="USD">
-                                        US Dollar
-                                    </SelectItem>
+                                    <CurrencyOptions />
                                 </SelectContent>
                             </Select>
                             <InputError message={form.errors.currency} />

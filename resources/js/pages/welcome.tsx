@@ -46,20 +46,19 @@ const COPY = {
     en: {
         metaTitle: 'Fuel station management',
         metaDescription:
-            'Run your fuel station from one place: pump counters, cash box, tanks, debts, Sadcop and reports, in Arabic and English.',
+            'Run your fuel station from one place: pump counters, multi-currency cash boxes, tanks, debts, Sadcop and reports.',
         nav: { demo: 'Live demo', media: 'Screenshots', features: 'Features' },
         login: 'Log in',
         register: 'Register your station',
-        badge: 'Built for fuel stations in Syria',
+        badge: 'Smart Gas Station Management System',
         heroTitle1: 'Your whole station,',
         heroTitle2: 'in one dashboard',
         heroText:
-            'Record pump counters, close the cash box, track every tank and debt, and see your real profit, in Arabic or English, from any device.',
+            'Record pump counters, close the cash box, track every tank and debt, and see your real profit, from any device.',
         heroPrimary: 'Register your station now',
         heroSecondary: 'Watch the demo',
         trust: [
-            'Arabic & English',
-            'SYP · USD · TRY',
+            'Multi-currency & multi-cashbox support',
             'Sadcop ledger built in',
         ],
         demo: {
@@ -149,8 +148,8 @@ const COPY = {
             },
             {
                 icon: 'coins',
-                title: 'Multi-currency',
-                text: 'SYP, USD and TRY side by side with your own exchange rates.',
+                title: 'Multi-currency & multi-cashbox',
+                text: 'Work in any currency you choose, each with its own cash box balance, converted into one total at your own exchange rates.',
             },
             {
                 icon: 'chart',
@@ -174,22 +173,18 @@ const COPY = {
     ar: {
         metaTitle: 'إدارة محطات الوقود',
         metaDescription:
-            'أدر محطتك من مكان واحد: عدادات المضخات، صندوق النقد، الخزانات، الديون، سادكوب والتقارير، بالعربية والإنجليزية.',
+            'أدر محطتك من مكان واحد: عدادات المضخات، صناديق نقد متعددة العملات، الخزانات، الديون، سادكوب والتقارير.',
         nav: { demo: 'عرض تفاعلي', media: 'لقطات الشاشة', features: 'المزايا' },
         login: 'تسجيل الدخول',
         register: 'سجّل محطتك الآن',
-        badge: 'مصمم لمحطات الوقود في سوريا',
+        badge: 'نظام إدارة محطات الوقود الذكي',
         heroTitle1: 'محطتك بالكامل،',
         heroTitle2: 'في لوحة تحكم واحدة',
         heroText:
-            'سجّل عدادات المضخات، أغلق صندوق النقد، تابع كل خزان وكل دين، واعرف ربحك الحقيقي، بالعربية أو الإنجليزية ومن أي جهاز.',
+            'سجّل عدادات المضخات، أغلق صندوق النقد، تابع كل خزان وكل دين، واعرف ربحك الحقيقي، من أي جهاز.',
         heroPrimary: 'سجّل محطتك الآن',
         heroSecondary: 'شاهد العرض',
-        trust: [
-            'عربي وإنجليزي',
-            'ل.س · دولار · ليرة تركية',
-            'دفتر سادكوب مدمج',
-        ],
+        trust: ['دعم شامل لتعدد العملات والصناديق', 'دفتر سادكوب مدمج'],
         demo: {
             live: 'عرض مباشر',
             sample: 'بيانات تجريبية',
@@ -275,8 +270,8 @@ const COPY = {
             },
             {
                 icon: 'coins',
-                title: 'تعدد العملات',
-                text: 'الليرة السورية والدولار والليرة التركية جنباً إلى جنب بأسعار صرفك.',
+                title: 'تعدد العملات والصناديق',
+                text: 'تعامل بأي عملة تختارها، ولكل عملة رصيد صندوق خاص بها، مع إجمالي موحّد بأسعار صرفك.',
             },
             {
                 icon: 'chart',

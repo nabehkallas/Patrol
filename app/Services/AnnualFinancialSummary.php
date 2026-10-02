@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\ExchangeRate;
 use App\Models\Transaction;
+use App\Support\Currency;
 use Carbon\CarbonImmutable;
 
 /**
@@ -18,7 +18,8 @@ use Carbon\CarbonImmutable;
  *  - operational expenses = expenses and purchases, except payments into Sadcop's balance;
  *  - Sadcop payments = purchases linked to a Sadcop ledger entry;
  *  - liters sold = non-governmental fuel sales.
- * Amounts are converted to SYP at the current exchange rate, like the rest of Statistics.
+ * Amounts are converted to the station's primary currency at the current exchange rate, like
+ * the rest of Statistics.
  */
 class AnnualFinancialSummary
 {
@@ -42,7 +43,8 @@ class AnnualFinancialSummary
     public function forYear(int $year): array
     {
         $start = CarbonImmutable::create($year)->startOfYear();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        // Converted into the station's primary currency.
+        $sypRate = ExchangeRate::currentRateFor(Currency::primary());
 
         $transactions = Transaction::query()
             ->where('occurred_at', '>=', $start)
@@ -106,7 +108,7 @@ class AnnualFinancialSummary
         // rounded cells, so every row and the totals row add up exactly on screen.
         $months = array_values(array_map(function (array $row): array {
             foreach (['fuel_revenue', 'store_revenue', 'other_revenue', 'expenses', 'sadcop'] as $key) {
-                $row[$key] = round($row[$key], 0);
+                $row[$key] = round($row[$key], Currency::decimals(Currency::primary()));
             }
             $row['liters'] = round($row['liters'], 3);
             $row['revenue'] = $row['fuel_revenue'] + $row['store_revenue'] + $row['other_revenue'];
@@ -116,7 +118,7 @@ class AnnualFinancialSummary
 
         $totals = ['month' => 0];
         foreach (['liters', 'fuel_revenue', 'store_revenue', 'other_revenue', 'revenue', 'expenses', 'sadcop'] as $key) {
-            $totals[$key] = round(array_sum(array_column($months, $key)), $key === 'liters' ? 3 : 0);
+            $totals[$key] = round(array_sum(array_column($months, $key)), $key === 'liters' ? 3 : Currency::decimals(Currency::primary()));
         }
 
         $peak = function (string $key) use ($months): ?array {

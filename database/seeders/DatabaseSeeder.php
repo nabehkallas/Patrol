@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
 use App\Models\Tank;
 use App\Models\User;
+use App\Support\Currency;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
                 FuelPrice::create([
                     'fuel_type_id' => $fuelType->id,
                     'price_per_liter' => 1.00,
-                    'currency' => Currency::USD->value,
+                    'currency' => Currency::USD,
                     'set_by_id' => $admin->id,
                     'effective_at' => now(),
                 ]);
@@ -54,10 +54,10 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        foreach ([Currency::SYP, Currency::TRY] as $currency) {
+        foreach ([Currency::SYP, 'TRY'] as $currency) {
             if (ExchangeRate::where('currency', $currency)->doesntExist()) {
                 ExchangeRate::create([
-                    'currency' => $currency->value,
+                    'currency' => $currency,
                     'rate_to_usd' => $currency === Currency::SYP ? 13000 : 32,
                     'set_by_id' => $admin->id,
                     'effective_at' => now(),

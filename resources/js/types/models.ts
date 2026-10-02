@@ -1,4 +1,15 @@
-export type Currency = 'SYP' | 'TRY' | 'USD';
+/** A currency code: SYP, USD, TRY, or any currency the station added (EUR, JPY, a custom code). */
+export type Currency = string;
+
+/** One of the station's currencies (Settings > Currencies). */
+export type StationCurrency = {
+    code: string;
+    name: string;
+    symbol: string | null;
+    decimals: number;
+    is_active: boolean;
+    is_primary: boolean;
+};
 
 export type TransactionType =
     | 'fuel_sale'
@@ -223,9 +234,8 @@ export type TransactionTotals = {
     debts_liters_sold: number;
 };
 
-export type CurrencyBreakdown = Partial<Record<Currency, number>> & {
-    SYP: number;
-};
+/** Amounts per currency code; the station's primary currency is always present. */
+export type CurrencyBreakdown = Record<Currency, number>;
 
 export type DebtsSummary = {
     outstanding: CurrencyBreakdown;

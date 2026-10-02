@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
@@ -17,6 +16,7 @@ use App\Models\ShopItem;
 use App\Models\TankTopUp;
 use App\Models\Transaction;
 use App\Services\EarningsXlsxExporter;
+use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -627,7 +627,7 @@ class EarningsController extends Controller
      * ShopItemPrice::base_price) that aren't attached to a transaction's own recorded
      * exchange_rate_to_usd, so there's no historical rate to use instead.
      */
-    private function convertToSyp(float $amount, Currency $currency, float $sypRate): float
+    private function convertToSyp(float $amount, string $currency, float $sypRate): float
     {
         if ($currency === Currency::SYP) {
             return $amount;

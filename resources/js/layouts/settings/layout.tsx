@@ -7,6 +7,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useTranslation } from '@/lib/i18n';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
+import { index as currenciesIndex } from '@/routes/currencies';
 import { edit as editData } from '@/routes/data';
 import { edit as editPreferences } from '@/routes/preferences';
 import { edit } from '@/routes/profile';
@@ -45,6 +46,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             : []),
         ...(auth.isAdmin
             ? [
+                  {
+                      title: t('settings.nav.currencies'),
+                      href: currenciesIndex(),
+                      icon: null,
+                  },
                   {
                       title: t('settings.nav.data'),
                       href: editData(),

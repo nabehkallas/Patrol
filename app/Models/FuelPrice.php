@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\Currency;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +19,6 @@ class FuelPrice extends Model
     {
         return [
             'price_per_liter' => 'decimal:4',
-            'currency' => Currency::class,
             'effective_at' => 'datetime',
         ];
     }
