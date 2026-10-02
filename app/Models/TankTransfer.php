@@ -20,6 +20,9 @@ class TankTransfer extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Tank, $this>
+     */
     public function fromTank(): BelongsTo
     {
         // withTrashed(): a soft-deleted tank must keep resolving here for historical transfers
@@ -27,11 +30,17 @@ class TankTransfer extends Model
         return $this->belongsTo(Tank::class, 'from_tank_id')->withTrashed();
     }
 
+    /**
+     * @return BelongsTo<Tank, $this>
+     */
     public function toTank(): BelongsTo
     {
         return $this->belongsTo(Tank::class, 'to_tank_id')->withTrashed();
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_id');

@@ -53,6 +53,9 @@ class SadcopController extends Controller
         ]);
     }
 
+    /**
+     * @return Builder<SadcopLedgerEntry>
+     */
     private function filteredEntriesQuery(Request $request, CarbonInterface $from, CarbonInterface $to): Builder
     {
         $query = SadcopLedgerEntry::with(['transaction.tank.fuelType', 'recordedBy'])
@@ -103,12 +106,12 @@ class SadcopController extends Controller
 
         $rows = $entries->map(fn (SadcopLedgerEntry $entry) => [
             $entry->occurred_at->format('Y-m-d H:i'),
-            $labels['types'][$entry->type->value] ?? $entry->type->value,
-            $entry->transaction?->tank?->fuelType?->name ?? '—',
+            $labels['types'][$entry->type->value],
+            $entry->transaction?->tank?->fuelType->name ?? '—',
             $entry->liters !== null ? number_format((float) $entry->liters, 3) : '—',
             $entry->price_per_liter !== null ? number_format((float) $entry->price_per_liter, 3) : '—',
             ($entry->type === SadcopLedgerEntryType::Delivery ? '-' : '+').number_format((float) $entry->amount, 1).' SYP',
-            $entry->recordedBy?->name ?? '—',
+            $entry->recordedBy->name ?? '—',
         ])->all();
 
         return $exporter->download(
@@ -402,7 +405,7 @@ class SadcopController extends Controller
                 'user_id' => $request->user()->id,
                 'type' => TransactionType::FuelDelivery,
                 'tank_id' => $data['tank_id'],
-                'fuel_type_id' => Tank::find($data['tank_id'])?->fuel_type_id,
+                'fuel_type_id' => Tank::find((int) $data['tank_id'])?->fuel_type_id,
                 'liters' => $data['liters'],
                 'price_per_liter' => $data['price_per_liter'],
                 'amount' => $data['amount'],
@@ -478,6 +481,9 @@ class SadcopController extends Controller
         return to_route('sadcop.index');
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     private function applyDepositUpdate(SadcopLedgerEntry $entry, array $data): void
     {
         $payload = [
@@ -490,9 +496,12 @@ class SadcopController extends Controller
         $entry->update($payload);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     private function applyDeliveryUpdate(SadcopLedgerEntry $entry, array $data): void
     {
-        $tank = Tank::find($data['tank_id']);
+        $tank = Tank::find((int) $data['tank_id']);
         $occurredAt = $data['occurred_at'] ?? $entry->occurred_at;
 
         $entry->transaction?->update([
@@ -531,7 +540,10 @@ class SadcopController extends Controller
         return to_route('sadcop.index');
     }
 
-    private function tankOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function tankOptions(): array
     {
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
 
@@ -547,6 +559,7 @@ class SadcopController extends Controller
                 'is_active' => $tank->is_active,
                 'remaining_liters' => round($tank->remainingCapacity(), 3),
                 'default_cost_price_per_liter' => $this->defaultCostPricePerLiter($tank, $sypRate),
-            ]);
+            ])
+            ->all();
     }
 }

@@ -20,11 +20,17 @@ class DebtPayment extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Debt, $this>
+     */
     public function debt(): BelongsTo
     {
         return $this->belongsTo(Debt::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_id');

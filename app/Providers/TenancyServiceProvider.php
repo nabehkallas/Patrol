@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Tenant;
 use App\Support\StationTimezone;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
@@ -20,7 +21,10 @@ class TenancyServiceProvider extends ServiceProvider
     // By default, no namespace is used to support the callable array syntax.
     public static string $controllerNamespace = '';
 
-    public function events()
+    /**
+     * @return array<class-string, array<mixed>>
+     */
+    public function events(): array
     {
         return [
             // Tenant events
@@ -73,7 +77,11 @@ class TenancyServiceProvider extends ServiceProvider
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
                 // Run in the station's own timezone while its tenancy is active.
-                fn (Events\TenancyInitialized $event) => StationTimezone::apply($event->tenancy->tenant),
+                function (Events\TenancyInitialized $event): void {
+                    if ($event->tenancy->tenant instanceof Tenant) {
+                        StationTimezone::apply($event->tenancy->tenant);
+                    }
+                },
             ],
 
             Events\EndingTenancy::class => [],
@@ -102,7 +110,7 @@ class TenancyServiceProvider extends ServiceProvider
         //
     }
 
-    public function boot()
+    public function boot(): void
     {
         $this->bootEvents();
         $this->mapRoutes();
@@ -110,7 +118,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->makeTenancyMiddlewareHighestPriority();
     }
 
-    protected function bootEvents()
+    protected function bootEvents(): void
     {
         foreach ($this->events() as $event => $listeners) {
             foreach ($listeners as $listener) {
@@ -123,7 +131,7 @@ class TenancyServiceProvider extends ServiceProvider
         }
     }
 
-    protected function mapRoutes()
+    protected function mapRoutes(): void
     {
         $this->app->booted(function () {
             if (file_exists(base_path('routes/tenant.php'))) {
@@ -133,7 +141,7 @@ class TenancyServiceProvider extends ServiceProvider
         });
     }
 
-    protected function makeTenancyMiddlewareHighestPriority()
+    protected function makeTenancyMiddlewareHighestPriority(): void
     {
         $tenancyMiddleware = [
             // Even higher priority than the initialization middleware
@@ -147,7 +155,7 @@ class TenancyServiceProvider extends ServiceProvider
         ];
 
         foreach (array_reverse($tenancyMiddleware) as $middleware) {
-            $this->app[Kernel::class]->prependToMiddlewarePriority($middleware);
+            $this->app->make(Kernel::class)->prependToMiddlewarePriority($middleware);
         }
     }
 }

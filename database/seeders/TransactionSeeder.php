@@ -23,6 +23,7 @@ class TransactionSeeder extends Seeder
 {
     private const DAYS = 30;
 
+    /** @var list<string> */
     private array $expenseDescriptions = [
         'فاتورة كهرباء',
         'راتب موظف',
@@ -32,6 +33,7 @@ class TransactionSeeder extends Seeder
         'مستلزمات نظافة',
     ];
 
+    /** @var list<string> */
     private array $incomeDescriptions = [
         'غسيل سيارات',
         'تبديل زيت',
@@ -44,11 +46,11 @@ class TransactionSeeder extends Seeder
         $fuelTypes = FuelType::with('tanks')->get();
         $rates = ExchangeRate::all()->keyBy(fn (ExchangeRate $rate) => $rate->currency->value);
         $prices = $fuelTypes->mapWithKeys(fn (FuelType $fuelType) => [
-            $fuelType->id => (float) ($fuelType->currentPrice()?->price_per_liter ?? 1.0),
+            $fuelType->id => (float) ($fuelType->currentPrice()->price_per_liter ?? 1.0),
         ]);
 
         if ($users->isEmpty() || $fuelTypes->isEmpty()) {
-            $this->command?->warn('Skipping TransactionSeeder: seed users and fuel types first.');
+            $this->command->warn('Skipping TransactionSeeder: seed users and fuel types first.');
 
             return;
         }
@@ -75,7 +77,7 @@ class TransactionSeeder extends Seeder
             }
         });
 
-        $this->command?->info('Seeded '.self::DAYS.' days of fuel sales, deliveries, income, and expenses.');
+        $this->command->info('Seeded '.self::DAYS.' days of fuel sales, deliveries, income, and expenses.');
     }
 
     /**

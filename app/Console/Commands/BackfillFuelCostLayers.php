@@ -130,7 +130,7 @@ class BackfillFuelCostLayers extends Command
         // under it), matching how the live system already behaves.
         $timeline = $priceChanges->map(fn (FuelPrice $price) => ['type' => 'price', 'at' => $price->effective_at, 'model' => $price])
             ->concat($sales->map(fn (Transaction $sale) => ['type' => 'sale', 'at' => $sale->occurred_at, 'model' => $sale]))
-            ->sortBy(fn (array $event) => $event['at']->timestamp * 10 + ($event['type'] === 'price' ? 0 : 1))
+            ->sortBy(fn (array $event) => $event['at']->getTimestamp() * 10 + ($event['type'] === 'price' ? 0 : 1))
             ->values();
 
         $layersCreated = [];
@@ -138,7 +138,7 @@ class BackfillFuelCostLayers extends Command
         $allocationService = app(FuelCostAllocationService::class);
 
         foreach ($timeline as $event) {
-            if ($event['type'] === 'price') {
+            if ($event['model'] instanceof FuelPrice) {
                 $layer = $this->createHistoricalLayerIfApplicable($fuelType, $event['model'], $sypRate);
 
                 if ($layer) {
@@ -152,7 +152,6 @@ class BackfillFuelCostLayers extends Command
                 continue;
             }
 
-            /** @var Transaction $sale */
             $sale = $event['model'];
 
             // Idempotency: never touch a sale that already has allocations (either from the

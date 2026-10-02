@@ -6,6 +6,7 @@ use App\Enums\Currency;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,17 +25,27 @@ class ShopItemPrice extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<ShopItem, $this>
+     */
     public function shopItem(): BelongsTo
     {
         return $this->belongsTo(ShopItem::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function setBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'set_by_id');
     }
 
-    public function scopeEffectiveAsOf($query, CarbonInterface $at)
+    /**
+     * @param  Builder<ShopItemPrice>  $query
+     * @return Builder<ShopItemPrice>
+     */
+    public function scopeEffectiveAsOf(Builder $query, CarbonInterface $at): Builder
     {
         return $query->where('effective_at', '<=', $at);
     }

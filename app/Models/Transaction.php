@@ -58,16 +58,25 @@ class Transaction extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return BelongsTo<Tank, $this>
+     */
     public function tank(): BelongsTo
     {
         // withTrashed(): a soft-deleted tank must keep resolving here for historical
@@ -75,31 +84,49 @@ class Transaction extends Model
         return $this->belongsTo(Tank::class)->withTrashed();
     }
 
+    /**
+     * @return BelongsTo<FuelPump, $this>
+     */
     public function pump(): BelongsTo
     {
         return $this->belongsTo(FuelPump::class, 'pump_id');
     }
 
+    /**
+     * @return BelongsTo<ShopItem, $this>
+     */
     public function shopItem(): BelongsTo
     {
         return $this->belongsTo(ShopItem::class);
     }
 
+    /**
+     * @return HasOne<Debt, $this>
+     */
     public function debt(): HasOne
     {
         return $this->hasOne(Debt::class);
     }
 
+    /**
+     * @return HasOne<SadcopLedgerEntry, $this>
+     */
     public function sadcopLedgerEntry(): HasOne
     {
         return $this->hasOne(SadcopLedgerEntry::class);
     }
 
+    /**
+     * @return HasOne<PumpCounterReading, $this>
+     */
     public function pumpCounterReading(): HasOne
     {
         return $this->hasOne(PumpCounterReading::class, 'transaction_id');
     }
 
+    /**
+     * @return HasMany<FuelCostAllocation, $this>
+     */
     public function costAllocations(): HasMany
     {
         return $this->hasMany(FuelCostAllocation::class);

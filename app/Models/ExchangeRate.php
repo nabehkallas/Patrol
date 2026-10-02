@@ -22,6 +22,9 @@ class ExchangeRate extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function setBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'set_by_id');

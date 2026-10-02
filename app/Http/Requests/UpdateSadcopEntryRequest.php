@@ -5,11 +5,15 @@ namespace App\Http\Requests;
 use App\Enums\SadcopLedgerEntryType;
 use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSadcopEntryRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         /** @var SadcopLedgerEntry $entry */
@@ -47,7 +51,7 @@ class UpdateSadcopEntryRequest extends FormRequest
         }
 
         $validator->after(function (Validator $validator) use ($entry) {
-            $tank = Tank::find($this->input('tank_id'));
+            $tank = Tank::find($this->integer('tank_id'));
             $liters = (float) $this->input('liters');
 
             if (! $tank || $liters <= 0) {

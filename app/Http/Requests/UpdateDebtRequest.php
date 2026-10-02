@@ -5,11 +5,15 @@ namespace App\Http\Requests;
 use App\Enums\Currency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 class UpdateDebtRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [

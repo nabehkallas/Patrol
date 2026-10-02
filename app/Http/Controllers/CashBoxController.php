@@ -281,7 +281,7 @@ class CashBoxController extends Controller
 
         $openingUsdBalance = -($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'debt.currency'));
 
-        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item) => $item->{$dateField}->toDateString());
+        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item): string => $item->{$dateField}->toDateString());
 
         $incomeByDay = $byDay($incomeTransactions, 'occurred_at');
         $governmentIncomeByDay = $byDay($governmentIncomeTransactions, 'occurred_at');
@@ -405,6 +405,8 @@ class CashBoxController extends Controller
      * sold for the given range — mirrors the dashboard's cash box totals. Fuel deliveries never
      * touch the attendant's cash register, so they're excluded entirely (they're tracked as
      * inventory movements, not cash flow).
+     *
+     * @return array<string, mixed>
      */
     private function summarize(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId, float $sypRate): array
     {
@@ -492,7 +494,7 @@ class CashBoxController extends Controller
         // Liters behind an unsettled debt (governmental sales, or any other fuel sold on
         // credit), whether recorded via a linked transaction or a standalone liters-based debt.
         $litersSoldInDebt = $outstandingDebts
-            ->sum(fn (Debt $debt) => (float) ($debt->liters ?? $debt->transaction?->liters ?? 0));
+            ->sum(fn (Debt $debt) => (float) ($debt->liters ?? $debt->transaction->liters ?? 0));
 
         return [
             'income' => $incomeBreakdown,
@@ -582,7 +584,7 @@ class CashBoxController extends Controller
      * Debt payments of the given direction within a window, as plain currency/amount pairs
      * (a payment has no currency of its own — it's always in its parent debt's currency).
      *
-     * @return Collection<int, object{currency: Currency, amount: float}>
+     * @return Collection<int, object{currency: Currency, amount: float}&\stdClass>
      */
     private function debtPaymentsFor(DebtDirection $direction, CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): Collection
     {
@@ -661,7 +663,7 @@ class CashBoxController extends Controller
                 'id' => 'debt-payment-'.$payment->id,
                 'date' => $payment->paid_at->toIso8601String(),
                 'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
-                'description' => ($payment->debt->debtor?->name ?? '—').' — '.$labels['debt_payment'],
+                'description' => ($payment->debt->debtor->name ?? '—').' — '.$labels['debt_payment'],
                 'amount' => (float) $payment->amount,
                 'currency' => $payment->debt->currency->value,
             ]);
@@ -690,7 +692,7 @@ class CashBoxController extends Controller
             return $transaction->notes ?: $labels['sadcop_transfer'];
         }
 
-        return $transaction->fuelType?->name ?? $transaction->description ?? $transaction->type->value;
+        return $transaction->fuelType->name ?? $transaction->description ?? $transaction->type->value;
     }
 
     /**
@@ -735,6 +737,7 @@ class CashBoxController extends Controller
      * @param  array<string, float>  $income
      * @param  array<string, float>  $otherExpense
      * @param  array<string, float>  $exchanged
+     * @return array<string, float>
      */
     private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp, array $exchanged): array
     {

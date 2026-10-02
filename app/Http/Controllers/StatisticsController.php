@@ -56,7 +56,7 @@ class StatisticsController extends Controller
             ->where('type', TransactionType::FuelSale)
             ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
             ->map(function (Collection $txns) use ($sypRate) {
-                $name = $txns->first()->fuelType?->name ?? '—';
+                $name = $txns->first()->fuelType->name ?? '—';
 
                 return [
                     'name' => $name,
@@ -109,7 +109,7 @@ class StatisticsController extends Controller
                 ->where('type', TransactionType::FuelDelivery)
                 ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
                 ->map(fn (Collection $txns) => [
-                    'name' => $txns->first()->fuelType?->name ?? '—',
+                    'name' => $txns->first()->fuelType->name ?? '—',
                     'liters' => round($txns->sum(fn (Transaction $t) => (float) $t->liters), 3),
                     'cost_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
                 ])
@@ -130,7 +130,7 @@ class StatisticsController extends Controller
                     $u = $txns->first()->user;
 
                     return [
-                        'user' => ['id' => $u?->id, 'name' => $u?->name ?? '—'],
+                        'user' => ['id' => $u?->id, 'name' => $u->name ?? '—'],
                         'totals' => $this->summarize($txns, $sypRate),
                     ];
                 })
@@ -140,6 +140,9 @@ class StatisticsController extends Controller
         return Inertia::render('statistics/index', $props);
     }
 
+    /**
+     * @return Collection<int, Transaction>
+     */
     private function filteredTransactions(Request $request, CarbonInterface $from, CarbonInterface $to): Collection
     {
         $user = $request->user();
@@ -174,7 +177,7 @@ class StatisticsController extends Controller
             ->get()
             ->map(fn (Debt $debt) => [
                 'id' => $debt->id,
-                'debtor_name' => $debt->debtor?->name ?? '—',
+                'debtor_name' => $debt->debtor->name ?? '—',
                 'direction' => $debt->direction->value,
                 'amount' => (float) $debt->amount,
                 'currency' => $debt->currency->value,
@@ -192,7 +195,7 @@ class StatisticsController extends Controller
             ->get()
             ->map(fn (DebtPayment $payment) => [
                 'id' => $payment->id,
-                'debtor_name' => $payment->debt?->debtor?->name ?? '—',
+                'debtor_name' => $payment->debt?->debtor->name ?? '—',
                 'direction' => $payment->debt?->direction->value,
                 'amount' => (float) $payment->amount,
                 'currency' => $payment->debt?->currency->value,
@@ -230,7 +233,8 @@ class StatisticsController extends Controller
      * Shop sales in the range: their total revenue (already part of the revenue KPI, since a
      * shop sale is recorded as other income) and the best-selling items by revenue.
      *
-     * @return array{total_syp: float, items: Collection}
+     * @param  Collection<int, Transaction>  $transactions
+     * @return array{total_syp: float, items: array<int, array<string, mixed>>}
      */
     private function shopSales(Collection $transactions, float $sypRate): array
     {
@@ -244,13 +248,14 @@ class StatisticsController extends Controller
             'items' => $sales
                 ->groupBy('shop_item_id')
                 ->map(fn (Collection $txns) => [
-                    'name' => $txns->first()->shopItem?->name ?? '—',
+                    'name' => $txns->first()->shopItem->name ?? '—',
                     'quantity' => (int) $txns->sum('quantity'),
                     'revenue_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
                 ])
                 ->sortByDesc('revenue_syp')
                 ->take(5)
-                ->values(),
+                ->values()
+                ->all(),
         ];
     }
 
@@ -300,7 +305,7 @@ class StatisticsController extends Controller
             ->map(function (Collection $txns) use ($sypRate, $labels) {
                 return [
                     $labels['by_fuel_type'],
-                    $txns->first()->fuelType?->name ?? '—',
+                    $txns->first()->fuelType->name ?? '—',
                     number_format($txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters), 3),
                     number_format($txns->reject(fn (Transaction $t) => $t->isPendingDebt())->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0),
                 ];
@@ -316,7 +321,7 @@ class StatisticsController extends Controller
 
                     return [
                         $labels['by_employee'],
-                        $txns->first()->user?->name ?? '—',
+                        $txns->first()->user->name ?? '—',
                         number_format($summary['liters_sold'], 3),
                         number_format($summary['income_syp'], 0),
                     ];
@@ -331,7 +336,7 @@ class StatisticsController extends Controller
             ->where('type', TransactionType::FuelDelivery)
             ->map(fn (Transaction $t) => [
                 $labels['deliveries'],
-                ($t->fuelType?->name ?? '—').' — '.($t->tank?->name ?? '—'),
+                ($t->fuelType->name ?? '—').' — '.($t->tank->name ?? '—'),
                 number_format((float) $t->liters, 3),
                 number_format((float) $t->amount, 0).' '.$t->currency->value,
             ])
@@ -367,6 +372,10 @@ class StatisticsController extends Controller
         );
     }
 
+    /**
+     * @param  Collection<int, Transaction>  $transactions
+     * @return array<string, float>
+     */
     private function summarize(Collection $transactions, float $sypRate): array
     {
         $incomeSyp = $transactions

@@ -4,11 +4,15 @@ namespace App\Http\Requests;
 
 use App\Enums\Currency;
 use App\Enums\DebtDirection;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreDebtRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [

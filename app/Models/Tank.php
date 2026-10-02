@@ -24,31 +24,49 @@ class Tank extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return HasMany<InventoryEntry, $this>
+     */
     public function inventoryEntries(): HasMany
     {
         return $this->hasMany(InventoryEntry::class);
     }
 
+    /**
+     * @return HasMany<Transaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * @return HasMany<TankTopUp, $this>
+     */
     public function topUps(): HasMany
     {
         return $this->hasMany(TankTopUp::class);
     }
 
+    /**
+     * @return HasMany<TankTransfer, $this>
+     */
     public function transfersIn(): HasMany
     {
         return $this->hasMany(TankTransfer::class, 'to_tank_id');
     }
 
+    /**
+     * @return HasMany<TankTransfer, $this>
+     */
     public function transfersOut(): HasMany
     {
         return $this->hasMany(TankTransfer::class, 'from_tank_id');
@@ -79,6 +97,9 @@ class Tank extends Model
         return $this->inventoryEntries()->latest('date')->latest('id')->first();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function summary(): array
     {
         $latest = $this->latestReading();

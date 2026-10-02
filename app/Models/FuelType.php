@@ -20,21 +20,33 @@ class FuelType extends Model
         ];
     }
 
+    /**
+     * @return HasMany<FuelPrice, $this>
+     */
     public function prices(): HasMany
     {
         return $this->hasMany(FuelPrice::class);
     }
 
+    /**
+     * @return HasMany<Tank, $this>
+     */
     public function tanks(): HasMany
     {
         return $this->hasMany(Tank::class);
     }
 
+    /**
+     * @return HasMany<Transaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * @return HasMany<InventoryEntry, $this>
+     */
     public function inventoryEntries(): HasMany
     {
         return $this->hasMany(InventoryEntry::class);

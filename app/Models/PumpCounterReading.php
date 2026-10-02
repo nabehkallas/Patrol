@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int|null $previous_reading_value Not a column: the pump's prior counter value, set by
+ *                                            the history list for display.
+ */
 #[Fillable([
     'pump_id', 'tank_id', 'date', 'reading_value', 'liters_sold',
     'governmental_liters', 'return_liters', 'transaction_id', 'governmental_transaction_id',
@@ -27,11 +31,17 @@ class PumpCounterReading extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<FuelPump, $this>
+     */
     public function pump(): BelongsTo
     {
         return $this->belongsTo(FuelPump::class, 'pump_id');
     }
 
+    /**
+     * @return BelongsTo<Tank, $this>
+     */
     public function tank(): BelongsTo
     {
         // withTrashed(): a soft-deleted tank must keep resolving here for historical readings
@@ -39,16 +49,25 @@ class PumpCounterReading extends Model
         return $this->belongsTo(Tank::class)->withTrashed();
     }
 
+    /**
+     * @return BelongsTo<Transaction, $this>
+     */
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
     }
 
+    /**
+     * @return BelongsTo<Transaction, $this>
+     */
     public function governmentalTransaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'governmental_transaction_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_id');

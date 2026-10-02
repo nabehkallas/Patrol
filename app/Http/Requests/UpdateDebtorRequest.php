@@ -3,12 +3,16 @@
 namespace App\Http\Requests;
 
 use App\Models\Debtor;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateDebtorRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -21,7 +25,7 @@ class UpdateDebtorRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $parentId = $this->input('parent_id');
+            $parentId = $this->integer('parent_id');
 
             if (! $parentId) {
                 return;
@@ -30,7 +34,7 @@ class UpdateDebtorRequest extends FormRequest
             /** @var Debtor $debtor */
             $debtor = $this->route('debtor');
 
-            if ((int) $parentId === $debtor->id) {
+            if ($parentId === $debtor->id) {
                 $validator->errors()->add('parent_id', __('A debtor cannot be its own parent.'));
 
                 return;

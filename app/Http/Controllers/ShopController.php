@@ -91,10 +91,10 @@ class ShopController extends Controller
         $rows = $entries->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('H:i'),
             $transaction->type === TransactionType::Purchase ? $labels['purchase'] : $labels['sale'],
-            $transaction->shopItem?->name ?? '—',
+            $transaction->shopItem->name ?? '—',
             (string) $transaction->quantity,
             number_format((float) $transaction->amount, 2).' '.$transaction->currency->value,
-            $transaction->user?->name ?? '—',
+            $transaction->user->name ?? '—',
         ])->all();
 
         return $exporter->download(
@@ -223,7 +223,7 @@ class ShopController extends Controller
                 $row[] = null;
                 $row[] = $runningStock[$item->id];
                 $row[] = $soldToday > 0 ? $soldToday : null;
-                $sellPrice = (float) ($currentPriceByItem[$item->id]?->sell_price ?? 0);
+                $sellPrice = (float) ($currentPriceByItem[$item->id]->sell_price ?? 0);
                 $row[] = "={$soldCol}{$thisRow}*".$sellPrice;
 
                 $columnFormats[$soldColByItem[$item->id] - 2] = '#,##0'; // stock column
@@ -231,10 +231,10 @@ class ShopController extends Controller
                 $columnFormats[$revenueColByItem[$item->id] - 1] = '#,##0.00';
             }
 
-            foreach ($currencies as $currency) {
-                $cells = implode(',', array_map(fn ($c) => $columnLetter($c).$thisRow, $revenueColsByCurrency[$currency]));
+            foreach ($overallColByCurrency as $currency => $overallCol) {
+                $cells = implode(',', array_map(fn ($c) => $columnLetter($c).$thisRow, $revenueColsByCurrency[$currency] ?? []));
                 $row[] = "=SUM({$cells})";
-                $columnFormats[$overallColByCurrency[$currency] - 1] = '#,##0.00';
+                $columnFormats[$overallCol - 1] = '#,##0.00';
             }
 
             $rows[] = $row;
@@ -251,7 +251,10 @@ class ShopController extends Controller
         );
     }
 
-    private function itemOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function itemOptions(): array
     {
         return ShopItem::orderBy('name')->get()->map(function (ShopItem $item) {
             $price = $item->currentPrice();
@@ -265,7 +268,7 @@ class ShopController extends Controller
                 'sell_price' => $price?->sell_price,
                 'currency' => $price?->currency->value ?? Currency::SYP->value,
             ];
-        });
+        })->all();
     }
 
     /**
@@ -293,6 +296,8 @@ class ShopController extends Controller
     /**
      * Shop movements in the date range, narrowed by the optional item/type filters -- the single
      * query behind the log table, its totals cards and the PDF export, so they always agree.
+     *
+     * @return Builder<Transaction>
      */
     private function logQuery(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type): Builder
     {
@@ -303,7 +308,10 @@ class ShopController extends Controller
             ->when($type, fn (Builder $query) => $query->where('type', $type));
     }
 
-    private function historyFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type)
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function historyFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type): array
     {
         return $this->logQuery($from, $to, $itemId, $type)
             ->with(['shopItem', 'user'])
@@ -314,21 +322,24 @@ class ShopController extends Controller
                 'id' => $transaction->id,
                 'type' => $transaction->type->value,
                 'shop_item_id' => $transaction->shop_item_id,
-                'item_name' => $transaction->shopItem?->name ?? '—',
+                'item_name' => $transaction->shopItem->name ?? '—',
                 'quantity' => $transaction->quantity,
                 'amount' => $transaction->amount,
                 'currency' => $transaction->currency->value,
                 'occurred_at' => $transaction->occurred_at,
                 'recorded_by' => $transaction->user?->name,
                 'notes' => $transaction->notes,
-            ]);
+            ])
+            ->all();
     }
 
     /**
      * Per-item quantity for one movement type (sales or purchases) within the range, narrowed
      * by the item filter.
+     *
+     * @return array<int, array<string, mixed>>
      */
-    private function itemTotalsFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, TransactionType $type)
+    private function itemTotalsFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, TransactionType $type): array
     {
         return $this->logQuery($from, $to, $itemId, $type)
             ->with('shopItem')
@@ -336,12 +347,13 @@ class ShopController extends Controller
             ->groupBy('shop_item_id')
             ->map(fn ($group) => [
                 'id' => $group->first()->shop_item_id,
-                'name' => $group->first()->shopItem?->name ?? '—',
+                'name' => $group->first()->shopItem->name ?? '—',
                 'category' => $group->first()->shopItem?->category,
                 'quantity' => (int) $group->sum('quantity'),
             ])
             ->sortBy('name')
-            ->values();
+            ->values()
+            ->all();
     }
 
     public function storeItem(Request $request): RedirectResponse
@@ -572,6 +584,9 @@ class ShopController extends Controller
         return to_route('shop.index');
     }
 
+    /**
+     * @return array{shop_item_id: int|string, quantity: int|string, amount: int|float|string, currency: string, date: string, notes?: string|null}
+     */
     private function validateMovement(Request $request): array
     {
         return $request->validate([
@@ -584,6 +599,9 @@ class ShopController extends Controller
         ]);
     }
 
+    /**
+     * @param  array{shop_item_id: int|string, quantity: int|string, amount: int|float|string, currency: string, date: string, notes?: string|null}  $data
+     */
     private function recordMovement(Request $request, array $data, TransactionType $type): void
     {
         $item = ShopItem::findOrFail($data['shop_item_id']);

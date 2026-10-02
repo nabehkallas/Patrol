@@ -57,10 +57,10 @@ class EarningsXlsxExporter
     private Worksheet $sheet;
 
     /**
-     * @param  list<array{label: string, price_syp: float}>  $priceReference
-     * @param  list<array<string, mixed>>  $fuelBreakdown  same shape as EarningsController's $breakdown
-     * @param  array{total_syp: int, items: list<array<string, mixed>>}  $revaluation
-     * @param  array{total_revenue_syp: float, total_cogs_syp: float, net_profit_syp: float, items: list<array<string, mixed>>}  $shopProfit
+     * @param  array<int, array{label: string, price_syp: float}>  $priceReference
+     * @param  array<int, array<string, mixed>>  $fuelBreakdown  same shape as EarningsController's $breakdown
+     * @param  array{total_syp: int, items: array<int, array<string, mixed>>}  $revaluation
+     * @param  array{total_revenue_syp: float, total_cogs_syp: float, net_profit_syp: float, items: array<int, array<string, mixed>>}  $shopProfit
      * @param  array<string, string>  $labels
      */
     public function download(
@@ -120,6 +120,11 @@ class EarningsXlsxExporter
         $this->autoSizeColumns($maxCol);
 
         $resource = fopen('php://temp', 'r+');
+
+        if ($resource === false) {
+            throw new \RuntimeException('Could not open a temporary stream for the spreadsheet.');
+        }
+
         IOFactory::createWriter($spreadsheet, 'Xlsx')->save($resource);
         rewind($resource);
         $contents = stream_get_contents($resource);
@@ -132,6 +137,8 @@ class EarningsXlsxExporter
     }
 
     /**
+     * @param  array<int, array{label: string, price_syp: float}>  $priceReference
+     * @param  array<string, string>  $labels
      * @return array{0: int, 1: int} next free row, last used column
      */
     private function writePriceReference(int $row, array $priceReference, array $labels): array
@@ -158,6 +165,8 @@ class EarningsXlsxExporter
      * top-up tiers -- the exact "clear sub-headers directly above these numbers" the station
      * asked for, instead of one shared header row covering two differently-shaped tables.
      *
+     * @param  array<int, array<string, mixed>>  $fuelBreakdown
+     * @param  array<string, string>  $labels
      * @return array{0: int, 1: array<int, string>, 2: int} last row used by any block, [fuel_type_id => subtotal cell ref], last used column
      */
     private function writeFuelBlocks(int $startRow, array $fuelBreakdown, array $labels, int $maxCol): array
@@ -261,6 +270,8 @@ class EarningsXlsxExporter
     }
 
     /**
+     * @param  array{total_syp: int, items: array<int, array<string, mixed>>}  $revaluation
+     * @param  array<string, string>  $labels
      * @return array{0: int, 1: string, 2: int} next free row, the Total cell's reference, last used column
      */
     private function writeRevaluation(int $row, array $revaluation, array $labels): array
@@ -302,6 +313,8 @@ class EarningsXlsxExporter
      * block whose own totals are SUM formulas over that table, so nothing here is a number
      * computed once in PHP and pasted in.
      *
+     * @param  array{total_revenue_syp: float, total_cogs_syp: float, net_profit_syp: float, items: array<int, array<string, mixed>>}  $shopProfit
+     * @param  array<string, string>  $labels
      * @return array{0: int, 1: string, 2: int} next free row, the Net Profit cell's reference, last used column
      */
     private function writeShopProfit(int $row, array $shopProfit, array $labels): array
@@ -368,6 +381,7 @@ class EarningsXlsxExporter
 
     /**
      * @param  array<int, string>  $fuelSubtotalRefs
+     * @param  array<string, string>  $labels
      */
     private function writeGrandTotal(int $row, array $fuelSubtotalRefs, ?string $revaluationTotalRef, string $shopNetProfitRef, float $otherExpenseSyp, float $sypRate, array $labels): void
     {
@@ -474,7 +488,7 @@ class EarningsXlsxExporter
 
     private function lighten(string $rgb): string
     {
-        [$r, $g, $b] = array_map(fn (string $hex) => hexdec($hex), str_split($rgb, 2));
+        [$r, $g, $b] = array_map(fn (string $hex): int => (int) hexdec($hex), str_split($rgb, 2));
         $blend = fn (int $channel) => (int) round($channel + (255 - $channel) * 0.55);
 
         return sprintf('%02X%02X%02X', $blend($r), $blend($g), $blend($b));

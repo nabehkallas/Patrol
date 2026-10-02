@@ -22,16 +22,25 @@ class FuelCostLayer extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return BelongsTo<FuelPrice, $this>
+     */
     public function fuelPrice(): BelongsTo
     {
         return $this->belongsTo(FuelPrice::class);
     }
 
+    /**
+     * @return HasMany<FuelCostAllocation, $this>
+     */
     public function allocations(): HasMany
     {
         return $this->hasMany(FuelCostAllocation::class);

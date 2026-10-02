@@ -105,6 +105,11 @@ class XlsxTableExporter
         }
 
         $resource = fopen('php://temp', 'r+');
+
+        if ($resource === false) {
+            throw new \RuntimeException('Could not open a temporary stream for the spreadsheet.');
+        }
+
         IOFactory::createWriter($spreadsheet, 'Xlsx')->save($resource);
         rewind($resource);
         $contents = stream_get_contents($resource);

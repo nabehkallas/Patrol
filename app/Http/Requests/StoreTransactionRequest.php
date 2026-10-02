@@ -8,12 +8,16 @@ use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\FuelPump;
 use App\Models\Tank;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreTransactionRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -55,7 +59,7 @@ class StoreTransactionRequest extends FormRequest
                 return;
             }
 
-            $tank = Tank::find($this->input('tank_id'));
+            $tank = Tank::find($this->integer('tank_id'));
             $liters = (float) $this->input('liters');
 
             if (! $tank || $liters <= 0) {
@@ -74,8 +78,8 @@ class StoreTransactionRequest extends FormRequest
 
     private function validatePumpFuelTypeMatch(Validator $validator): void
     {
-        $pump = FuelPump::find($this->input('pump_id'));
-        $tank = Tank::find($this->input('tank_id'));
+        $pump = FuelPump::find($this->integer('pump_id'));
+        $tank = Tank::find($this->integer('tank_id'));
 
         if (! $pump || ! $tank || $pump->fuelTypes()->doesntExist()) {
             return;

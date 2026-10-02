@@ -48,11 +48,17 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * @return HasMany<Transaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * @return HasMany<InventoryEntry, $this>
+     */
     public function inventoryEntries(): HasMany
     {
         return $this->hasMany(InventoryEntry::class, 'recorded_by_id');

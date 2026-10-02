@@ -43,6 +43,10 @@ class SqliteDatabaseManager implements TenantDatabaseManager
         return file_exists($this->path($name));
     }
 
+    /**
+     * @param  array<string, mixed>  $baseConfig
+     * @return array<string, mixed>
+     */
     public function makeConnectionConfig(array $baseConfig, string $databaseName): array
     {
         $baseConfig['database'] = $this->path($databaseName);

@@ -11,3 +11,7 @@ parameters:
         - routes/
 
     level: 7
+
+    # Every model declares its casts in a casts() method typed only as `array`. Without this,
+    # Larastan can't see them and treats enum/date/boolean attributes as their raw column types.
+    parseModelCastsMethod: true

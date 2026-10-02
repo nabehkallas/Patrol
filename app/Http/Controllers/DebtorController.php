@@ -11,6 +11,7 @@ use App\Models\Debt;
 use App\Models\Debtor;
 use App\Services\PdfTableExporter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -38,7 +39,7 @@ class DebtorController extends Controller
 
         $debtors = $query->orderBy('name')->paginate(25)->withQueryString();
 
-        $debtors->getCollection()->transform(function (Debtor $debtor) use ($searching) {
+        $debtors = $debtors->through(function (Debtor $debtor) use ($searching) {
             $own = $this->outstandingTotal($debtor);
 
             if ($searching) {
@@ -52,11 +53,11 @@ class DebtorController extends Controller
             $children = $debtor->children->map(fn (Debtor $child) => [
                 ...$child->only(['id', 'name', 'phone', 'parent_id']),
                 'outstanding' => $this->outstandingTotal($child),
-            ]);
+            ])->all();
 
             return [
                 ...$debtor->only(['id', 'name', 'phone', 'parent_id']),
-                'outstanding' => $this->combineBreakdowns($own, ...$children->pluck('outstanding')),
+                'outstanding' => $this->combineBreakdowns($own, ...array_column($children, 'outstanding')),
                 'children' => $children,
             ];
         });
@@ -84,6 +85,9 @@ class DebtorController extends Controller
         return $result;
     }
 
+    /**
+     * @return Builder<Debtor>
+     */
     private function filteredQuery(Request $request): Builder
     {
         $query = Debtor::query();
@@ -96,7 +100,10 @@ class DebtorController extends Controller
         return $query;
     }
 
-    private function parentOptions(?int $excludeId = null)
+    /**
+     * @return Collection<int, Debtor>
+     */
+    private function parentOptions(?int $excludeId = null): Collection
     {
         return Debtor::whereNull('parent_id')
             ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))

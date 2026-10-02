@@ -93,7 +93,7 @@ class InventoryEntryController extends Controller
             $entry->date->format('Y-m-d'),
             $entry->tank ? $entry->tank->fuelType?->name.' — '.$entry->tank->name : '—',
             number_format((float) $entry->quantity_liters, 3),
-            $entry->recordedBy?->name ?? '—',
+            $entry->recordedBy->name ?? '—',
             $entry->notes ?? '—',
         ])->all();
 
@@ -137,7 +137,7 @@ class InventoryEntryController extends Controller
         $rows = $topUps->map(fn (TankTopUp $topUp) => [
             $topUp->tank ? $topUp->tank->fuelType?->name.' — '.$topUp->tank->name : '—',
             number_format((float) $topUp->liters, 3).' L',
-            $topUp->recordedBy?->name ?? '—',
+            $topUp->recordedBy->name ?? '—',
             $topUp->notes ?? '—',
         ])->all();
 
@@ -241,6 +241,11 @@ class InventoryEntryController extends Controller
         }
 
         $resource = fopen('php://temp', 'r+');
+
+        if ($resource === false) {
+            throw new \RuntimeException('Could not open a temporary stream for the spreadsheet.');
+        }
+
         IOFactory::createWriter($spreadsheet, 'Xlsx')->save($resource);
         rewind($resource);
         $contents = stream_get_contents($resource);
@@ -258,6 +263,7 @@ class InventoryEntryController extends Controller
      * the next block's start column.
      *
      * @param  array<int, CarbonInterface>  $days
+     * @param  array<string, string>  $labels
      */
     private function writeTankLedgerBlock(
         Worksheet $sheet,
@@ -469,7 +475,10 @@ class InventoryEntryController extends Controller
         return to_route('inventory.index');
     }
 
-    private function tankOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function tankOptions(): array
     {
         return Tank::with('fuelType')
             ->orderBy('fuel_type_id')
@@ -481,6 +490,7 @@ class InventoryEntryController extends Controller
                 'fuel_type_id' => $tank->fuel_type_id,
                 'fuel_type_name' => $tank->fuelType->name,
                 'is_active' => $tank->is_active,
-            ]);
+            ])
+            ->all();
     }
 }

@@ -14,7 +14,7 @@ class PdfTableExporter
      * shaping/RTL support, since this app's reports may be generated in either language.
      *
      * @param  string[]  $headers
-     * @param  list<string[]>  $rows
+     * @param  array<int, array<int, string>>  $rows
      */
     public function download(string $filename, string $title, ?string $subtitle, array $headers, array $rows, string $direction = 'ltr'): Response
     {

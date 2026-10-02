@@ -2,7 +2,9 @@
 
 namespace App\Concerns;
 
-use Illuminate\Database\Eloquent\Collection;
+use App\Models\Debt;
+use App\Models\Transaction;
+use Illuminate\Support\Collection;
 
 trait GroupsByCurrency
 {
@@ -12,7 +14,9 @@ trait GroupsByCurrency
      * figure. Always includes SYP (even if zero, for a consistent primary figure); other
      * currencies are included only when non-zero.
      *
-     * @param  Collection<int, object{currency: mixed, amount: mixed}>  $items
+     * @template TItem of Transaction|Debt|\stdClass
+     *
+     * @param  Collection<array-key, TItem>  $items
      * @param  string|\Closure  $amount  Attribute name (default 'amount') or a per-item resolver —
      *                                   e.g. a debt's remaining balance instead of its full amount.
      * @return array<string, float>
@@ -20,7 +24,7 @@ trait GroupsByCurrency
     protected function byCurrency(Collection $items, string|\Closure $amount = 'amount'): array
     {
         $totals = $items
-            ->groupBy(fn ($item) => $item->currency->value)
+            ->groupBy(fn (object $item): string => $item->currency->value)
             ->map(fn ($group) => (float) $group->sum($amount))
             ->all();
 

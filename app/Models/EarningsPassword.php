@@ -28,7 +28,7 @@ class EarningsPassword extends Model
 
     public static function set(string $password): void
     {
-        $record = static::query()->first() ?? new static;
+        $record = static::query()->first() ?? new self;
         $record->password_hash = Hash::make($password);
         $record->save();
     }

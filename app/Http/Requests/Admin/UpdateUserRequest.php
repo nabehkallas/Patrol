@@ -4,15 +4,20 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\UserRole;
 use App\Models\TenantUserDirectory;
+use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class UpdateUserRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
-        $user = $this->route('user');
+        $user = $this->editedUser();
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -31,5 +36,15 @@ class UpdateUserRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', new Enum(UserRole::class)],
         ];
+    }
+
+    /** The user being edited, resolved by route model binding. */
+    private function editedUser(): User
+    {
+        $user = $this->route('user');
+
+        abort_unless($user instanceof User, 404);
+
+        return $user;
     }
 }

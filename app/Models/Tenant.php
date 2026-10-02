@@ -9,6 +9,7 @@ use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
+ * @property string $id Generated UUID (string primary key).
  * @property string $name Station name — stored in the virtual `data` column, not a real column.
  * @property Carbon|null $onboarded_at Set once the first-run wizard completes.
  */

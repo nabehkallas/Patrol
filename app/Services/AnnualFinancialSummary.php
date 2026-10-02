@@ -22,7 +22,11 @@ use Carbon\CarbonImmutable;
  */
 class AnnualFinancialSummary
 {
-    /** Station years that have any transaction, newest first, always including this year. */
+    /**
+     * Station years that have any transaction, newest first, always including this year.
+     *
+     * @return list<int>
+     */
     public function availableYears(): array
     {
         $current = now()->year;
@@ -32,6 +36,9 @@ class AnnualFinancialSummary
         return range($current, $firstYear);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function forYear(int $year): array
     {
         $start = CarbonImmutable::create($year)->startOfYear();
@@ -67,7 +74,7 @@ class AnnualFinancialSummary
                 case TransactionType::FuelSale:
                     if (! $t->is_governmental) {
                         $row['liters'] += (float) $t->liters;
-                        $name = $t->fuelType?->name ?? '—';
+                        $name = $t->fuelType->name ?? '—';
                         $litersByFuelType[$name] = ($litersByFuelType[$name] ?? 0.0) + (float) $t->liters;
                     }
                     if (! $pending) {

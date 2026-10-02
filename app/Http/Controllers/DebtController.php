@@ -65,6 +65,7 @@ class DebtController extends Controller
      *                                      the debts list itself currently happens to be
      *                                      filtered to (e.g. always matching zero debts if the
      *                                      list is filtered to "settled").
+     * @return Builder<Debt>
      */
     private function filteredQuery(Request $request, array $except = []): Builder
     {
@@ -141,7 +142,7 @@ class DebtController extends Controller
         ];
 
         $rows = $debts->map(function (Debt $debt) use ($labels) {
-            $fuelTypeName = $debt->transaction?->fuelType?->name ?? $debt->fuelType?->name;
+            $fuelTypeName = $debt->transaction?->fuelType->name ?? $debt->fuelType?->name;
             $liters = $debt->liters ?? $debt->transaction?->liters;
             $whatFor = $fuelTypeName && $liters
                 ? $fuelTypeName.' — '.number_format((float) $liters, 3).' L'
@@ -149,12 +150,12 @@ class DebtController extends Controller
 
             return [
                 $debt->date->format('Y-m-d'),
-                $debt->debtor?->name ?? '—',
+                $debt->debtor->name ?? '—',
                 $whatFor,
                 number_format((float) $debt->amount, 1).' '.$debt->currency->value,
                 $debt->direction === DebtDirection::Payable ? $labels['payable'] : $labels['receivable'],
                 $debt->status === DebtStatus::Outstanding ? $labels['outstanding'] : $labels['settled'],
-                $debt->recordedBy?->name ?? '—',
+                $debt->recordedBy->name ?? '—',
             ];
         })->all();
 
@@ -175,6 +176,9 @@ class DebtController extends Controller
         );
     }
 
+    /**
+     * @return array<string, float>
+     */
     private function outstandingTotal(Request $request, DebtDirection $direction): array
     {
         $query = Debt::where('status', DebtStatus::Outstanding)->where('direction', $direction);
@@ -186,6 +190,9 @@ class DebtController extends Controller
         return $this->byCurrency($query->with('payments')->get(), fn (Debt $debt) => $debt->remainingAmount());
     }
 
+    /**
+     * @return array<string, float>
+     */
     private function allDebtsTotal(Request $request, DebtDirection $direction): array
     {
         $query = Debt::where('direction', $direction);
@@ -221,13 +228,16 @@ class DebtController extends Controller
         ]);
     }
 
-    private function fuelTypeOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fuelTypeOptions(): array
     {
         return FuelType::orderBy('name')->get()->map(fn (FuelType $fuelType) => [
             'id' => $fuelType->id,
             'name' => $fuelType->name,
             'currentPrice' => $fuelType->currentPrice()?->only(['price_per_liter', 'currency']),
-        ]);
+        ])->all();
     }
 
     public function store(StoreDebtRequest $request): RedirectResponse
@@ -269,7 +279,7 @@ class DebtController extends Controller
         Transaction::create([
             'user_id' => $userId,
             'type' => $debt->direction === DebtDirection::Receivable ? TransactionType::Expense : TransactionType::OtherIncome,
-            'description' => ($debt->debtor?->name ?? '—').' — '.__('cash advance'),
+            'description' => ($debt->debtor->name ?? '—').' — '.__('cash advance'),
             'amount' => $debt->amount,
             'currency' => $debt->currency,
             'exchange_rate_to_usd' => $debt->exchange_rate_to_usd,

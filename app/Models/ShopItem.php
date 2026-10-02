@@ -14,11 +14,17 @@ class ShopItem extends Model
 {
     use SerializesDatesInAppTimezone;
 
+    /**
+     * @return HasMany<Transaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * @return HasMany<ShopItemPrice, $this>
+     */
     public function prices(): HasMany
     {
         return $this->hasMany(ShopItemPrice::class);

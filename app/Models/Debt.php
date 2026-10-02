@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property float|null $remaining_amount Not a column: set by the debts list for display.
+ * @property float|null $paid_amount Not a column: set by the debts list for display.
+ */
 #[Fillable([
     'transaction_id',
     'direction',
@@ -46,26 +50,41 @@ class Debt extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_id');
     }
 
+    /**
+     * @return BelongsTo<Debtor, $this>
+     */
     public function debtor(): BelongsTo
     {
         return $this->belongsTo(Debtor::class);
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return BelongsTo<Transaction, $this>
+     */
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
     }
 
+    /**
+     * @return HasMany<DebtPayment, $this>
+     */
     public function payments(): HasMany
     {
         return $this->hasMany(DebtPayment::class);

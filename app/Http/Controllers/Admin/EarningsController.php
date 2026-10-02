@@ -482,7 +482,7 @@ class EarningsController extends Controller
             // happened yet and every top-up logged that day would wrongly fall back to the
             // previous price.
             $topUpTiers = $fuelTopUps
-                ->groupBy(fn (TankTopUp $topUp) => $fuelType->priceAt($topUp->date->copy()->endOfDay())?->id ?? 0)
+                ->groupBy(fn (TankTopUp $topUp) => $fuelType->priceAt($topUp->date->copy()->endOfDay())->id ?? 0)
                 ->map(function ($group) use ($fuelType, $sypRate) {
                     $priceAtDate = $fuelType->priceAt($group->first()->date->copy()->endOfDay());
                     $tierPriceSyp = $priceAtDate ? $priceAtDate->amountInSyp($sypRate) : 0.0;
@@ -581,7 +581,7 @@ class EarningsController extends Controller
             // made before a later cost correction keeps its own batch's real cost basis.
             $cogsSyp = 0;
 
-            foreach ($group->groupBy(fn (Transaction $sale) => $item->priceAt($sale->occurred_at)?->id ?? 0) as $priceGroup) {
+            foreach ($group->groupBy(fn (Transaction $sale) => $item->priceAt($sale->occurred_at)->id ?? 0) as $priceGroup) {
                 $priceAtSale = $item->priceAt($priceGroup->first()->occurred_at);
                 $costPerUnitAtSaleSyp = $priceAtSale ? $this->convertToSyp((float) $priceAtSale->base_price, $priceAtSale->currency, $sypRate) : 0.0;
                 $cogsSyp += (int) round((float) $priceGroup->sum('quantity') * $costPerUnitAtSaleSyp, 0);

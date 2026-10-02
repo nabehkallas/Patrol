@@ -3,11 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Models\Debtor;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class StoreDebtorRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -20,7 +24,7 @@ class StoreDebtorRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $parentId = $this->input('parent_id');
+            $parentId = $this->integer('parent_id');
 
             if (! $parentId) {
                 return;

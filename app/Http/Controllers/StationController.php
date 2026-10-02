@@ -18,7 +18,7 @@ class StationController extends Controller
 {
     public function index(): Response
     {
-        $stations = Tenant::all()
+        $stations = Tenant::query()->cursor()
             ->map(fn (Tenant $tenant) => [
                 'id' => $tenant->id,
                 'name' => $tenant->name,
@@ -26,7 +26,8 @@ class StationController extends Controller
                 'created_at' => $tenant->created_at,
             ])
             ->sortBy('name')
-            ->values();
+            ->values()
+            ->all();
 
         return Inertia::render('platform/stations/index', [
             'stations' => $stations,

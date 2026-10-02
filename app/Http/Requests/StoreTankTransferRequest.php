@@ -3,11 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Models\Tank;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTankTransferRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -22,8 +26,8 @@ class StoreTankTransferRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $fromTank = Tank::find($this->input('from_tank_id'));
-            $toTank = Tank::find($this->input('to_tank_id'));
+            $fromTank = Tank::find($this->integer('from_tank_id'));
+            $toTank = Tank::find($this->integer('to_tank_id'));
 
             if (! $fromTank || ! $toTank) {
                 return;

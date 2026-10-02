@@ -13,11 +13,17 @@ class FuelPump extends Model
 {
     use SerializesDatesInAppTimezone;
 
+    /**
+     * @return BelongsToMany<FuelType, $this>
+     */
     public function fuelTypes(): BelongsToMany
     {
         return $this->belongsToMany(FuelType::class, 'fuel_pump_fuel_type', 'pump_id', 'fuel_type_id');
     }
 
+    /**
+     * @return HasMany<PumpCounterReading, $this>
+     */
     public function counterReadings(): HasMany
     {
         return $this->hasMany(PumpCounterReading::class, 'pump_id');

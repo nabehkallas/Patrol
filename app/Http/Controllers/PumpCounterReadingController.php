@@ -16,10 +16,12 @@ use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -139,13 +141,13 @@ class PumpCounterReadingController extends Controller
         ];
 
         $rows = $readings->map(fn (PumpCounterReading $reading) => [
-            $reading->pump?->name ?? '—',
+            $reading->pump->name ?? '—',
             $reading->tank ? $reading->tank->fuelType?->name.' — '.$reading->tank->name : '—',
             number_format((float) $reading->reading_value, 0),
             $reading->liters_sold !== null ? number_format((float) $reading->liters_sold, 3).' L' : '—',
             $reading->governmental_liters !== null ? number_format((float) $reading->governmental_liters, 3).' L' : '—',
             $reading->return_liters !== null ? number_format((float) $reading->return_liters, 3).' L' : '—',
-            $reading->recordedBy?->name ?? '—',
+            $reading->recordedBy->name ?? '—',
         ])->all();
 
         return $exporter->download(
@@ -391,7 +393,7 @@ class PumpCounterReadingController extends Controller
             'readings.*.notes' => 'nullable|string|max:500',
         ]);
 
-        $rowsToSave = collect($validated['readings'])
+        $rowsToSave = collect(Arr::array($validated, 'readings'))
             ->map(fn ($row, $index) => $row + ['_index' => $index])
             ->filter(fn ($row) => filled($row['reading_value'] ?? null))
             ->values();
@@ -439,10 +441,13 @@ class PumpCounterReadingController extends Controller
      * recompute-the-next-reading step. Shared by store() and storeBulk() so both go through
      * identical business logic.
      */
+    /**
+     * @param  array<string, mixed>  $data
+     */
     private function createReading(array $data, int $userId): PumpCounterReading
     {
-        $pump = FuelPump::findOrFail($data['pump_id']);
-        $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
+        $pump = FuelPump::findOrFail((int) $data['pump_id']);
+        $tank = Tank::with('fuelType')->findOrFail((int) $data['tank_id']);
 
         if ($pump->fuelTypes()->exists() && ! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
             throw ValidationException::withMessages([
@@ -532,8 +537,8 @@ class PumpCounterReadingController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $pump = FuelPump::findOrFail($data['pump_id']);
-        $tank = Tank::with('fuelType')->findOrFail($data['tank_id']);
+        $pump = FuelPump::findOrFail((int) $data['pump_id']);
+        $tank = Tank::with('fuelType')->findOrFail((int) $data['tank_id']);
 
         if ($pump->fuelTypes()->exists() && ! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
             throw ValidationException::withMessages([
@@ -625,7 +630,7 @@ class PumpCounterReadingController extends Controller
      * The history range from the request -- a single day (today, by default) or any from/to
      * span. A range with only one end given collapses to that one day.
      *
-     * @return array{0: Carbon, 1: Carbon}
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
      */
     private function historyRange(Request $request): array
     {
@@ -802,7 +807,10 @@ class PumpCounterReadingController extends Controller
         });
     }
 
-    private function tankOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function tankOptions(): array
     {
         return Tank::with('fuelType')
             ->orderBy('fuel_type_id')
@@ -814,6 +822,7 @@ class PumpCounterReadingController extends Controller
                 'fuel_type_id' => $tank->fuel_type_id,
                 'fuel_type_name' => $tank->fuelType->name,
                 'is_active' => $tank->is_active,
-            ]);
+            ])
+            ->all();
     }
 }

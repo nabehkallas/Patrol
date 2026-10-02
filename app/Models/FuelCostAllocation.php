@@ -20,16 +20,25 @@ class FuelCostAllocation extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Transaction, $this>
+     */
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return BelongsTo<FuelCostLayer, $this>
+     */
     public function fuelCostLayer(): BelongsTo
     {
         return $this->belongsTo(FuelCostLayer::class);

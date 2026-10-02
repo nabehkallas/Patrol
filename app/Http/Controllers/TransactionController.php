@@ -43,6 +43,9 @@ class TransactionController extends Controller
         ]);
     }
 
+    /**
+     * @return Builder<Transaction>
+     */
     private function filteredQuery(Request $request): Builder
     {
         $user = $request->user();
@@ -88,10 +91,10 @@ class TransactionController extends Controller
         $rows = $transactions->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('Y-m-d H:i'),
             $transaction->type->value,
-            $transaction->description ?? $transaction->fuelType?->name ?? '—',
+            $transaction->description ?? $transaction->fuelType->name ?? '—',
             $transaction->liters !== null ? number_format((float) $transaction->liters, 3) : '—',
             number_format((float) $transaction->amount, 1).' '.$transaction->currency->value,
-            $transaction->user?->name ?? '—',
+            $transaction->user->name ?? '—',
         ])->all();
 
         return $exporter->download(
@@ -127,7 +130,7 @@ class TransactionController extends Controller
             : now();
 
         if (! empty($data['tank_id'])) {
-            $data['fuel_type_id'] = Tank::find($data['tank_id'])?->fuel_type_id;
+            $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
         }
 
         if (empty($data['exchange_rate_to_usd'])) {
@@ -208,7 +211,7 @@ class TransactionController extends Controller
         }
 
         if (! empty($data['tank_id'])) {
-            $data['fuel_type_id'] = Tank::find($data['tank_id'])?->fuel_type_id;
+            $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
         }
 
         $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;
@@ -302,7 +305,7 @@ class TransactionController extends Controller
             $baselineQuery->where('id', '!=', $existing->id);
         }
 
-        $baseline = (float) ($baselineQuery->first()?->reading_value ?? 0);
+        $baseline = (float) ($baselineQuery->first()->reading_value ?? 0);
         $liters = (float) $transaction->liters;
 
         $existing?->delete();
@@ -319,17 +322,24 @@ class TransactionController extends Controller
         ]);
     }
 
-    private function pumpOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function pumpOptions(): array
     {
         return FuelPump::with('fuelTypes')->orderBy('name')->get()
             ->map(fn (FuelPump $pump) => [
                 'id' => $pump->id,
                 'name' => $pump->name,
                 'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
-            ]);
+            ])
+            ->all();
     }
 
-    private function tankOptions()
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function tankOptions(): array
     {
         return Tank::with('fuelType')
             ->orderBy('fuel_type_id')
@@ -343,6 +353,7 @@ class TransactionController extends Controller
                 'is_active' => $tank->is_active,
                 'currentPrice' => $tank->fuelType->currentPrice()?->only(['price_per_liter', 'currency']),
                 'remaining_liters' => round($tank->remainingCapacity(), 3),
-            ]);
+            ])
+            ->all();
     }
 }

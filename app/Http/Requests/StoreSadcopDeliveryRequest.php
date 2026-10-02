@@ -3,11 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Models\Tank;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSadcopDeliveryRequest extends FormRequest
 {
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
@@ -23,7 +27,7 @@ class StoreSadcopDeliveryRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $tank = Tank::find($this->input('tank_id'));
+            $tank = Tank::find($this->integer('tank_id'));
             $liters = (float) $this->input('liters');
 
             if (! $tank || $liters <= 0) {

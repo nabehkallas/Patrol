@@ -27,7 +27,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->roles->first()?->name,
+                'role' => $user->getRoleNames()->first(),
                 'created_at' => $user->created_at,
             ]);
 
@@ -85,7 +85,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->roles->first()?->name,
+                'role' => $user->getRoleNames()->first(),
             ],
             'roles' => array_map(fn (UserRole $role) => $role->value, UserRole::cases()),
         ]);

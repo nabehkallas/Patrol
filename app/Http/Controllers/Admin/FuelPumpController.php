@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FuelPump;
 use App\Models\FuelType;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -85,7 +86,10 @@ class FuelPumpController extends Controller
         return to_route('admin.fuel-pumps.index');
     }
 
-    private function fuelTypeOptions()
+    /**
+     * @return Collection<int, FuelType>
+     */
+    private function fuelTypeOptions(): Collection
     {
         return FuelType::orderBy('name')->get(['id', 'name']);
     }

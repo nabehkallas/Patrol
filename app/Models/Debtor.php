@@ -15,11 +15,17 @@ class Debtor extends Model
 
     public const GOVERNMENT_NAME = 'حكومي';
 
+    /**
+     * @return HasMany<Debt, $this>
+     */
     public function debts(): HasMany
     {
         return $this->hasMany(Debt::class);
     }
 
+    /**
+     * @return BelongsTo<Debtor, $this>
+     */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Debtor::class, 'parent_id');
@@ -28,6 +34,8 @@ class Debtor extends Model
     /**
      * Sub-debtors — e.g. individual employees under a company debtor. Kept to a single level
      * (a sub-debtor can't itself have children) so the hierarchy stays simple to reason about.
+     *
+     * @return HasMany<Debtor, $this>
      */
     public function children(): HasMany
     {

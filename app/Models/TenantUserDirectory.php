@@ -22,6 +22,9 @@ class TenantUserDirectory extends Model
 
     protected $table = 'tenant_user_directory';
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

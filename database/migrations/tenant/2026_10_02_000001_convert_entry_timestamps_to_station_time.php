@@ -47,9 +47,11 @@ return new class extends Migration
             }
 
             foreach (['created_at', 'updated_at'] as $column) {
-                DB::table($name)
-                    ->whereNotNull($column)
-                    ->update([$column => DB::raw("datetime({$column}, '{$modifier}')")]);
+                // Table/column names come from the schema itself; the modifier is bound.
+                DB::statement(
+                    "UPDATE \"{$name}\" SET \"{$column}\" = datetime(\"{$column}\", ?) WHERE \"{$column}\" IS NOT NULL",
+                    [$modifier],
+                );
             }
         }
     }
