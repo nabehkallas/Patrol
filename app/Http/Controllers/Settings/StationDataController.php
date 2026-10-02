@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StationDataResetRequest;
+use App\Http\Requests\Settings\StationDataRestoreRequest;
 use App\Models\Debtor;
+use App\Services\StationBackupRestorer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +52,24 @@ class StationDataController extends Controller
         $stationName = Str::slug(tenant('name') ?? 'station');
 
         return response()->download($path, "{$stationName}-backup-".now()->format('Y-m-d-His').'.sqlite');
+    }
+
+    /**
+     * Replaces the station's data with the uploaded backup (see StationBackupRestorer for what
+     * is and isn't replaced). Requires the admin's current password.
+     */
+    public function restore(StationDataRestoreRequest $request, StationBackupRestorer $restorer): RedirectResponse
+    {
+        $result = $restorer->restore($request->file('backup'));
+
+        // A restored station with fuel types set up doesn't need the first-run wizard again.
+        if (tenant('onboarded_at') === null && DB::table('fuel_types')->exists()) {
+            tenant()->update(['onboarded_at' => now()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Backup restored. :rows records loaded.', ['rows' => number_format($result['rows'])])]);
+
+        return to_route('data.edit');
     }
 
     public function reset(StationDataResetRequest $request): RedirectResponse

@@ -5,6 +5,7 @@ import StationDataController from '@/actions/App/Http/Controllers/Settings/Stati
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { RestoreBackupCard } from '@/components/restore-backup-card';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -53,6 +54,8 @@ export default function StationData() {
                         </a>
                     </Button>
                 </div>
+
+                <RestoreBackupCard />
             </div>
 
             <div className="space-y-6">

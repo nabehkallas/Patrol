@@ -38,5 +38,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('settings/data', [StationDataController::class, 'edit'])->name('data.edit');
         Route::get('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');
+        Route::post('settings/data/restore', [StationDataController::class, 'restore'])->name('data.restore')->middleware('throttle:5,1');
     });
 });

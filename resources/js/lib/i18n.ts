@@ -73,6 +73,19 @@ const dictionary = {
             'Enter your email and password below to log in',
         'auth.forgot_password_link': 'Forgot your password?',
         'auth.log_in': 'Log in',
+        'settings.data.restore_title': 'Restore a backup',
+        'settings.data.restore_description':
+            'Upload a file made with "Download backup" (.sqlite) to replace all station data with it: fuel types, tanks, pumps, prices, transactions, inventory, debts, shop and Sadcop. User accounts and passwords are not changed. The current data is saved automatically before the restore.',
+        'settings.data.restore_choose': 'Choose backup file',
+        'settings.data.restore_no_file': 'No file chosen',
+        'settings.data.restore_button': 'Restore backup',
+        'settings.data.restore_confirm_title':
+            'Replace all station data with this backup?',
+        'settings.data.restore_confirm_description':
+            "Everything recorded since the backup was made will be replaced by the backup's contents. Enter your current password to continue.",
+        'settings.data.restore_password': 'Current password',
+        'settings.data.restore_confirm_button': 'Restore now',
+        'settings.data.restore_working': 'Restoring…',
         'platform.kpi.suspended_hint': '+ :count suspended',
         'platform.suspend': 'Suspend',
         'platform.reactivate': 'Reactivate',
@@ -256,7 +269,8 @@ const dictionary = {
             'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.',
 
         'settings.data.title': 'Station data',
-        'settings.data.description': 'Back up or reset this station’s data',
+        'settings.data.description':
+            'Back up, restore or reset this station’s data',
         'settings.data.backup_title': 'Download backup',
         'settings.data.backup_description':
             'Download a full backup file of this station’s data. Keep it somewhere safe — you’ll need it if you ever want to recover data after a reset.',
@@ -776,6 +790,19 @@ const dictionary = {
             'أدخل بريدك الإلكتروني وكلمة المرور أدناه لتسجيل الدخول',
         'auth.forgot_password_link': 'هل نسيت كلمة المرور؟',
         'auth.log_in': 'تسجيل الدخول',
+        'settings.data.restore_title': 'استعادة نسخة احتياطية',
+        'settings.data.restore_description':
+            'ارفع ملفاً تم إنشاؤه عبر "تنزيل نسخة احتياطية" (‎.sqlite) لاستبدال جميع بيانات المحطة به: أنواع الوقود والخزانات والمضخات والأسعار والمعاملات والمخزون والديون والمتجر وسادكوب. لا تتغير حسابات المستخدمين وكلمات المرور. يتم حفظ البيانات الحالية تلقائياً قبل الاستعادة.',
+        'settings.data.restore_choose': 'اختيار ملف النسخة الاحتياطية',
+        'settings.data.restore_no_file': 'لم يتم اختيار ملف',
+        'settings.data.restore_button': 'استعادة النسخة الاحتياطية',
+        'settings.data.restore_confirm_title':
+            'استبدال جميع بيانات المحطة بهذه النسخة؟',
+        'settings.data.restore_confirm_description':
+            'سيتم استبدال كل ما تم تسجيله منذ إنشاء النسخة بمحتويات النسخة الاحتياطية. أدخل كلمة المرور الحالية للمتابعة.',
+        'settings.data.restore_password': 'كلمة المرور الحالية',
+        'settings.data.restore_confirm_button': 'استعادة الآن',
+        'settings.data.restore_working': 'جارٍ الاستعادة…',
         'platform.kpi.suspended_hint': '+ :count مجمّدة',
         'platform.suspend': 'تجميد',
         'platform.reactivate': 'إعادة التفعيل',
@@ -955,7 +982,7 @@ const dictionary = {
 
         'settings.data.title': 'بيانات المحطة',
         'settings.data.description':
-            'نسخ احتياطي أو إعادة تعيين بيانات هذه المحطة',
+            'نسخ احتياطي أو استعادة أو إعادة تعيين بيانات هذه المحطة',
         'settings.data.backup_title': 'تنزيل نسخة احتياطية',
         'settings.data.backup_description':
             'نزّل ملف نسخة احتياطية كاملة لبيانات هذه المحطة. احتفظ به في مكان آمن — ستحتاجه إذا رغبت باسترجاع البيانات بعد إعادة التعيين.',

@@ -48,6 +48,7 @@ RUN cp .env.example .env \
     && rm .env \
     && rm -rf node_modules
 
+COPY deploy/php-uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY deploy/nginx.conf /etc/nginx/sites-enabled/default
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY deploy/litestream-watch.sh /usr/local/bin/litestream-watch.sh

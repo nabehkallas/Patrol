@@ -121,5 +121,12 @@
     "Subscription expired. Please contact support.": "انتهى الاشتراك. يرجى التواصل مع الدعم.",
     ":station suspended. Its users can no longer sign in.": "تم تجميد :station. لم يعد بإمكان مستخدميها تسجيل الدخول.",
     ":station reactivated. Its users can sign in again.": "تمت إعادة تفعيل :station. يمكن لمستخدميها تسجيل الدخول مجدداً.",
-    ":station and all its data were deleted.": "تم حذف :station وجميع بياناتها."
+    ":station and all its data were deleted.": "تم حذف :station وجميع بياناتها.",
+    "Backup restored. :rows records loaded.": "تمت استعادة النسخة الاحتياطية. تم تحميل :rows سجل.",
+    "This file is not a station backup. Choose a file made with \"Download backup\".": "هذا الملف ليس نسخة احتياطية للمحطة. اختر ملفاً تم إنشاؤه عبر \"تنزيل نسخة احتياطية\".",
+    "The backup file could not be read. It may be damaged.": "تعذّرت قراءة ملف النسخة الاحتياطية، فقد يكون تالفاً.",
+    "The backup file is damaged and cannot be restored.": "ملف النسخة الاحتياطية تالف ولا يمكن استعادته.",
+    "This backup was made by a newer version of the system and cannot be restored here.": "تم إنشاء هذه النسخة بإصدار أحدث من النظام ولا يمكن استعادتها هنا.",
+    "validation.extensions": "يجب أن يكون الملف من نوع: :values.",
+    "validation.max.file": "يجب ألا يتجاوز حجم الملف :max كيلوبايت."
 }
