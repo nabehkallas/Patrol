@@ -25,7 +25,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 
-    Route::middleware(RequireTenant::class)->group(function () {
+    Route::middleware([RequireTenant::class, 'verified'])->group(function () {
         Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
         Route::patch('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
         Route::patch('settings/preferences/timezone', [PreferencesController::class, 'updateTimezone'])
@@ -33,7 +33,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('preferences.timezone');
     });
 
-    Route::middleware([RequireTenant::class, 'role:admin'])->group(function () {
+    Route::middleware([RequireTenant::class, 'verified', 'role:admin'])->group(function () {
         Route::get('settings/data', [StationDataController::class, 'edit'])->name('data.edit');
         Route::get('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');

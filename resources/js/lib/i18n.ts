@@ -73,6 +73,13 @@ const dictionary = {
             'Enter your email and password below to log in',
         'auth.forgot_password_link': 'Forgot your password?',
         'auth.log_in': 'Log in',
+        'auth.verify_email.title': 'Verify your email',
+        'auth.verify_email.description':
+            'Confirm your email address before using the app.',
+        'auth.verify_email.sent_to': 'We emailed a confirmation link to',
+        'auth.verify_email.resent': 'A new confirmation link has been sent.',
+        'auth.verify_email.resend': 'Resend confirmation email',
+        'auth.verify_email.logout': 'Log out',
         'auth.forgot_password.title': 'Forgot password',
         'auth.forgot_password.description':
             'Enter your email to receive a password reset link',
@@ -662,6 +669,13 @@ const dictionary = {
             'أدخل بريدك الإلكتروني وكلمة المرور أدناه لتسجيل الدخول',
         'auth.forgot_password_link': 'هل نسيت كلمة المرور؟',
         'auth.log_in': 'تسجيل الدخول',
+        'auth.verify_email.title': 'تأكيد البريد الإلكتروني',
+        'auth.verify_email.description':
+            'يرجى تأكيد بريدك الإلكتروني قبل استخدام التطبيق.',
+        'auth.verify_email.sent_to': 'أرسلنا رابط التأكيد إلى',
+        'auth.verify_email.resent': 'تم إرسال رابط تأكيد جديد.',
+        'auth.verify_email.resend': 'إعادة إرسال رسالة التأكيد',
+        'auth.verify_email.logout': 'تسجيل الخروج',
         'auth.forgot_password.title': 'استعادة كلمة المرور',
         'auth.forgot_password.description':
             'أدخل بريدك الإلكتروني لتصلك رسالة لإعادة تعيين كلمة المرور',

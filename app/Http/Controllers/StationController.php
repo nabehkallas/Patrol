@@ -70,6 +70,7 @@ class StationController extends Controller
             'must_change_password' => true,
         ]);
         $admin->assignRole(UserRole::Admin->value);
+        $admin->sendVerificationLink();
 
         tenancy()->end();
 

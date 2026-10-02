@@ -58,6 +58,7 @@ class UserController extends Controller
         ]);
 
         $user->syncRoles([$data['role']]);
+        $user->sendVerificationLink();
 
         // The central-only routing table login checks first to find which tenant database a
         // login email belongs to (see FortifyServiceProvider::authenticateUsing()) -- without
@@ -107,7 +108,17 @@ class UserController extends Controller
             $user->password = $data['password'];
         }
 
+        // A new address has to be verified again before the account can be used.
+        $emailChanged = $user->isDirty('email');
+        if ($emailChanged) {
+            $user->email_verified_at = null;
+        }
+
         $user->save();
+
+        if ($emailChanged) {
+            $user->sendVerificationLink();
+        }
 
         $user->syncRoles([$data['role']]);
 

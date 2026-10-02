@@ -22,8 +22,12 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // The user just chose this password themselves through their own inbox, so it is no
+        // longer an admin-issued temporary one, and reaching the link proves they own the email.
         $user->forceFill([
             'password' => $input['password'],
+            'must_change_password' => false,
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
     }
 }

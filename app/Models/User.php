@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,12 +28,22 @@ use Spatie\Permission\Traits\HasRoles;
  */
 #[Fillable(['name', 'email', 'password', 'must_change_password', 'default_entry_date'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
     use SerializesDatesInAppTimezone;
+
+    /**
+     * Emails the verification link without letting a mail outage break the action that created
+     * or changed the account: the failure is logged, and the user can ask for the link again
+     * from the "verify your email" screen.
+     */
+    public function sendVerificationLink(): void
+    {
+        rescue(fn () => $this->sendEmailVerificationNotification());
+    }
 
     /**
      * Get the attributes that should be cast.

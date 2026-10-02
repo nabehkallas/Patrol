@@ -37,7 +37,9 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
 });
 
-Route::middleware(['auth', RequireTenant::class, ForcePasswordChange::class])->group(function () {
+// 'verified': a station account can't use the app until its email address is confirmed through
+// the link emailed to it (Fortify's verification.* routes and screen handle that step).
+Route::middleware(['auth', 'verified', RequireTenant::class, ForcePasswordChange::class])->group(function () {
     Route::get('password/force-change', [ForcePasswordChangeController::class, 'edit'])->name('password.force-change');
     Route::patch('password/force-change', [ForcePasswordChangeController::class, 'update'])->name('password.force-change.update');
 

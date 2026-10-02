@@ -6,8 +6,11 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Models\Tenant;
 use App\Models\TenantUserDirectory;
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +38,32 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureEmails();
+    }
+
+    /**
+     * The verification and reset emails, worded for station accounts (which an admin creates,
+     * rather than people signing themselves up) and translated through lang/ar.json. Both
+     * links are signed and expire: verification after auth.verification.expire minutes, reset
+     * after auth.passwords.users.expire minutes.
+     */
+    private function configureEmails(): void
+    {
+        VerifyEmail::toMailUsing(fn (User $notifiable, string $url) => (new MailMessage)
+            ->subject(__('Confirm your email address for :app', ['app' => config('app.name')]))
+            ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
+            ->line(__('An account was created for you on :app. Please confirm this is your email address to start using it.', ['app' => config('app.name')]))
+            ->action(__('Confirm email address'), $url)
+            ->line(__('This link expires in :count minutes. You can ask for a new one from the sign-in screen.', ['count' => config('auth.verification.expire', 60)]))
+            ->line(__('If you were not expecting this email, you can ignore it.')));
+
+        ResetPassword::toMailUsing(fn (User $notifiable, string $token) => (new MailMessage)
+            ->subject(__('Reset your :app password', ['app' => config('app.name')]))
+            ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
+            ->line(__('We received a request to reset the password for your account.'))
+            ->action(__('Set a new password'), url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false)))
+            ->line(__('This link expires in :count minutes and can be used once.', ['count' => config('auth.passwords.users.expire', 60)]))
+            ->line(__('If you did not ask to reset your password, you can ignore this email. Your password will not change.')));
     }
 
     /**
@@ -107,6 +136,11 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+
+        Fortify::verifyEmailView(fn (Request $request) => Inertia::render('auth/verify-email', [
+            'status' => $request->session()->get('status'),
+            'email' => $request->user()?->email,
+        ]));
     }
 
     /**

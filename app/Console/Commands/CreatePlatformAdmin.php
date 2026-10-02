@@ -36,11 +36,13 @@ class CreatePlatformAdmin extends Command
 
         $password = Str::password(16);
 
-        User::create([
+        $admin = User::create([
             'name' => $this->option('name'),
             'email' => $email,
             'password' => $password,
         ]);
+        // Created by the server operator from the console, not through the app.
+        $admin->markEmailAsVerified();
 
         $this->info('Platform admin created.');
         $this->line("Email:    {$email}");
