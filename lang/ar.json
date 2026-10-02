@@ -110,5 +110,12 @@
     "Good news: your registration for :station has been approved and your account is now live.": "خبر سار: تمت الموافقة على تسجيل :station وأصبح حسابك مفعّلاً الآن.",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "سجّل الدخول لإعداد محطتك: أنواع الوقود والخزانات والمضخات والأسعار.",
     "Sign in": "تسجيل الدخول",
-    "Welcome aboard!": "أهلاً بك معنا!"
+    "Welcome aboard!": "أهلاً بك معنا!",
+    ":station approved. The owner has been emailed.": "تمت الموافقة على :station وتم إبلاغ المالك بالبريد الإلكتروني.",
+    ":station rejected and removed.": "تم رفض :station وحذفها.",
+    "Account updated. A confirmation link was sent to your new email address.": "تم تحديث الحساب. أرسلنا رابط تأكيد إلى بريدك الإلكتروني الجديد.",
+    "Account updated.": "تم تحديث الحساب.",
+    "validation.current_password": "كلمة المرور غير صحيحة.",
+    "validation.unique": "هذه القيمة مستخدمة مسبقاً.",
+    "validation.confirmed": "تأكيد كلمة المرور غير مطابق."
 }

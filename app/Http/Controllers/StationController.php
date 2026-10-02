@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StationStatus;
+use App\Enums\UserRole;
 use App\Http\Requests\StoreStationRequest;
 use App\Models\Tenant;
 use App\Models\User;
@@ -20,6 +21,17 @@ class StationController extends Controller
     {
         $tenants = Tenant::query()->cursor()->all();
 
+        // One pass into each station's own database for its head count and first admin (the
+        // contact shown on its card). Stations are few, so this stays cheap.
+        $people = [];
+        foreach ($tenants as $tenant) {
+            $people[$tenant->id] = $tenant->run(function () {
+                $admin = User::role(UserRole::Admin->value)->orderBy('id')->first(['name', 'email']);
+
+                return ['users' => User::count(), 'admin_name' => $admin?->name, 'admin_email' => $admin?->email];
+            });
+        }
+
         $stations = collect($tenants)
             ->filter(fn (Tenant $tenant) => StationStatus::of($tenant) === StationStatus::Active)
             ->map(fn (Tenant $tenant) => [
@@ -27,6 +39,8 @@ class StationController extends Controller
                 'name' => $tenant->name,
                 'onboarded' => $tenant->onboarded_at !== null,
                 'created_at' => $tenant->created_at,
+                ...$people[$tenant->id],
+                'owner_phone' => $tenant->getAttribute('owner_phone'),
             ])
             ->sortBy('name')
             ->values()
@@ -45,11 +59,19 @@ class StationController extends Controller
                 'owner_phone' => $tenant->getAttribute('owner_phone'),
                 'created_at' => $tenant->created_at,
             ])
-            ->sortBy([['status', 'desc'], ['created_at', 'asc']])
+            ->sortBy([
+                fn (array $a, array $b) => ($b['status'] === StationStatus::PendingApproval->value) <=> ($a['status'] === StationStatus::PendingApproval->value),
+                ['created_at', 'asc'],
+            ])
             ->values()
             ->all();
 
         return Inertia::render('platform/stations/index', [
+            'stats' => [
+                'active_stations' => count($stations),
+                'pending_approval' => collect($registrations)->where('status', StationStatus::PendingApproval->value)->count(),
+                'total_users' => array_sum(array_column($stations, 'users')),
+            ],
             'stations' => $stations,
             'registrations' => $registrations,
             'newStationCredentials' => Session::get('new_station_credentials'),
@@ -99,7 +121,7 @@ class StationController extends Controller
             rescue(fn () => $owner?->notify(new StationApproved));
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$tenant->name} approved. The owner has been emailed."]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':station approved. The owner has been emailed.', ['station' => $tenant->name])]);
 
         return to_route('platform.home');
     }
@@ -111,7 +133,7 @@ class StationController extends Controller
         $name = $tenant->name;
         $provisioner->discard($tenant);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$name} rejected and removed."]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':station rejected and removed.', ['station' => $name])]);
 
         return to_route('platform.home');
     }

@@ -1,15 +1,31 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import type { LucideIcon } from 'lucide-react';
+import {
+    Building2,
+    CalendarDays,
+    Check,
+    CheckCircle2,
+    Clock,
+    Copy,
+    Hourglass,
+    Inbox,
+    KeyRound,
+    Mail,
+    MailWarning,
+    Phone,
+    Plus,
+    UserRound,
+    Users,
+    X,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { formatDate } from '@/lib/format';
-import { logout } from '@/routes';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatDate, formatNumber } from '@/lib/format';
+import { useTranslation } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import {
     approve,
     create as createStation,
@@ -21,6 +37,10 @@ type Station = {
     name: string;
     onboarded: boolean;
     created_at: string;
+    users: number;
+    admin_name: string | null;
+    admin_email: string | null;
+    owner_phone: string | null;
 };
 
 type Registration = {
@@ -40,23 +60,156 @@ type NewStationCredentials = {
 };
 
 type PageProps = {
+    stats: {
+        active_stations: number;
+        pending_approval: number;
+        total_users: number;
+    };
     stations: Station[];
     registrations: Registration[];
     newStationCredentials: NewStationCredentials | null;
 };
 
-export default function StationsIndex() {
-    const { stations, registrations, newStationCredentials } =
-        usePage<PageProps>().props;
+function KpiCard({
+    label,
+    value,
+    icon: Icon,
+    tone,
+}: {
+    label: string;
+    value: number;
+    icon: LucideIcon;
+    tone: string;
+}) {
+    return (
+        <Card className="py-5">
+            <CardContent className="flex items-center gap-4 px-5">
+                <div
+                    className={cn(
+                        'flex size-12 shrink-0 items-center justify-center rounded-xl',
+                        tone,
+                    )}
+                >
+                    <Icon className="size-6" />
+                </div>
+                <div>
+                    <div className="text-muted-foreground text-sm">{label}</div>
+                    <div className="text-2xl font-bold tabular-nums">
+                        {formatNumber(value, 0)}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
-    const toReview = registrations.filter(
-        (registration) => registration.status === 'pending_approval',
-    ).length;
+function CopyButton({ value }: { value: string }) {
+    const { t } = useTranslation();
+    const [copied, setCopied] = useState(false);
+
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                void navigator.clipboard?.writeText(value);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+            }}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
+            aria-label={t('platform.copy_email')}
+            title={copied ? t('platform.copied') : t('platform.copy_email')}
+        >
+            {copied ? (
+                <Check className="size-3.5 text-emerald-500" />
+            ) : (
+                <Copy className="size-3.5" />
+            )}
+        </button>
+    );
+}
+
+/** Owner/contact lines: name, email with copy button, labelled phone. */
+function ContactDetails({
+    name,
+    email,
+    phone,
+}: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+}) {
+    const { t } = useTranslation();
+
+    const row = (icon: LucideIcon, content: ReactNode) => {
+        const Icon = icon;
+
+        return (
+            <div className="flex min-h-7 items-center gap-2 text-sm">
+                <Icon className="text-muted-foreground size-4 shrink-0" />
+                {content}
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-0.5">
+            {row(UserRound, <span className="font-medium">{name ?? '—'}</span>)}
+            {row(
+                Mail,
+                email ? (
+                    <>
+                        <bdi className="truncate" dir="ltr">
+                            {email}
+                        </bdi>
+                        <CopyButton value={email} />
+                    </>
+                ) : (
+                    '—'
+                ),
+            )}
+            {row(
+                Phone,
+                <span>
+                    <span className="text-muted-foreground">
+                        {t('platform.phone')}:
+                    </span>{' '}
+                    <bdi dir="ltr">{phone ?? '—'}</bdi>
+                </span>,
+            )}
+        </div>
+    );
+}
+
+function SectionHeading({
+    title,
+    count,
+    action,
+}: {
+    title: string;
+    count?: ReactNode;
+    action?: ReactNode;
+}) {
+    return (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {count}
+            <div className="ms-auto">{action}</div>
+        </div>
+    );
+}
+
+export default function StationsIndex() {
+    const { stats, stations, registrations, newStationCredentials } =
+        usePage<PageProps>().props;
+    const { t } = useTranslation();
 
     function approveStation(registration: Registration) {
         if (
             confirm(
-                `Approve ${registration.name}? The owner will be emailed that their station is live.`,
+                t('platform.confirm_approve').replace(
+                    ':station',
+                    registration.name,
+                ),
             )
         ) {
             router.post(
@@ -70,7 +223,10 @@ export default function StationsIndex() {
     function rejectStation(registration: Registration) {
         if (
             confirm(
-                `Reject ${registration.name}? The registration and its account are deleted permanently.`,
+                t('platform.confirm_reject').replace(
+                    ':station',
+                    registration.name,
+                ),
             )
         ) {
             router.delete(reject.url(registration.id), {
@@ -81,216 +237,289 @@ export default function StationsIndex() {
 
     return (
         <>
-            <Head title="Stations" />
+            <Head title={t('platform.title')} />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-lg font-semibold">Stations</h1>
-                        <p className="text-muted-foreground text-sm">
-                            Platform admin — manage subscriber stations.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={createStation()}
-                            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
-                        >
-                            New station
-                        </Link>
-                        <Link
-                            href={logout()}
-                            as="button"
-                            className="text-muted-foreground text-sm underline"
-                        >
-                            Log out
-                        </Link>
-                    </div>
+            <div className="space-y-10">
+                <div>
+                    <h1 className="text-2xl font-bold">
+                        {t('platform.title')}
+                    </h1>
+                    <p className="text-muted-foreground text-sm">
+                        {t('platform.description')}
+                    </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <KpiCard
+                        label={t('platform.kpi.active_stations')}
+                        value={stats.active_stations}
+                        icon={Building2}
+                        tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    />
+                    <KpiCard
+                        label={t('platform.kpi.pending_approval')}
+                        value={stats.pending_approval}
+                        icon={Hourglass}
+                        tone="bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                    />
+                    <KpiCard
+                        label={t('platform.kpi.total_users')}
+                        value={stats.total_users}
+                        icon={Users}
+                        tone="bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                    />
                 </div>
 
                 {newStationCredentials && (
                     <Card className="border-primary">
-                        <CardHeader>
-                            <CardTitle>
-                                {newStationCredentials.station} created
-                            </CardTitle>
-                            <CardDescription>
-                                Save these credentials now — this is the only
-                                time the password is shown. Relay them to the
-                                station owner; they'll be asked to set a new
-                                password on first login.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                    Email
-                                </span>
-                                <span className="font-mono">
-                                    {newStationCredentials.email}
-                                </span>
+                        <CardContent className="space-y-3 px-5">
+                            <div className="flex items-center gap-2 font-semibold">
+                                <KeyRound className="text-primary size-5" />
+                                {t('platform.credentials.title').replace(
+                                    ':station',
+                                    newStationCredentials.station,
+                                )}
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                    Temporary password
-                                </span>
-                                <span className="font-mono">
-                                    {newStationCredentials.password}
-                                </span>
+                            <p className="text-muted-foreground text-sm">
+                                {t('platform.credentials.description')}
+                            </p>
+                            <div className="bg-muted grid gap-2 rounded-lg p-3 text-sm sm:grid-cols-2">
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('common.email_address')}
+                                    </div>
+                                    <div className="font-mono" dir="ltr">
+                                        {newStationCredentials.email}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('platform.credentials.password')}
+                                    </div>
+                                    <div className="font-mono" dir="ltr">
+                                        {newStationCredentials.password}
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
                 )}
 
-                <section className="space-y-3">
-                    <h2 className="text-base font-semibold">
-                        Pending registrations
-                        {toReview > 0 && (
-                            <Badge className="ms-2 bg-amber-500 text-white">
-                                {toReview} to review
-                            </Badge>
-                        )}
-                    </h2>
-                    <div className="overflow-x-auto rounded-xl border">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-3">Station</th>
-                                    <th className="px-4 py-3">Owner</th>
-                                    <th className="px-4 py-3">Status</th>
-                                    <th className="px-4 py-3">Registered</th>
-                                    <th className="px-4 py-3"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {registrations.map((registration) => (
-                                    <tr
+                <section>
+                    <SectionHeading
+                        title={t('platform.pending.title')}
+                        count={
+                            stats.pending_approval > 0 && (
+                                <Badge className="bg-amber-500 text-white">
+                                    {t('platform.pending.to_review').replace(
+                                        ':count',
+                                        String(stats.pending_approval),
+                                    )}
+                                </Badge>
+                            )
+                        }
+                    />
+
+                    {registrations.length === 0 ? (
+                        <Card className="py-10">
+                            <CardContent className="text-muted-foreground flex flex-col items-center gap-2 text-sm">
+                                <Inbox className="size-8" />
+                                {t('platform.pending.empty')}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {registrations.map((registration) => {
+                                const awaiting =
+                                    registration.status === 'pending_approval';
+
+                                return (
+                                    <Card
                                         key={registration.id}
-                                        className="border-t"
+                                        className={cn(
+                                            'gap-4 border-s-4 py-5',
+                                            awaiting
+                                                ? 'border-s-amber-500'
+                                                : 'border-s-slate-400',
+                                        )}
                                         data-test="registration-row"
                                     >
-                                        <td className="px-4 py-3 font-medium">
-                                            {registration.name}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div>{registration.owner_name}</div>
-                                            <div className="text-muted-foreground text-xs">
-                                                {registration.owner_email}
+                                        <CardContent className="space-y-4 px-5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className="text-base font-semibold">
+                                                        {registration.name}
+                                                    </div>
+                                                    <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                                                        <CalendarDays className="size-3.5" />
+                                                        {t(
+                                                            'platform.registered_on',
+                                                        )}{' '}
+                                                        {formatDate(
+                                                            registration.created_at,
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {awaiting ? (
+                                                    <Badge className="shrink-0 gap-1 bg-amber-500 text-white">
+                                                        <Clock className="size-3" />
+                                                        {t(
+                                                            'platform.status.pending_approval',
+                                                        )}
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="shrink-0 gap-1"
+                                                    >
+                                                        <MailWarning className="size-3" />
+                                                        {t(
+                                                            'platform.status.pending_verification',
+                                                        )}
+                                                    </Badge>
+                                                )}
                                             </div>
-                                            <div
-                                                className="text-muted-foreground text-xs"
-                                                dir="ltr"
-                                            >
-                                                {registration.owner_phone}
+
+                                            <div className="bg-muted/50 rounded-lg px-3 py-2">
+                                                <ContactDetails
+                                                    name={
+                                                        registration.owner_name
+                                                    }
+                                                    email={
+                                                        registration.owner_email
+                                                    }
+                                                    phone={
+                                                        registration.owner_phone
+                                                    }
+                                                />
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {registration.status ===
-                                            'pending_approval' ? (
-                                                <Badge className="bg-amber-500 text-white">
-                                                    Awaiting approval
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline">
-                                                    Email not verified
-                                                </Badge>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {formatDate(
-                                                registration.created_at,
-                                            )}
-                                        </td>
-                                        <td className="space-x-2 whitespace-nowrap px-4 py-3 text-end">
-                                            {registration.status ===
-                                                'pending_approval' && (
+
+                                            <div className="flex gap-2">
+                                                {awaiting && (
+                                                    <Button
+                                                        className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                                                        onClick={() =>
+                                                            approveStation(
+                                                                registration,
+                                                            )
+                                                        }
+                                                    >
+                                                        <CheckCircle2 className="size-4" />
+                                                        {t('platform.approve')}
+                                                    </Button>
+                                                )}
                                                 <Button
-                                                    size="sm"
-                                                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10',
+                                                        awaiting
+                                                            ? 'flex-1'
+                                                            : 'w-full',
+                                                    )}
                                                     onClick={() =>
-                                                        approveStation(
+                                                        rejectStation(
                                                             registration,
                                                         )
                                                     }
                                                 >
-                                                    Approve
+                                                    <X className="size-4" />
+                                                    {t('platform.reject')}
                                                 </Button>
+                                            </div>
+                                            {!awaiting && (
+                                                <p className="text-muted-foreground text-xs">
+                                                    {t(
+                                                        'platform.pending.unverified_hint',
+                                                    )}
+                                                </p>
                                             )}
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                                                onClick={() =>
-                                                    rejectStation(registration)
-                                                }
-                                            >
-                                                Reject
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {registrations.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={5}
-                                            className="text-muted-foreground px-4 py-6 text-center"
-                                        >
-                                            No pending registrations.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
                 </section>
 
-                <h2 className="text-base font-semibold">Active stations</h2>
-                <div className="overflow-x-auto rounded-xl border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-3">Name</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Created</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <section>
+                    <SectionHeading
+                        title={t('platform.active.title')}
+                        action={
+                            <Button asChild>
+                                <Link href={createStation()}>
+                                    <Plus className="size-4" />
+                                    {t('platform.new_station')}
+                                </Link>
+                            </Button>
+                        }
+                    />
+
+                    {stations.length === 0 ? (
+                        <Card className="py-10">
+                            <CardContent className="text-muted-foreground flex flex-col items-center gap-2 text-sm">
+                                <Building2 className="size-8" />
+                                {t('platform.active.empty')}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {stations.map((station) => (
-                                <tr key={station.id} className="border-t">
-                                    <td className="px-4 py-3">
-                                        {station.name}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                station.onboarded
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                        >
-                                            {station.onboarded
-                                                ? 'Active'
-                                                : 'Needs setup'}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {formatDate(station.created_at)}
-                                    </td>
-                                </tr>
+                                <Card
+                                    key={station.id}
+                                    className="gap-4 border-s-4 border-s-emerald-500 py-5"
+                                    data-test="station-card"
+                                >
+                                    <CardContent className="space-y-4 px-5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="text-base font-semibold">
+                                                    {station.name}
+                                                </div>
+                                                <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                                                    <CalendarDays className="size-3.5" />
+                                                    {t('platform.created_on')}{' '}
+                                                    {formatDate(
+                                                        station.created_at,
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    station.onboarded
+                                                        ? 'secondary'
+                                                        : 'outline'
+                                                }
+                                                className="shrink-0"
+                                            >
+                                                {station.onboarded
+                                                    ? t('platform.status.live')
+                                                    : t(
+                                                          'platform.status.needs_setup',
+                                                      )}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="bg-muted/50 rounded-lg px-3 py-2">
+                                            <ContactDetails
+                                                name={station.admin_name}
+                                                email={station.admin_email}
+                                                phone={station.owner_phone}
+                                            />
+                                        </div>
+
+                                        <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                                            <Users className="size-4" />
+                                            {t('platform.users_count').replace(
+                                                ':count',
+                                                String(station.users),
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             ))}
-                            {stations.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={3}
-                                        className="text-muted-foreground px-4 py-6 text-center"
-                                    >
-                                        No stations yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    )}
+                </section>
             </div>
         </>
     );

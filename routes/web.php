@@ -14,6 +14,7 @@ use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryEntryController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PlatformAccountController;
 use App\Http\Controllers\PumpCounterReadingController;
 use App\Http\Controllers\SadcopController;
 use App\Http\Controllers\ShopController;
@@ -50,6 +51,8 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
     Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
     Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
+    Route::patch('account', [PlatformAccountController::class, 'updateProfile'])->name('account.update');
+    Route::put('account/password', [PlatformAccountController::class, 'updatePassword'])->name('account.password')->middleware('throttle:6,1');
 });
 
 // 'verified': a station account can't use the app until its email address is confirmed through

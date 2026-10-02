@@ -5,6 +5,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import { initializeLocale } from '@/hooks/use-locale';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
+import PlatformLayout from '@/layouts/platform-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { getStationTimeZone, setStationTimeZone } from '@/lib/format';
 
@@ -24,7 +25,7 @@ createInertiaApp({
             case name === 'welcome':
                 return null;
             case name.startsWith('platform/'):
-                return null;
+                return PlatformLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
