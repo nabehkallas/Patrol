@@ -22,6 +22,8 @@ primary_region = "iad"
   # [[mounts]]) instead of the container's ephemeral disk.
   DB_DATABASE = "/data/database.sqlite"
   TENANT_SQLITE_PATH = "/data"
+  # Videos and images uploaded from the landing page editor.
+  LANDING_MEDIA_PATH = "/data/landing-media"
 
 [[mounts]]
   source = "patrol_station_data"

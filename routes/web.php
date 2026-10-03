@@ -14,6 +14,7 @@ use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryEntryController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\LandingEditorController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlatformAccountController;
 use App\Http\Controllers\PumpCounterReadingController;
@@ -34,6 +35,9 @@ use App\Http\Middleware\RequireTenant;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingController::class)->name('home');
+Route::get('landing-media/{file}', [LandingEditorController::class, 'media'])
+    ->where('file', '[A-Za-z0-9]{32}\.(mp4|webm|jpg|png|webp)')
+    ->name('landing.media');
 Route::redirect('super-admin', '/platform');
 
 // Public sign-up for station owners (see StationRegistrationController).
@@ -60,6 +64,9 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
         Route::delete('stations/{tenant}', [StationController::class, 'destroy'])->name('stations.destroy');
     });
     Route::patch('account', [PlatformAccountController::class, 'updateProfile'])->name('account.update');
+    Route::get('landing', [LandingEditorController::class, 'edit'])->name('landing.edit');
+    Route::post('landing', [LandingEditorController::class, 'publish'])->name('landing.publish');
+    Route::post('landing/media', [LandingEditorController::class, 'upload'])->name('landing.upload');
     Route::put('account/password', [PlatformAccountController::class, 'updatePassword'])->name('account.password')->middleware('throttle:6,1');
 });
 

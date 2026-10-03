@@ -30,6 +30,15 @@ return [
 
     'disks' => [
 
+        // Videos and images uploaded from the landing page editor. In production this points at the
+        // persistent volume (LANDING_MEDIA_PATH=/data/landing-media), since the container's own disk
+        // is replaced on every deploy.
+        'landing' => [
+            'driver' => 'local',
+            'root' => env('LANDING_MEDIA_PATH', storage_path('app/landing-media')),
+            'throw' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

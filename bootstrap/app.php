@@ -51,7 +51,10 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // JSON errors for the API and for plain XHR/fetch calls that ask for JSON (e.g. the landing
+        // editor's media upload). Inertia page requests keep Inertia's own error handling.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*')
+                || ($request->expectsJson() && ! $request->hasHeader('X-Inertia')),
         );
     })->create();

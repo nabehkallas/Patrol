@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LandingContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,9 @@ class LandingController extends Controller
             return redirect(tenancy()->initialized ? '/cash-box' : '/platform');
         }
 
-        return Inertia::render('welcome');
+        return Inertia::render('welcome', [
+            // Published from Platform > Landing page; null means the built-in page.
+            'content' => app(LandingContent::class)->published(),
+        ]);
     }
 }

@@ -29,6 +29,8 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome':
                 return null;
+            case name === 'platform/landing-editor':
+                return null;
             case name.startsWith('platform/'):
                 return PlatformLayout;
             case name.startsWith('auth/'):

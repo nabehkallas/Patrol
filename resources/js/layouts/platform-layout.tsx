@@ -3,6 +3,7 @@ import {
     ChevronDown,
     Languages,
     LogOut,
+    PanelsTopLeft,
     Moon,
     ShieldCheck,
     Sun,
@@ -26,6 +27,7 @@ import { useLocale } from '@/hooks/use-locale';
 import { useTranslation } from '@/lib/i18n';
 import { logout } from '@/routes';
 import { home } from '@/routes/platform';
+import { edit as editLanding } from '@/routes/platform/landing';
 import type { Auth } from '@/types';
 
 /** Shell for the platform (super admin) panel: header with language, theme and account menu. */
@@ -61,6 +63,22 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
                     </Link>
 
                     <div className="ms-auto flex items-center gap-1.5">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground gap-1.5"
+                            asChild
+                        >
+                            <Link
+                                href={editLanding()}
+                                data-test="platform-landing-link"
+                            >
+                                <PanelsTopLeft className="size-4" />
+                                <span className="hidden sm:inline">
+                                    {t('platform.landing.nav_link')}
+                                </span>
+                            </Link>
+                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"
