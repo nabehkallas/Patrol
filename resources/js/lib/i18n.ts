@@ -278,6 +278,8 @@ const dictionary = {
             'Set a new password to continue — this replaces the temporary one you were given.',
 
         'settings.title': 'Settings',
+        'user_menu.settings': 'Settings',
+        'user_menu.logout': 'Log out',
         'settings.description': 'Manage your profile and account settings',
         'settings.nav.profile': 'Profile',
         'settings.nav.security': 'Security',
@@ -354,6 +356,13 @@ const dictionary = {
         'settings.data.backup_description':
             'Download a full backup file of this station’s data. Keep it somewhere safe — you’ll need it if you ever want to recover data after a reset.',
         'settings.data.backup_button': 'Download backup',
+        'settings.data.backup_confirm_title': 'Confirm it’s you',
+        'settings.data.backup_confirm_description':
+            'The backup contains all of this station’s data. Enter your account password to download it.',
+        'settings.data.backup_too_many':
+            'Too many attempts. Please wait a minute and try again.',
+        'settings.data.backup_failed':
+            'The backup could not be downloaded. Please try again.',
         'settings.data.danger_title': 'Reset station data',
         'settings.data.danger_description':
             'Permanently erase this station’s data and start over',
@@ -1074,6 +1083,8 @@ const dictionary = {
             'عيّن كلمة مرور جديدة للمتابعة — ستحل محل كلمة المرور المؤقتة التي حصلت عليها.',
 
         'settings.title': 'الإعدادات',
+        'user_menu.settings': 'الإعدادات',
+        'user_menu.logout': 'تسجيل الخروج',
         'settings.description': 'إدارة الملف الشخصي وإعدادات الحساب',
         'settings.nav.profile': 'الملف الشخصي',
         'settings.nav.security': 'الأمان',
@@ -1146,6 +1157,13 @@ const dictionary = {
         'settings.data.backup_description':
             'نزّل ملف نسخة احتياطية كاملة لبيانات هذه المحطة. احتفظ به في مكان آمن — ستحتاجه إذا رغبت باسترجاع البيانات بعد إعادة التعيين.',
         'settings.data.backup_button': 'تنزيل نسخة احتياطية',
+        'settings.data.backup_confirm_title': 'تأكيد هويتك',
+        'settings.data.backup_confirm_description':
+            'تحتوي النسخة الاحتياطية على جميع بيانات هذه المحطة. أدخل كلمة مرور حسابك لتنزيلها.',
+        'settings.data.backup_too_many':
+            'محاولات كثيرة جداً. يرجى الانتظار دقيقة ثم المحاولة مجدداً.',
+        'settings.data.backup_failed':
+            'تعذّر تنزيل النسخة الاحتياطية. يرجى المحاولة مجدداً.',
         'settings.data.danger_title': 'إعادة تعيين بيانات المحطة',
         'settings.data.danger_description':
             'حذف بيانات هذه المحطة نهائيًا والبدء من جديد',

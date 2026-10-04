@@ -46,12 +46,28 @@ class StationDataController extends Controller
         return Inertia::render('settings/data');
     }
 
+    /**
+     * Sends a backup of this station's database, after the admin re-enters their password (the
+     * file holds all of the station's data). It is a fresh, consistent snapshot (VACUUM INTO)
+     * rather than the live file, so entries still in SQLite's write-ahead log are included.
+     */
     public function downloadBackup(Request $request): BinaryFileResponse
     {
-        $path = config('database.connections.tenant.database');
-        $stationName = Str::slug(tenant('name') ?? 'station');
+        $request->validate([
+            'password' => ['required', 'string', 'current_password'],
+        ]);
 
-        return response()->download($path, "{$stationName}-backup-".now()->format('Y-m-d-His').'.sqlite');
+        $stationName = Str::slug(tenant('name') ?? 'station');
+        $snapshot = tempnam(sys_get_temp_dir(), 'station-backup-');
+        @unlink($snapshot); // VACUUM INTO needs a path that doesn't exist yet.
+
+        DB::statement('VACUUM INTO ?', [$snapshot]);
+
+        return response()
+            ->download($snapshot, "{$stationName}-backup-".now()->format('Y-m-d-His').'.sqlite', [
+                'Content-Type' => 'application/vnd.sqlite3',
+            ])
+            ->deleteFileAfterSend();
     }
 
     /**

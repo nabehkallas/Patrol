@@ -41,7 +41,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('settings/currencies', [CurrencyController::class, 'store'])->name('currencies.store');
         Route::patch('settings/currencies/{code}', [CurrencyController::class, 'update'])->name('currencies.update');
         Route::post('settings/currencies/{code}/primary', [CurrencyController::class, 'makePrimary'])->name('currencies.primary');
-        Route::get('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup');
+        // POST with the admin's password (checked server-side) rather than a plain link.
+        Route::post('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup')->middleware('throttle:6,1');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');
         Route::post('settings/data/restore', [StationDataController::class, 'restore'])->name('data.restore')->middleware('throttle:5,1');
     });

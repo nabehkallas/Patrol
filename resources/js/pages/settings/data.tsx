@@ -1,7 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
-import { Download } from 'lucide-react';
 import { useRef } from 'react';
 import StationDataController from '@/actions/App/Http/Controllers/Settings/StationDataController';
+import { DownloadBackupButton } from '@/components/download-backup-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/lib/i18n';
-import { backup, edit } from '@/routes/data';
+import { edit } from '@/routes/data';
 
 export default function StationData() {
     const passwordInput = useRef<HTMLInputElement>(null);
@@ -47,12 +47,7 @@ export default function StationData() {
                         </p>
                     </div>
 
-                    <Button variant="outline" asChild>
-                        <a href={backup.url()}>
-                            <Download className="size-4" />
-                            {t('settings.data.backup_button')}
-                        </a>
-                    </Button>
+                    <DownloadBackupButton />
                 </div>
 
                 <RestoreBackupCard />
