@@ -1,7 +1,26 @@
 import { useSyncExternalStore } from 'react';
 
-export type Locale = 'en' | 'ar';
 export type Direction = 'ltr' | 'rtl';
+
+/**
+ * The interface languages. Their texts live in lang/{code}.json; keep this list in step with
+ * App\Support\Locales on the server. `intl` is the locale used for month and day names.
+ */
+export const LOCALES = {
+    ar: { name: 'العربية', dir: 'rtl', intl: 'ar-SY' },
+    en: { name: 'English', dir: 'ltr', intl: 'en-US' },
+    tr: { name: 'Türkçe', dir: 'ltr', intl: 'tr-TR' },
+    fr: { name: 'Français', dir: 'ltr', intl: 'fr-FR' },
+    // Northern Kurdish (Kurmanji) in the Latin script, as spoken in Syria.
+    ku: { name: 'Kurdî (Kurmancî)', dir: 'ltr', intl: 'ku' },
+} as const satisfies Record<
+    string,
+    { name: string; dir: Direction; intl: string }
+>;
+
+export type Locale = keyof typeof LOCALES;
+
+export const SUPPORTED_LOCALES = Object.keys(LOCALES) as Locale[];
 
 export type UseLocaleReturn = {
     readonly locale: Locale;
@@ -21,15 +40,21 @@ const setCookie = (name: string, value: string, days = 365): void => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
+export const isLocale = (value: unknown): value is Locale =>
+    typeof value === 'string' &&
+    (SUPPORTED_LOCALES as string[]).includes(value);
+
 const getStoredLocale = (): Locale => {
     if (typeof window === 'undefined') {
         return 'en';
     }
 
-    return (localStorage.getItem('locale') as Locale) || 'en';
+    const stored = localStorage.getItem('locale');
+
+    return isLocale(stored) ? stored : 'en';
 };
 
-export const directionFor = (locale: Locale): Direction => (locale === 'ar' ? 'rtl' : 'ltr');
+export const directionFor = (locale: Locale): Direction => LOCALES[locale].dir;
 
 const applyLocale = (locale: Locale): void => {
     if (typeof document === 'undefined') {
@@ -53,12 +78,13 @@ export function initializeLocale(): void {
         return;
     }
 
-    if (!localStorage.getItem('locale')) {
-        localStorage.setItem('locale', 'en');
-        setCookie('locale', 'en');
-    }
-
     currentLocale = getStoredLocale();
+
+    // Keeps storage and the cookie (which the server reads for emails, messages and exports)
+    // valid and in sync, e.g. after a language was dropped or the cookie expired.
+    localStorage.setItem('locale', currentLocale);
+    setCookie('locale', currentLocale);
+
     applyLocale(currentLocale);
 }
 

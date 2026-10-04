@@ -16,6 +16,7 @@ use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
@@ -78,21 +79,11 @@ class SadcopController extends Controller
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $entries = $this->filteredEntriesQuery($request, $from, $to)->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'سجل سادكوب',
-            'date' => 'التاريخ',
-            'type' => 'النوع',
-            'fuel_type' => 'نوع الوقود',
-            'liters' => 'اللترات',
-            'price' => 'سعر تكلفة سادكوب / لتر',
-            'amount' => 'المبلغ',
-            'recorded_by' => 'سجّله',
-            'types' => ['opening' => 'الرصيد الافتتاحي', 'deposit' => 'تحويل', 'delivery' => 'توريد'],
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Sadcop Ledger',
             'date' => 'Date',
             'type' => 'Type',
@@ -102,7 +93,7 @@ class SadcopController extends Controller
             'amount' => 'Amount',
             'recorded_by' => 'Recorded by',
             'types' => ['opening' => 'Opening balance', 'deposit' => 'Transfer', 'delivery' => 'Delivery'],
-        ];
+        ]);
 
         $rows = $entries->map(fn (SadcopLedgerEntry $entry) => [
             $entry->occurred_at->format('Y-m-d H:i'),
@@ -162,15 +153,7 @@ class SadcopController extends Controller
                 ->where('occurred_at', '<', $from->copy()->startOfDay())
                 ->sum('amount');
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'سجل سادكوب',
-            'date' => 'التاريخ',
-            'balance' => 'المدور سوري',
-            'deposits' => 'الدفعات بالسوري',
-            'volume' => 'حجم الصهريج',
-            'tanker_price' => 'سعر الصهريج',
-            'purchase_price' => 'سعر الشراء',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Sadcop Ledger',
             'date' => 'Date',
             'balance' => 'Balance (SYP)',
@@ -178,7 +161,7 @@ class SadcopController extends Controller
             'volume' => 'Tanker Volume',
             'tanker_price' => 'Tanker Price',
             'purchase_price' => 'Purchase Price',
-        ];
+        ]);
 
         // Sheet always reads left-to-right (date/balance block, then one block per fuel type),
         // regardless of language -- only the header/label text follows the locale. Column indexes

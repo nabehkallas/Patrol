@@ -17,6 +17,7 @@ use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -104,26 +105,10 @@ class DebtController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
         $debts = $this->filteredQuery($request)->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'الديون',
-            'date' => 'التاريخ',
-            'debtor' => 'المدين',
-            'what_for' => 'سبب الدين',
-            'amount' => 'المبلغ',
-            'direction' => 'الاتجاه',
-            'status' => 'الحالة',
-            'recorded_by' => 'سجّله',
-            'outstanding' => 'غير مسدد',
-            'settled' => 'مسدد',
-            'total' => 'الإجمالي',
-            'receivable' => 'لنا',
-            'payable' => 'علينا',
-            'owed_to_us' => 'مستحق لنا',
-            'we_owe' => 'مستحق علينا',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Debts',
             'date' => 'Date',
             'debtor' => 'Debtor',
@@ -137,9 +122,9 @@ class DebtController extends Controller
             'total' => 'Total',
             'receivable' => 'Owed to us',
             'payable' => 'We owe',
-            'owed_to_us' => 'Owed to us',
-            'we_owe' => 'We owe',
-        ];
+            'owed_to_us' => 'Due to us',
+            'we_owe' => 'Due from us',
+        ]);
 
         $rows = $debts->map(function (Debt $debt) use ($labels) {
             $fuelTypeName = $debt->transaction?->fuelType->name ?? $debt->fuelType?->name;

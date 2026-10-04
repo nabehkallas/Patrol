@@ -13,6 +13,7 @@ use App\Models\Transaction;
 use App\Services\AnnualFinancialSummary;
 use App\Services\PdfTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -265,7 +266,7 @@ class StatisticsController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
@@ -275,25 +276,12 @@ class StatisticsController extends Controller
 
         $transactions = $this->filteredTransactions($request, $from, $to);
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'الإحصائيات',
-            'section' => 'القسم',
-            'name' => 'الاسم',
-            'liters' => 'اللترات',
-            'income' => 'الدخل ('.Currency::primary().')',
-            'by_fuel_type' => 'حسب نوع الوقود',
-            'by_employee' => 'حسب الموظف',
-            'deliveries' => 'توريدات الوقود',
-            'debts_created' => 'ديون جديدة',
-            'debts_settled' => 'ديون مسددة',
-            'receivable' => 'لنا',
-            'payable' => 'علينا',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Statistics',
             'section' => 'Section',
             'name' => 'Name',
             'liters' => 'Liters',
-            'income' => 'Income ('.Currency::primary().')',
+            'income' => __('Income (:currency)', ['currency' => Currency::primary()]),
             'by_fuel_type' => 'By fuel type',
             'by_employee' => 'By employee',
             'deliveries' => 'Fuel deliveries',
@@ -301,7 +289,7 @@ class StatisticsController extends Controller
             'debts_settled' => 'Debts settled',
             'receivable' => 'Owed to us',
             'payable' => 'We owe',
-        ];
+        ]);
 
         $rows = $transactions
             ->where('type', TransactionType::FuelSale)

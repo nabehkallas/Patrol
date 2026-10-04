@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
@@ -58,7 +59,7 @@ class ShopController extends Controller
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
         [$itemId, $type] = $this->logFilters($request);
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $entries = $this->logQuery($from, $to, $itemId, $type)
             ->with(['shopItem', 'user'])
@@ -66,17 +67,7 @@ class ShopController extends Controller
             ->latest('id')
             ->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'سجل المتجر',
-            'time' => 'الوقت',
-            'type' => 'النوع',
-            'item' => 'الصنف',
-            'quantity' => 'الكمية',
-            'amount' => 'المبلغ',
-            'recorded_by' => 'سجّله',
-            'purchase' => 'شراء',
-            'sale' => 'بيع',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Shop History',
             'time' => 'Time',
             'type' => 'Type',
@@ -86,7 +77,7 @@ class ShopController extends Controller
             'recorded_by' => 'Recorded by',
             'purchase' => 'Purchase',
             'sale' => 'Sale',
-        ];
+        ]);
 
         $rows = $entries->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('H:i'),
@@ -155,21 +146,14 @@ class ShopController extends Controller
         $purchasedByDayItem = $byDayItem(TransactionType::Purchase);
         $soldByDayItem = $byDayItem(TransactionType::OtherIncome);
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'المتجر',
-            'date' => 'التاريخ',
-            'stock' => 'المخزون الحالي',
-            'sold' => 'الكمية المباعة',
-            'revenue' => 'إجمالي السعر',
-            'overall' => 'إجمالي الإيراد اليومي',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Shop',
             'date' => 'Date',
             'stock' => 'Current Stock',
             'sold' => 'Sold Qty',
             'revenue' => 'Total Revenue',
             'overall' => 'Overall Daily Revenue',
-        ];
+        ]);
 
         // Column indexes are 1-based here (matching Coordinate::stringFromColumnIndex) for
         // building cell-reference formulas; converted to 0-based when writing into $row/$headerRow.

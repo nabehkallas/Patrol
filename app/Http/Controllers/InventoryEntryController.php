@@ -12,6 +12,7 @@ use App\Models\TankTopUp;
 use App\Models\TankTransfer;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
@@ -69,25 +70,18 @@ class InventoryEntryController extends Controller
 
     public function exportEntriesPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $entries = InventoryEntry::with(['tank.fuelType', 'recordedBy'])->latest('date')->latest('id')->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'سجل المخزون',
-            'date' => 'التاريخ',
-            'tank' => 'الخزان',
-            'quantity' => 'الكمية (لتر)',
-            'recorded_by' => 'سجّله',
-            'notes' => 'ملاحظات',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Inventory Entries',
             'date' => 'Date',
             'tank' => 'Tank',
             'quantity' => 'Quantity (L)',
             'recorded_by' => 'Recorded by',
             'notes' => 'Notes',
-        ];
+        ]);
 
         $rows = $entries->map(fn (InventoryEntry $entry) => [
             $entry->date->format('Y-m-d'),
@@ -111,7 +105,7 @@ class InventoryEntryController extends Controller
     {
         $from = Carbon::parse($request->input('from', today()->toDateString()));
         $to = Carbon::parse($request->input('to', today()->toDateString()));
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $topUps = TankTopUp::with(['tank.fuelType', 'recordedBy'])
             ->whereDate('date', '>=', $from)
@@ -120,19 +114,13 @@ class InventoryEntryController extends Controller
             ->latest('id')
             ->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'التعبئة الفعلية',
-            'tank' => 'الخزان',
-            'liters' => 'اللترات',
-            'recorded_by' => 'سجّله',
-            'notes' => 'ملاحظات',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Tank Top-ups',
             'tank' => 'Tank',
             'liters' => 'Liters',
             'recorded_by' => 'Recorded by',
             'notes' => 'Notes',
-        ];
+        ]);
 
         $rows = $topUps->map(fn (TankTopUp $topUp) => [
             $topUp->tank ? $topUp->tank->fuelType?->name.' — '.$topUp->tank->name : '—',
@@ -172,18 +160,7 @@ class InventoryEntryController extends Controller
             ->orderBy('name')
             ->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'sheet' => 'خزانات',
-            'title' => 'دفتر جرد الخزانات',
-            'date' => 'التاريخ',
-            'balance' => 'الموجود بالخزان',
-            'sold' => 'المباع',
-            'received' => 'الوارد للخزان',
-            'returned' => 'مرتجع',
-            'differences' => 'فروقات',
-            'transfer' => 'تحويل',
-            'total' => 'الإجمالي',
-        ] : [
+        $labels = Locales::labels([
             'sheet' => 'Tanks',
             'title' => 'Tank Inventory Ledger',
             'date' => 'Date',
@@ -194,7 +171,7 @@ class InventoryEntryController extends Controller
             'differences' => 'Differences',
             'transfer' => 'Transfer',
             'total' => 'Total',
-        ];
+        ]);
 
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getDefaultStyle()->getFont()->setSize(14);

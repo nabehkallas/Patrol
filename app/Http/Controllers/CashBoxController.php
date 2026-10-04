@@ -15,6 +15,7 @@ use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -107,31 +108,16 @@ class CashBoxController extends Controller
         $user = $request->user();
         $isAdmin = $user->isAdmin();
         $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $period = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
         $today = $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate);
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'صندوق النقد',
-            'metric' => 'المؤشر',
-            'value' => 'القيمة',
-            'section' => 'الفترة',
-            'period' => 'الفترة المحددة',
-            'today' => 'اليوم',
-            'income' => 'الدخل',
-            'sadcop' => 'مدفوعات سادكوب',
-            'other_expenses' => 'مصروفات أخرى',
-            'exchanged' => 'تحويل عملة',
-            'net' => 'الصافي',
-            'liters_sold' => 'اللترات المباعة',
-            'debts' => 'الديون (غير مسددة)',
-            'debts_liters' => 'لترات مباعة بالدين (غير مسددة)',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Cash Box',
             'metric' => 'Metric',
             'value' => 'Value',
-            'section' => 'Section',
+            'section' => 'Period',
             'period' => 'Selected period',
             'today' => 'Today',
             'income' => 'Income',
@@ -142,7 +128,7 @@ class CashBoxController extends Controller
             'liters_sold' => 'Liters sold',
             'debts' => 'Debts (unsettled)',
             'debts_liters' => 'Liters sold in debt (unsettled)',
-        ];
+        ]);
 
         $formatBreakdown = fn (array $breakdown) => collect($breakdown)
             ->map(fn ($amount, $currency) => number_format($amount, Currency::decimals($currency)).' '.$currency)
@@ -310,19 +296,7 @@ class CashBoxController extends Controller
         $governmentByDay = $byDay($governmentPayments, 'paid_at');
         $payableByDay = $byDay($payablePayments, 'paid_at');
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'صندوق النقد',
-            'date' => 'التاريخ',
-            'cash_syp' => 'الصندوق بالسوري',
-            'sold_syp' => 'المباع بالسوري',
-            'sadcop' => 'دفعات سادكوب',
-            'government' => 'بطاقة ذكية',
-            'other_income' => 'دخل آخر',
-            'cash_usd' => 'الصندوق بالدولار',
-            'expense_syp' => 'مصروف سوري',
-            'expense_usd' => 'مصروف دولار',
-            'notes' => 'ملاحظات',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Cash Box',
             'date' => 'Date',
             'cash_syp' => 'Cash Box (SYP)',
@@ -334,7 +308,7 @@ class CashBoxController extends Controller
             'expense_syp' => 'Expense (SYP)',
             'expense_usd' => 'Expense (USD)',
             'notes' => 'Notes',
-        ];
+        ]);
 
         $headerRow = [
             $labels['date'], $labels['cash_syp'], $labels['sold_syp'], $labels['sadcop'],
@@ -637,13 +611,10 @@ class CashBoxController extends Controller
      */
     private function historyEntries(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
-        $labels = app()->getLocale() === 'ar' ? [
-            'sadcop_transfer' => 'تحويل سادكوب',
-            'debt_payment' => 'دفعة على دين',
-        ] : [
+        $labels = Locales::labels([
             'sadcop_transfer' => 'Sadcop transfer',
             'debt_payment' => 'Debt payment',
-        ];
+        ]);
 
         $transactions = Transaction::query()
             ->whereIn('type', [

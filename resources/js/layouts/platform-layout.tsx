@@ -1,7 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     ChevronDown,
-    Languages,
     LogOut,
     PanelsTopLeft,
     Moon,
@@ -12,6 +11,7 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { LanguageMenu } from '@/components/language-menu';
 import { AccountDialog } from '@/components/platform/account-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAppearance } from '@/hooks/use-appearance';
-import { useLocale } from '@/hooks/use-locale';
 import { useTranslation } from '@/lib/i18n';
 import { logout } from '@/routes';
 import { home } from '@/routes/platform';
@@ -34,7 +33,6 @@ import type { Auth } from '@/types';
 export default function PlatformLayout({ children }: { children: ReactNode }) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const { t } = useTranslation();
-    const { locale, updateLocale } = useLocale();
     const { resolvedAppearance, updateAppearance } = useAppearance();
     const [accountOpen, setAccountOpen] = useState(false);
 
@@ -79,18 +77,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
                                 </span>
                             </Link>
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground gap-1.5"
-                            onClick={() =>
-                                updateLocale(locale === 'ar' ? 'en' : 'ar')
-                            }
+                        <LanguageMenu
+                            className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 font-medium"
                             data-test="platform-locale-toggle"
-                        >
-                            <Languages className="size-4" />
-                            {locale === 'ar' ? 'English' : 'العربية'}
-                        </Button>
+                        />
 
                         <Button
                             variant="ghost"

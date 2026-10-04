@@ -17,6 +17,7 @@ use App\Models\TankTopUp;
 use App\Models\Transaction;
 use App\Services\EarningsXlsxExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -116,46 +117,7 @@ class EarningsController extends Controller
         $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
         $otherExpenseSyp = round($this->otherExpensesSyp($from, $to, $sypRate), 0);
         $totalEarningsSyp = $totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp;
-
-        $isAr = app()->getLocale() === 'ar';
-        $l = $isAr ? [
-            'title' => 'الأرباح',
-            'price_reference' => 'الأسعار الحالية',
-            'item' => 'الصنف',
-            'price' => 'السعر (ل.س)',
-            'price_per_liter_of' => 'سعر لتر ',
-            'liters_sold' => 'عدد اللترات المباعة',
-            'margin_profits' => 'أرباح الهامش',
-            'free_liters' => 'اللترات المجانية',
-            'rate_margin' => 'السعر / الهامش (ل.س)',
-            'sold_liters' => 'اللترات المباعة',
-            'total_syp' => 'الإجمالي (ل.س)',
-            'liters' => 'اللترات',
-            'margin_earnings' => 'إجمالي أرباح الهامش',
-            'topup_earnings' => 'إجمالي أرباح الإضافة',
-            'subtotal' => 'المجموع الفرعي',
-            'revaluation' => 'أرباح فارق السعر',
-            'fuel_type' => 'نوع الوقود',
-            'old_price' => 'السعر القديم',
-            'new_price' => 'السعر الجديد',
-            'price_diff' => 'الفارق',
-            'profit' => 'الربح',
-            'total' => 'الإجمالي',
-            'shop_profit' => 'تفاصيل مبيعات المتجر',
-            'shop_profit_summary' => 'ملخص أرباح المتجر',
-            'shop_revenue' => 'إجمالي الإيرادات',
-            'shop_cogs' => 'تكلفة البضاعة المباعة',
-            'revenue' => 'الإيرادات (ل.س)',
-            'cogs' => 'تكلفة البضاعة (ل.س)',
-            'net_profit' => 'صافي الربح',
-            'qty_sold' => 'الكمية المباعة',
-            'cost_per_unit' => 'تكلفة الوحدة (ل.س)',
-            'total_earnings' => 'إجمالي الأرباح',
-            'other_expenses' => 'مصاريف أخرى',
-            'grand_total' => 'المجموع الكلي',
-            'exchange_rate' => 'سعر الصرف',
-            'grand_total_usd' => 'المجموع الكلي ($)',
-        ] : [
+        $l = Locales::labels([
             'title' => 'Earnings',
             'price_reference' => 'Current Prices',
             'item' => 'Item',
@@ -192,7 +154,7 @@ class EarningsController extends Controller
             'grand_total' => 'Grand Total',
             'exchange_rate' => 'Exchange Rate',
             'grand_total_usd' => 'Grand Total ($)',
-        ];
+        ]);
 
         $priceReference = [];
 

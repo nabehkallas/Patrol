@@ -232,7 +232,7 @@ export const DEFAULT_CONTENT: LandingContent = {
             heroTitle1: 'محطتك بالكامل،',
             heroTitle2: 'في لوحة تحكم واحدة',
             heroText:
-                'سجّل عدادات المضخات، أغلق صندوق النقد، تابع كل خزان وكل دين، واعرف ربحك الحقيقي، من أي جهاز.',
+                'سجّل عدادات المضخات، أغلق الصندوق، تابع كل خزان وكل دين، واعرف ربحك الحقيقي، من أي جهاز.',
             heroPrimary: 'سجّل محطتك الآن',
             heroSecondary: 'شاهد العرض',
             trust: ['دعم شامل لتعدد العملات والصناديق', 'دفتر سادكوب مدمج'],
@@ -242,7 +242,7 @@ export const DEFAULT_CONTENT: LandingContent = {
                 today: 'مبيعات اليوم',
                 shift: 'الوردية الحالية',
                 liters: 'اللترات المباعة',
-                cash: 'إجمالي صندوق النقد',
+                cash: 'إجمالي الصندوق',
                 shiftStatus: 'حالة الوردية',
                 shiftOpen: 'مفتوحة منذ',
                 pumps: 'المضخات النشطة',
@@ -257,8 +257,7 @@ export const DEFAULT_CONTENT: LandingContent = {
             mediaKicker: 'شاهده يعمل',
             mediaTitle: 'التطبيق الحقيقي، وليس نموذجاً',
             mediaText: 'جولة قصيرة ولقطات شاشة مأخوذة من محطة تعمل.',
-            videoCaption:
-                'جولة: الإحصائيات، صندوق النقد، عدادات المضخات والمخزون',
+            videoCaption: 'جولة: الإحصائيات، الصندوق، عدادات المضخات والمخزون',
             rs485: {
                 title: 'بوابات المضخات RS485',
                 text: 'قراءة العدادات مباشرة من المضخات ضمن خطتنا القادمة.',
@@ -269,7 +268,7 @@ export const DEFAULT_CONTENT: LandingContent = {
             features: [
                 {
                     icon: 'shield',
-                    title: 'أمان الورديات وصندوق النقد',
+                    title: 'أمان الورديات والصندوق',
                     text: 'أدوار المدير والموظف، منطقة أرباح محمية بكلمة مرور، وصندوق نقد تمر عبره كل حركة.',
                 },
                 {
@@ -344,7 +343,7 @@ export const DEFAULT_CONTENT: LandingContent = {
             image_en: '/landing/cash-box-en.jpg',
             image_ar: '/landing/cash-box-ar.jpg',
             title_en: 'Cash box closing',
-            title_ar: 'إغلاق صندوق النقد',
+            title_ar: 'إغلاق الصندوق',
             text_en:
                 'Opening balance, income, expenses and the closing balance per currency, every day.',
             text_ar:

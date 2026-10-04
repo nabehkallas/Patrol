@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -67,18 +68,10 @@ class TransactionController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
         $transactions = $this->filteredQuery($request)->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'المعاملات',
-            'date' => 'التاريخ',
-            'type' => 'النوع',
-            'description' => 'الوصف',
-            'liters' => 'اللترات',
-            'amount' => 'المبلغ',
-            'recorded_by' => 'سجّله',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Transactions',
             'date' => 'Date',
             'type' => 'Type',
@@ -86,7 +79,7 @@ class TransactionController extends Controller
             'liters' => 'Liters',
             'amount' => 'Amount',
             'recorded_by' => 'Recorded by',
-        ];
+        ]);
 
         $rows = $transactions->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('Y-m-d H:i'),

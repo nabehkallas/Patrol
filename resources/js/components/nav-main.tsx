@@ -12,7 +12,7 @@ import type { NavItem } from '@/types';
 
 export function NavMain({
     items = [],
-    label = 'Platform',
+    label,
 }: {
     items: NavItem[];
     label?: string;

@@ -594,7 +594,7 @@ export default function LandingEditor({
 
             <div
                 className="sticky top-0 z-50 border-b border-white/10 bg-[#0b1a2c]/95 text-slate-200 shadow-lg backdrop-blur"
-                dir={locale === 'ar' ? 'rtl' : 'ltr'}
+                dir={lang === 'ar' ? 'rtl' : 'ltr'}
             >
                 <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
                     <Link

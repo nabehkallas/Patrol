@@ -25,6 +25,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { Locale } from '@/hooks/use-locale';
+import { LOCALES, useLocale } from '@/hooks/use-locale';
 import { formatNumber, formatPrimary } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -63,9 +65,9 @@ const FUEL_TEXT = [
 ];
 
 /** Month names in the UI language; ar-SY gives the Levantine names (كانون الثاني, شباط...). */
-function monthName(month: number, locale: string, style: 'long' | 'short') {
+function monthName(month: number, locale: Locale, style: 'long' | 'short') {
     return new Date(Date.UTC(2000, month - 1, 1)).toLocaleDateString(
-        locale === 'ar' ? 'ar-SY' : 'en-US',
+        LOCALES[locale].intl,
         { month: style, timeZone: 'UTC' },
     );
 }
@@ -102,6 +104,7 @@ function HighlightCard({
 
 export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
     const { t, locale } = useTranslation();
+    const { direction } = useLocale();
 
     const chartData = data.months.map((row) => ({
         name: monthName(row.month, locale, 'short'),
@@ -283,14 +286,14 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 />
                                 <XAxis
                                     dataKey="name"
-                                    reversed={locale === 'ar'}
+                                    reversed={direction === 'rtl'}
                                     tick={{ fontSize: 12 }}
                                     tickLine={false}
                                     className="fill-muted-foreground"
                                 />
                                 <YAxis
                                     orientation={
-                                        locale === 'ar' ? 'right' : 'left'
+                                        direction === 'rtl' ? 'right' : 'left'
                                     }
                                     tickFormatter={compact}
                                     tick={{ fontSize: 12 }}

@@ -158,7 +158,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label={t('nav.operations')} />
                 <NavMain
                     items={toolsReportsNavItems}
                     label={t('nav.tools_reports')}

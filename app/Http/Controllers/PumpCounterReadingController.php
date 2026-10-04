@@ -15,6 +15,7 @@ use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
@@ -111,7 +112,7 @@ class PumpCounterReadingController extends Controller
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
         [$from, $to] = $this->historyRange($request);
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
             ->whereDate('date', '>=', $from)
@@ -120,16 +121,7 @@ class PumpCounterReadingController extends Controller
             ->latest('id')
             ->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'قراءات المضخات',
-            'pump' => 'المضخة',
-            'tank' => 'الخزان',
-            'reading' => 'قيمة العداد',
-            'liters_sold' => 'اللترات المباعة',
-            'governmental' => 'مبيعات حكومية (لتر)',
-            'return' => 'مرتجع (لتر)',
-            'recorded_by' => 'سجّله',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Pump Counter Readings',
             'pump' => 'Pump',
             'tank' => 'Tank',
@@ -138,7 +130,7 @@ class PumpCounterReadingController extends Controller
             'governmental' => 'Governmental sale (L)',
             'return' => 'Return (L)',
             'recorded_by' => 'Recorded by',
-        ];
+        ]);
 
         $rows = $readings->map(fn (PumpCounterReading $reading) => [
             $reading->pump->name ?? '—',
@@ -222,25 +214,16 @@ class PumpCounterReadingController extends Controller
             ->map(fn ($readings) => (int) $readings->last()->reading_value)
             ->all();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'date' => 'التاريخ',
-            'total' => 'المجموع الكامل',
-            'liters_sold' => 'المباع (لتر)',
-            'governmental' => 'حكومي (لتر)',
-            'return' => 'مرتجع (لتر)',
-            'net_liters' => 'الصافي (لتر)',
-            'price_per_liter' => 'سعر الليتر (ل.س)',
-            'amount' => 'المبلغ (ل.س)',
-        ] : [
+        $labels = Locales::labels([
             'date' => 'Date',
-            'total' => 'Total',
+            'total' => 'Grand total',
             'liters_sold' => 'Liters Sold (gross)',
             'governmental' => 'Governmental (L)',
             'return' => 'Return (L)',
             'net_liters' => 'Net Liters',
             'price_per_liter' => 'Price/Liter (SYP)',
             'amount' => 'Amount (SYP)',
-        ];
+        ]);
 
         $pumpCount = $pumps->count();
         $totalCol = Coordinate::stringFromColumnIndex($pumpCount + 2);

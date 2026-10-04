@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateDebtorRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Services\PdfTableExporter;
+use App\Support\Locales;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -113,21 +114,16 @@ class DebtorController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr';
+        $direction = Locales::direction();
 
         $debtors = $this->filteredQuery($request)->orderBy('name')->get();
 
-        $labels = app()->getLocale() === 'ar' ? [
-            'title' => 'المدينون',
-            'name' => 'الاسم',
-            'phone' => 'الهاتف',
-            'outstanding' => 'غير مسدد',
-        ] : [
+        $labels = Locales::labels([
             'title' => 'Debtors',
             'name' => 'Name',
             'phone' => 'Phone',
             'outstanding' => 'Outstanding',
-        ];
+        ]);
 
         $formatBreakdown = fn (array $breakdown) => collect($breakdown)
             ->reject(fn ($amount, $currency) => $currency !== 'SYP' && $amount == 0)

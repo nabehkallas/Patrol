@@ -17,7 +17,6 @@ import {
     Gauge,
     GripVertical,
     ImagePlus,
-    Languages,
     LockKeyhole,
     Play,
     Receipt,
@@ -47,6 +46,7 @@ import type {
     LandingText,
     SectionId,
 } from '@/components/landing/content';
+import { LanguageMenu } from '@/components/language-menu';
 import { useLocale } from '@/hooks/use-locale';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -404,9 +404,10 @@ function useTicker() {
     return extra;
 }
 
-function DemoDashboard({ c, locale }: { c: LandingText; locale: string }) {
+function DemoDashboard({ c }: { c: LandingText }) {
     const [mode, setMode] = useState<'today' | 'shift'>('today');
     const extra = useTicker();
+    const { direction } = useLocale();
 
     // "Current shift" = the afternoon shift (14:00 onwards); "today" = the whole day.
     const visible =
@@ -613,7 +614,7 @@ function DemoDashboard({ c, locale }: { c: LandingText; locale: string }) {
                                 />
                                 <XAxis
                                     dataKey="label"
-                                    reversed={locale === 'ar'}
+                                    reversed={direction === 'rtl'}
                                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                                     tickLine={false}
                                     axisLine={false}
@@ -798,6 +799,7 @@ function CarouselBlock({
 }) {
     const editor = useContext(EditorContext);
     const { t } = useTranslation();
+    const { direction } = useLocale();
     const [index, setIndex] = useState(0);
     const slides = content.slides;
     const total = slides.length + (content.showRoadmapSlide ? 1 : 0);
@@ -819,8 +821,8 @@ function CarouselBlock({
     }, [total, index, editor.editing]);
 
     const go = (delta: number) => setIndex((i) => (i + delta + total) % total);
-    const PrevIcon = locale === 'ar' ? ChevronRight : ChevronLeft;
-    const NextIcon = locale === 'ar' ? ChevronLeft : ChevronRight;
+    const PrevIcon = direction === 'rtl' ? ChevronRight : ChevronLeft;
+    const NextIcon = direction === 'rtl' ? ChevronLeft : ChevronRight;
     const slide = current < slides.length ? slides[current] : null;
     const slideIndex = current;
 
@@ -977,10 +979,11 @@ export function LandingPage({
     content: LandingContent;
     editor?: EditorApi;
 }) {
-    const { locale, updateLocale } = useLocale();
+    // Page content exists in Arabic and English; the other interface languages show English.
+    const { locale, direction } = useLocale();
     const lang = locale === 'ar' ? 'ar' : 'en';
     const c = content.text[lang];
-    const Arrow = locale === 'ar' ? ArrowLeft : ArrowRight;
+    const Arrow = direction === 'rtl' ? ArrowLeft : ArrowRight;
     const editing = editor !== undefined;
     const editorState: EditorState = editor
         ? { editing: true, ...editor }
@@ -1082,7 +1085,7 @@ export function LandingPage({
                         className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-20"
                     >
                         {frame(section, heroContent)}
-                        {frame(next, <DemoDashboard c={c} locale={locale} />)}
+                        {frame(next, <DemoDashboard c={c} />)}
                     </section>,
                 );
                 i++;
@@ -1145,10 +1148,7 @@ export function LandingPage({
                             id="demo"
                             className="mx-auto max-w-3xl scroll-mt-20 px-4 pb-20 sm:px-6"
                         >
-                            {frame(
-                                section,
-                                <DemoDashboard c={c} locale={locale} />,
-                            )}
+                            {frame(section, <DemoDashboard c={c} />)}
                         </section>,
                     );
                     break;
@@ -1388,19 +1388,10 @@ export function LandingPage({
                             </nav>
 
                             <div className="ms-auto flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        updateLocale(
-                                            locale === 'ar' ? 'en' : 'ar',
-                                        )
-                                    }
-                                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
+                                <LanguageMenu
+                                    className="text-slate-300 hover:bg-white/5 hover:text-white"
                                     data-test="landing-locale-toggle"
-                                >
-                                    <Languages className="size-4" />
-                                    {locale === 'ar' ? 'English' : 'العربية'}
-                                </button>
+                                />
                                 <Cta
                                     href={login().url}
                                     className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/5 sm:block"
