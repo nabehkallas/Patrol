@@ -454,29 +454,28 @@ export default function DebtsIndex() {
                                         {debt.recorded_by?.name}
                                     </td>
                                     <td className="space-x-2 px-4 py-3 text-end">
-                                        {debt.status === 'outstanding' &&
-                                            auth.isAdmin && (
-                                                <>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            settleDebt(debt)
-                                                        }
-                                                    >
-                                                        {t('debts.settle')}
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            openPartial(debt)
-                                                        }
-                                                    >
-                                                        {t('debts.partial')}
-                                                    </Button>
-                                                </>
-                                            )}
+                                        {debt.status === 'outstanding' && (
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        settleDebt(debt)
+                                                    }
+                                                >
+                                                    {t('debts.settle')}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        openPartial(debt)
+                                                    }
+                                                >
+                                                    {t('debts.partial')}
+                                                </Button>
+                                            </>
+                                        )}
                                         {auth.isAdmin && (
                                             <Button
                                                 variant="outline"
@@ -488,19 +487,23 @@ export default function DebtsIndex() {
                                                 {t('debts.transfer')}
                                             </Button>
                                         )}
-                                        <Link
-                                            href={edit(debt.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(debt)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                        {auth.isAdmin && (
+                                            <>
+                                                <Link
+                                                    href={edit(debt.id)}
+                                                    className="text-sm underline"
+                                                >
+                                                    {t('common.edit')}
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => remove(debt)}
+                                                >
+                                                    {t('common.delete')}
+                                                </Button>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

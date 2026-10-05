@@ -17,7 +17,7 @@ import {
     settleAll,
 } from '@/routes/debtors';
 import { index as debtsIndex } from '@/routes/debts';
-import type { DebtorSummary, Paginated } from '@/types';
+import type { Auth, DebtorSummary, Paginated } from '@/types';
 
 type Row = {
     debtor: DebtorSummary;
@@ -26,12 +26,13 @@ type Row = {
 };
 
 type PageProps = {
+    auth: Auth;
     debtors: Paginated<DebtorSummary>;
     filters: { search?: string };
 };
 
 export default function DebtorsIndex() {
-    const { debtors, filters } = usePage<PageProps>().props;
+    const { auth, debtors, filters } = usePage<PageProps>().props;
     const { t } = useTranslation();
     const [search, setSearch] = useState(filters.search ?? '');
 
@@ -99,7 +100,7 @@ export default function DebtorsIndex() {
                     />
                     <Link
                         href={create()}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('debtors.new')}
                     </Link>
@@ -145,7 +146,7 @@ export default function DebtorsIndex() {
                                     >
                                         {debtor.name}
                                         {parentLabel && (
-                                            <span className="ms-2 text-xs text-muted-foreground">
+                                            <span className="text-muted-foreground ms-2 text-xs">
                                                 ({t('debtors.part_of')}{' '}
                                                 {parentLabel})
                                             </span>
@@ -175,19 +176,25 @@ export default function DebtorsIndex() {
                                                 {t('debtors.settle_all')}
                                             </Button>
                                         )}
-                                        <Link
-                                            href={edit(debtor.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(debtor)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                        {auth.isAdmin && (
+                                            <>
+                                                <Link
+                                                    href={edit(debtor.id)}
+                                                    className="text-sm underline"
+                                                >
+                                                    {t('common.edit')}
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        remove(debtor)
+                                                    }
+                                                >
+                                                    {t('common.delete')}
+                                                </Button>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -195,7 +202,7 @@ export default function DebtorsIndex() {
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-4 py-6 text-center text-muted-foreground"
+                                        className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}
                                     </td>

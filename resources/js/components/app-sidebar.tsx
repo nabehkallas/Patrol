@@ -49,50 +49,21 @@ export function AppSidebar() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const { t } = useTranslation();
 
-    const mainNavItems: NavItem[] = [
-        {
-            title: t('nav.cash_box'),
-            href: cashBoxIndex(),
-            icon: Wallet,
-        },
-        {
-            title: t('nav.inventory'),
-            href: inventoryIndex(),
-            icon: Gauge,
-        },
-        {
-            title: t('nav.debts'),
-            href: debtsIndex(),
-            icon: Banknote,
-        },
-        {
-            title: t('nav.sadcop'),
-            href: sadcopIndex(),
-            icon: Truck,
-        },
+    const operationsNavItems: NavItem[] = [
+        { title: t('nav.cash_box'), href: cashBoxIndex(), icon: Wallet },
         {
             title: t('nav.pump_counters'),
             href: pumpCountersIndex(),
             icon: Gauge,
         },
-        {
-            title: t('nav.shop'),
-            href: shopIndex(),
-            icon: ShoppingBag,
-        },
+        { title: t('nav.inventory'), href: inventoryIndex(), icon: Gauge },
+        { title: t('nav.shop'), href: shopIndex(), icon: ShoppingBag },
+        { title: t('nav.sadcop'), href: sadcopIndex(), icon: Truck },
     ];
 
-    const toolsReportsNavItems: NavItem[] = [
-        {
-            title: t('nav.tank_volume_calculator'),
-            href: tankVolumeIndex(),
-            icon: Calculator,
-        },
-        {
-            title: t('nav.statistics'),
-            href: statisticsIndex(),
-            icon: TrendingUp,
-        },
+    const accountsNavItems: NavItem[] = [
+        { title: t('nav.debts'), href: debtsIndex(), icon: Banknote },
+        { title: t('nav.debtors'), href: debtorsIndex(), icon: Contact },
         {
             title: t('nav.transactions'),
             href: transactionsIndex(),
@@ -100,46 +71,31 @@ export function AppSidebar() {
         },
     ];
 
-    const adminNavItems: NavItem[] = [
+    // Admin only, here and on the server (role:admin on every route behind these links).
+    const managementNavItems: NavItem[] = [
+        { title: t('nav.earnings'), href: earningsIndex(), icon: PiggyBank },
         {
-            title: t('nav.employees'),
-            href: usersIndex(),
-            icon: Users,
+            title: t('nav.statistics'),
+            href: statisticsIndex(),
+            icon: TrendingUp,
         },
-        {
-            title: t('nav.tanks'),
-            href: tanksIndex(),
-            icon: Gauge,
-        },
-        {
-            title: t('nav.fuel_types'),
-            href: fuelTypesIndex(),
-            icon: Fuel,
-        },
-        {
-            title: t('nav.fuel_prices'),
-            href: fuelPricesIndex(),
-            icon: Fuel,
-        },
+        { title: t('nav.fuel_prices'), href: fuelPricesIndex(), icon: Fuel },
         {
             title: t('nav.exchange_rates'),
             href: exchangeRatesIndex(),
             icon: Gauge,
         },
+        { title: t('nav.employees'), href: usersIndex(), icon: Users },
+    ];
+
+    const stationSetupNavItems: NavItem[] = [
+        { title: t('nav.tanks'), href: tanksIndex(), icon: Gauge },
+        { title: t('nav.fuel_pumps'), href: fuelPumpsIndex(), icon: Fuel },
+        { title: t('nav.fuel_types'), href: fuelTypesIndex(), icon: Fuel },
         {
-            title: t('nav.fuel_pumps'),
-            href: fuelPumpsIndex(),
-            icon: Fuel,
-        },
-        {
-            title: t('nav.earnings'),
-            href: earningsIndex(),
-            icon: PiggyBank,
-        },
-        {
-            title: t('nav.debtors'),
-            href: debtorsIndex(),
-            icon: Contact,
+            title: t('nav.tank_volume_calculator'),
+            href: tankVolumeIndex(),
+            icon: Calculator,
         },
     ];
 
@@ -158,13 +114,25 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} label={t('nav.operations')} />
                 <NavMain
-                    items={toolsReportsNavItems}
-                    label={t('nav.tools_reports')}
+                    items={operationsNavItems}
+                    label={t('nav.operations')}
+                />
+                <NavMain
+                    items={accountsNavItems}
+                    label={t('nav.accounts_debts')}
                 />
                 {auth.isAdmin && (
-                    <NavMain items={adminNavItems} label={t('nav.admin')} />
+                    <>
+                        <NavMain
+                            items={managementNavItems}
+                            label={t('nav.management_reports')}
+                        />
+                        <NavMain
+                            items={stationSetupNavItems}
+                            label={t('nav.station_setup')}
+                        />
+                    </>
                 )}
             </SidebarContent>
 

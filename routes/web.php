@@ -111,17 +111,22 @@ Route::middleware(['auth', 'verified', RequireTenant::class, RequireActiveStatio
         Route::patch('tank-transfers/{transfer}', [TankTransferController::class, 'update'])->name('tank-transfers.update')->middleware('role:admin');
         Route::delete('tank-transfers/{transfer}', [TankTransferController::class, 'destroy'])->name('tank-transfers.destroy')->middleware('role:admin');
 
-        Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume');
+        Route::get('tools/tank-volume', [TankVolumeCalculatorController::class, 'index'])->name('tools.tank-volume')->middleware('role:admin');
 
         Route::get('debts/settle-filtered/preview', [DebtController::class, 'settleFilteredPreview'])->name('debts.settle-filtered.preview')->middleware('role:admin');
         Route::patch('debts/settle-filtered', [DebtController::class, 'settleFiltered'])->name('debts.settle-filtered')->middleware('role:admin');
-        Route::resource('debts', DebtController::class)->except('show');
+        // Everyone records debts and collects payments on them (settle in full, or part-pay into the
+        // cash box); changing or deleting a recorded debt is for admins only.
+        Route::resource('debts', DebtController::class)->only(['index', 'create', 'store']);
+        Route::resource('debts', DebtController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
         Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
         Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
         Route::post('debts/{debt}/payments', [DebtController::class, 'storePayment'])->name('debts.payments.store');
         Route::patch('debts/{debt}/transfer', [DebtController::class, 'transfer'])->name('debts.transfer')->middleware('role:admin');
 
-        Route::resource('debtors', DebtorController::class)->except('show');
+        // Everyone sees balances and can add a new customer; editing or deleting one is for admins.
+        Route::resource('debtors', DebtorController::class)->only(['index', 'create', 'store']);
+        Route::resource('debtors', DebtorController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
         Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');
         Route::patch('debtors/{debtor}/settle-all', [DebtorController::class, 'settleAll'])->name('debtors.settle-all');
 
@@ -137,10 +142,12 @@ Route::middleware(['auth', 'verified', RequireTenant::class, RequireActiveStatio
         Route::patch('sadcop/entries/{entry}', [SadcopController::class, 'updateEntry'])->name('sadcop.entries.update')->middleware('role:admin');
         Route::delete('sadcop/entries/{entry}', [SadcopController::class, 'destroyEntry'])->name('sadcop.entries.destroy')->middleware('role:admin');
 
-        Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
-        Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
-        Route::post('statistics/annual/unlock', [AnnualSummaryAccessController::class, 'unlock'])->name('statistics.annual.unlock')->middleware('throttle:5,1');
-        Route::post('statistics/annual/lock', [AnnualSummaryAccessController::class, 'lock'])->name('statistics.annual.lock');
+        Route::middleware('role:admin')->group(function () {
+            Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
+            Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
+            Route::post('statistics/annual/unlock', [AnnualSummaryAccessController::class, 'unlock'])->name('statistics.annual.unlock')->middleware('throttle:5,1');
+            Route::post('statistics/annual/lock', [AnnualSummaryAccessController::class, 'lock'])->name('statistics.annual.lock');
+        });
 
         Route::get('pump-counters', [PumpCounterReadingController::class, 'index'])->name('pump-counters.index');
         Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');
