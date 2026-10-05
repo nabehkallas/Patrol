@@ -25,7 +25,8 @@ import { cn } from "@/lib/utils"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+// Pixels, not rem: the Arabic/Urdu font-size bump would otherwise widen the sidebar.
+const SIDEBAR_WIDTH = "256px"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -213,7 +214,7 @@ function Sidebar({
       {/* This is what handles the sidebar gap on desktop */}
       <div
         className={cn(
-          "relative h-svh w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+          "relative h-svh w-(--sidebar-width) shrink-0 bg-transparent transition-[width] duration-200 ease-linear",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -223,9 +224,7 @@ function Sidebar({
       />
       <div
         className={cn(
-          // right-scroll-bar-position: while a select locks page scrolling (hiding the scrollbar),
-          // Radix shifts this right-anchored (RTL) sidebar by the scrollbar width so it stays put.
-          "right-scroll-bar-position fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "ltr:left-0 rtl:right-0 ltr:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] rtl:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]"
             : "ltr:right-0 rtl:left-0 ltr:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] rtl:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]",

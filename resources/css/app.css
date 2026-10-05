@@ -215,6 +215,19 @@
        the system's Arabic font — those tend to render visually smaller than Instrument Sans
        at the same declared size, making Arabic text look noticeably tinier/harder to read
        than the English UI. Bump the base size in RTL to compensate. */
+    /* Reserve the scrollbar's space on every page, so the layout (and the right-anchored RTL
+       sidebar) doesn't move by its width between pages that scroll and pages that don't. An
+       open select locks scrolling; the reserved gutter already keeps everything in place, so
+       drop the margin Radix adds to compensate for the scrollbar it expects to disappear. */
+    html {
+        scrollbar-gutter: stable;
+    }
+
+    html body[data-scroll-locked] {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
     html[dir='rtl'] {
         font-size: 1.125rem;
     }
