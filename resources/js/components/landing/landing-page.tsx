@@ -1403,6 +1403,7 @@ export function LandingPage({
                             <div className="ms-auto flex items-center gap-2">
                                 <LanguageMenu
                                     className="text-slate-300 hover:bg-white/5 hover:text-white"
+                                    contentClassName="border-white/10 bg-[#0b1a2c] text-slate-200 [&_[role=menuitem]:focus]:bg-white/10 [&_[role=menuitem]:focus]:text-white [&_[aria-current=true]]:bg-white/10"
                                     data-test="landing-locale-toggle"
                                 />
                                 <Cta

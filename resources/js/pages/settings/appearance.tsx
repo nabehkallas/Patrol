@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import Heading from '@/components/heading';
-import LocaleTabs from '@/components/locale-tabs';
+import { LanguageMenu } from '@/components/language-menu';
 import { useTranslation } from '@/lib/i18n';
 import { edit as editAppearance } from '@/routes/appearance';
 
@@ -27,7 +27,11 @@ export default function Appearance() {
                     title={t('settings.appearance.language')}
                     description={t('settings.appearance.language_description')}
                 />
-                <LocaleTabs />
+                <LanguageMenu
+                    variant="field"
+                    align="start"
+                    data-test="settings-language"
+                />
             </div>
         </>
     );

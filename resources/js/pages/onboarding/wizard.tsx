@@ -2,7 +2,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
-import LocaleTabs from '@/components/locale-tabs';
+import { LanguageMenu } from '@/components/language-menu';
 import { MoneyInput } from '@/components/money-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -630,7 +630,7 @@ export default function OnboardingWizard() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <LocaleTabs />
+                        <LanguageMenu variant="field" className="w-48" />
                         <Button onClick={finishSetup}>
                             {t('wizard.finish')}
                         </Button>
