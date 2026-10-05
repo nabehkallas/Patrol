@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -92,60 +93,75 @@ export default function TransactionsIndex() {
                     </Link>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                    <Select
-                        value={filters.type ?? 'all'}
-                        onValueChange={(value) => applyFilter('type', value)}
-                    >
-                        <SelectTrigger className="w-44">
-                            <SelectValue placeholder={t('common.all_types')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('common.all_types')}
-                            </SelectItem>
-                            {Object.entries(typeLabels).map(
-                                ([value, label]) => (
-                                    <SelectItem key={value} value={value}>
-                                        {label}
+                <SectionToolbar
+                    title={t('transactions.log')}
+                    actions={
+                        <GeneratePdfButton
+                            href={exportPdf.url({ query: filters })}
+                        />
+                    }
+                    filters={
+                        <>
+                            <Select
+                                value={filters.type ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter('type', value)
+                                }
+                            >
+                                <SelectTrigger className="w-44">
+                                    <SelectValue
+                                        placeholder={t('common.all_types')}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('common.all_types')}
                                     </SelectItem>
-                                ),
+                                    {Object.entries(typeLabels).map(
+                                        ([value, label]) => (
+                                            <SelectItem
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {label}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+
+                            {auth.isAdmin && (
+                                <Select
+                                    value={filters.user_id ?? 'all'}
+                                    onValueChange={(value) =>
+                                        applyFilter('user_id', value)
+                                    }
+                                >
+                                    <SelectTrigger className="w-44">
+                                        <SelectValue
+                                            placeholder={t(
+                                                'common.all_employees',
+                                            )}
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            {t('common.all_employees')}
+                                        </SelectItem>
+                                        {users.map((user) => (
+                                            <SelectItem
+                                                key={user.id}
+                                                value={String(user.id)}
+                                            >
+                                                {user.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             )}
-                        </SelectContent>
-                    </Select>
-
-                    {auth.isAdmin && (
-                        <Select
-                            value={filters.user_id ?? 'all'}
-                            onValueChange={(value) =>
-                                applyFilter('user_id', value)
-                            }
-                        >
-                            <SelectTrigger className="w-44">
-                                <SelectValue
-                                    placeholder={t('common.all_employees')}
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    {t('common.all_employees')}
-                                </SelectItem>
-                                {users.map((user) => (
-                                    <SelectItem
-                                        key={user.id}
-                                        value={String(user.id)}
-                                    >
-                                        {user.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-
-                    <GeneratePdfButton
-                        href={exportPdf.url({ query: filters })}
-                    />
-                </div>
+                        </>
+                    }
+                />
 
                 <div className="overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

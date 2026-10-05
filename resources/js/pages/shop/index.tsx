@@ -8,6 +8,7 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -790,98 +791,110 @@ export default function ShopIndex() {
                 </div>
 
                 <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-4">
-                        <h3 className="font-semibold">{t('shop.history')}</h3>
+                    <SectionToolbar
+                        title={t('shop.history')}
+                        actions={
+                            <>
+                                <GeneratePdfButton
+                                    href={exportPdf.url({ query: exportQuery })}
+                                />
+                                <GenerateXlsxButton
+                                    href={exportXlsx.url({
+                                        query: {
+                                            from: filters.from,
+                                            to: filters.to,
+                                        },
+                                    })}
+                                />
+                            </>
+                        }
+                        filters={
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground text-sm">
+                                        {t('shop.item')}
+                                    </span>
+                                    <Select
+                                        value={
+                                            filters.shop_item_id
+                                                ? String(filters.shop_item_id)
+                                                : ALL
+                                        }
+                                        onValueChange={(value) =>
+                                            applyFilter({
+                                                shop_item_id:
+                                                    value === ALL
+                                                        ? null
+                                                        : Number(value),
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            className="w-44"
+                                            aria-label={t('shop.item')}
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={ALL}>
+                                                {t('common.all')}
+                                            </SelectItem>
+                                            {items.map((item) => (
+                                                <SelectItem
+                                                    key={item.id}
+                                                    value={String(item.id)}
+                                                >
+                                                    {item.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground text-sm">
+                                        {t('common.type')}
+                                    </span>
+                                    <Select
+                                        value={filters.type ?? ALL}
+                                        onValueChange={(value) =>
+                                            applyFilter({
+                                                type:
+                                                    value === ALL
+                                                        ? null
+                                                        : (value as
+                                                              | 'purchase'
+                                                              | 'sale'),
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            className="w-36"
+                                            aria-label={t('common.type')}
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={ALL}>
+                                                {t('common.all')}
+                                            </SelectItem>
+                                            <SelectItem value="sale">
+                                                {t('shop.type.sale')}
+                                            </SelectItem>
+                                            <SelectItem value="purchase">
+                                                {t('shop.type.purchase')}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </>
+                        }
+                    >
                         <DateRangePicker
                             from={filters.from}
                             to={filters.to}
                             onChange={applyFilter}
                         />
-                        <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground text-sm">
-                                {t('shop.item')}
-                            </span>
-                            <Select
-                                value={
-                                    filters.shop_item_id
-                                        ? String(filters.shop_item_id)
-                                        : ALL
-                                }
-                                onValueChange={(value) =>
-                                    applyFilter({
-                                        shop_item_id:
-                                            value === ALL
-                                                ? null
-                                                : Number(value),
-                                    })
-                                }
-                            >
-                                <SelectTrigger
-                                    className="w-44"
-                                    aria-label={t('shop.item')}
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL}>
-                                        {t('common.all')}
-                                    </SelectItem>
-                                    {items.map((item) => (
-                                        <SelectItem
-                                            key={item.id}
-                                            value={String(item.id)}
-                                        >
-                                            {item.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground text-sm">
-                                {t('common.type')}
-                            </span>
-                            <Select
-                                value={filters.type ?? ALL}
-                                onValueChange={(value) =>
-                                    applyFilter({
-                                        type:
-                                            value === ALL
-                                                ? null
-                                                : (value as
-                                                      | 'purchase'
-                                                      | 'sale'),
-                                    })
-                                }
-                            >
-                                <SelectTrigger
-                                    className="w-36"
-                                    aria-label={t('common.type')}
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL}>
-                                        {t('common.all')}
-                                    </SelectItem>
-                                    <SelectItem value="sale">
-                                        {t('shop.type.sale')}
-                                    </SelectItem>
-                                    <SelectItem value="purchase">
-                                        {t('shop.type.purchase')}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <GeneratePdfButton
-                            href={exportPdf.url({ query: exportQuery })}
-                        />
-                        <GenerateXlsxButton
-                            href={exportXlsx.url({
-                                query: { from: filters.from, to: filters.to },
-                            })}
-                        />
-                    </div>
+                    </SectionToolbar>
 
                     <div className="overflow-x-auto rounded-xl border">
                         <table className="w-full text-sm">

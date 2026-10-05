@@ -7,6 +7,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -220,74 +221,87 @@ export default function SadcopIndex() {
                     </Card>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-4">
+                <SectionToolbar
+                    title={t('sadcop.ledger')}
+                    actions={
+                        <>
+                            <GeneratePdfButton
+                                href={exportPdf.url({ query: filters })}
+                            />
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({ query: filters })}
+                            />
+                        </>
+                    }
+                    filters={
+                        <>
+                            <Select
+                                value={filters.type ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        type:
+                                            value === 'all' ? undefined : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-48">
+                                    <SelectValue
+                                        placeholder={t('common.all_types')}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('common.all_types')}
+                                    </SelectItem>
+                                    <SelectItem value="opening">
+                                        {t('sadcop.type.opening')}
+                                    </SelectItem>
+                                    <SelectItem value="deposit">
+                                        {t('sadcop.type.deposit')}
+                                    </SelectItem>
+                                    <SelectItem value="delivery">
+                                        {t('sadcop.type.delivery')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filters.fuel_type_id ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        fuel_type_id:
+                                            value === 'all' ? undefined : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-48">
+                                    <SelectValue
+                                        placeholder={t('common.fuel_types')}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('common.fuel_types')}
+                                    </SelectItem>
+                                    {fuelTypes.map((fuelType) => (
+                                        <SelectItem
+                                            key={fuelType.id}
+                                            value={String(fuelType.id)}
+                                        >
+                                            {fuelType.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </>
+                    }
+                >
                     <DateRangePicker
                         from={filters.from}
                         to={filters.to}
                         onChange={(range) => applyFilter(range)}
                     />
-
-                    <Select
-                        value={filters.type ?? 'all'}
-                        onValueChange={(value) =>
-                            applyFilter({
-                                type: value === 'all' ? undefined : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder={t('common.all_types')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('common.all_types')}
-                            </SelectItem>
-                            <SelectItem value="opening">
-                                {t('sadcop.type.opening')}
-                            </SelectItem>
-                            <SelectItem value="deposit">
-                                {t('sadcop.type.deposit')}
-                            </SelectItem>
-                            <SelectItem value="delivery">
-                                {t('sadcop.type.delivery')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={filters.fuel_type_id ?? 'all'}
-                        onValueChange={(value) =>
-                            applyFilter({
-                                fuel_type_id:
-                                    value === 'all' ? undefined : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder={t('common.fuel_types')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('common.fuel_types')}
-                            </SelectItem>
-                            {fuelTypes.map((fuelType) => (
-                                <SelectItem
-                                    key={fuelType.id}
-                                    value={String(fuelType.id)}
-                                >
-                                    {fuelType.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <GeneratePdfButton
-                        href={exportPdf.url({ query: filters })}
-                    />
-                    <GenerateXlsxButton
-                        href={exportXlsx.url({ query: filters })}
-                    />
-                </div>
+                </SectionToolbar>
 
                 <div className="overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

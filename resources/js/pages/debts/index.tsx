@@ -10,6 +10,7 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -282,92 +283,103 @@ export default function DebtsIndex() {
                     }
                 />
 
-                <div className="flex flex-wrap gap-4">
-                    <Input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder={t('common.search_by_name')}
-                        className="w-56"
-                    />
+                <SectionToolbar
+                    title={t('debts.log')}
+                    actions={
+                        <GeneratePdfButton
+                            href={exportPdf.url({ query: filters })}
+                        />
+                    }
+                    filters={
+                        <>
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder={t('common.search_by_name')}
+                                className="w-56"
+                            />
 
-                    <Select
-                        value={filters.direction ?? 'all'}
-                        onValueChange={(value) =>
-                            applyFilter({
-                                direction: value === 'all' ? undefined : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-48">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('debts.all_directions')}
-                            </SelectItem>
-                            <SelectItem value="receivable">
-                                {t('debts.direction.receivable')}
-                            </SelectItem>
-                            <SelectItem value="payable">
-                                {t('debts.direction.payable')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                            <Select
+                                value={filters.direction ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        direction:
+                                            value === 'all' ? undefined : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-48">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('debts.all_directions')}
+                                    </SelectItem>
+                                    <SelectItem value="receivable">
+                                        {t('debts.direction.receivable')}
+                                    </SelectItem>
+                                    <SelectItem value="payable">
+                                        {t('debts.direction.payable')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                    <Select
-                        value={filters.status ?? 'all'}
-                        onValueChange={(value) =>
-                            applyFilter({
-                                status: value === 'all' ? undefined : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-48">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('common.status')}
-                            </SelectItem>
-                            <SelectItem value="outstanding">
-                                {t('debts.status.outstanding')}
-                            </SelectItem>
-                            <SelectItem value="settled">
-                                {t('debts.status.settled')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                            <Select
+                                value={filters.status ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        status:
+                                            value === 'all' ? undefined : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-48">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('common.status')}
+                                    </SelectItem>
+                                    <SelectItem value="outstanding">
+                                        {t('debts.status.outstanding')}
+                                    </SelectItem>
+                                    <SelectItem value="settled">
+                                        {t('debts.status.settled')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                    <Select
-                        value={filters.debtor_id ?? 'all'}
-                        onValueChange={(value) =>
-                            applyFilter({
-                                debtor_id: value === 'all' ? undefined : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder={t('common.debtor')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                {t('common.debtor')}
-                            </SelectItem>
-                            {debtors.map((debtor) => (
-                                <SelectItem
-                                    key={debtor.id}
-                                    value={String(debtor.id)}
-                                >
-                                    {debtor.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <GeneratePdfButton
-                        href={exportPdf.url({ query: filters })}
-                    />
-                </div>
+                            <Select
+                                value={filters.debtor_id ?? 'all'}
+                                onValueChange={(value) =>
+                                    applyFilter({
+                                        debtor_id:
+                                            value === 'all' ? undefined : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-48">
+                                    <SelectValue
+                                        placeholder={t('common.debtor')}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('common.debtor')}
+                                    </SelectItem>
+                                    {debtors.map((debtor) => (
+                                        <SelectItem
+                                            key={debtor.id}
+                                            value={String(debtor.id)}
+                                        >
+                                            {debtor.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </>
+                    }
+                />
 
                 {auth.isAdmin && settleable && (
                     <div

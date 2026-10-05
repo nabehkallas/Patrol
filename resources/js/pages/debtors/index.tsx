@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatBreakdown } from '@/lib/format';
@@ -106,18 +107,24 @@ export default function DebtorsIndex() {
                     </Link>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <Input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder={t('common.search_by_name')}
-                        className="w-56"
-                    />
-
-                    <GeneratePdfButton
-                        href={exportPdf.url({ query: filters })}
-                    />
-                </div>
+                <SectionToolbar
+                    title={t('debtors.list')}
+                    actions={
+                        <GeneratePdfButton
+                            href={exportPdf.url({ query: filters })}
+                        />
+                    }
+                    filters={
+                        <>
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder={t('common.search_by_name')}
+                                className="w-56"
+                            />
+                        </>
+                    }
+                />
 
                 <div className="overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

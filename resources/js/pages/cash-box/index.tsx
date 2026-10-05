@@ -17,6 +17,7 @@ import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -436,14 +437,10 @@ function CashBoxHistory({
 
     return (
         <div className="space-y-3">
-            <div>
-                <h2 className="text-sm font-semibold">
-                    {t('cash_box.history_title')}
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                    {t('cash_box.history_description')}
-                </p>
-            </div>
+            <SectionToolbar
+                title={t('cash_box.history_title')}
+                description={t('cash_box.history_description')}
+            />
 
             <div className="max-h-[32rem] overflow-auto rounded-xl border">
                 <table className="w-full text-sm">
@@ -597,73 +594,70 @@ export default function CashBoxIndex() {
                         description={t('cash_box.description')}
                     />
 
-                    <div className="flex w-full flex-col items-center justify-between gap-4 md:flex-row">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <div className="bg-muted flex items-center gap-1 rounded-lg p-1">
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        mode === 'today' ? 'default' : 'ghost'
-                                    }
-                                    onClick={showToday}
-                                >
-                                    {t('cash_box.today')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        mode === 'yesterday'
-                                            ? 'default'
-                                            : 'ghost'
-                                    }
-                                    onClick={showYesterday}
-                                >
-                                    {t('cash_box.yesterday')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        mode === 'custom' ? 'default' : 'ghost'
-                                    }
-                                    onClick={showCustomRange}
-                                >
-                                    {t('cash_box.custom_range')}
-                                </Button>
-                            </div>
-
-                            {mode === 'custom' && (
-                                <>
-                                    <DateRangePicker
-                                        from={fromVal}
-                                        to={toVal}
-                                        onChange={(range) => {
-                                            setFromVal(range.from);
-                                            setToVal(range.to);
-                                        }}
-                                    />
-                                    <Button onClick={apply}>
-                                        {t('statistics.apply')}
-                                    </Button>
-                                </>
-                            )}
+                    <SectionToolbar
+                        title={t('cash_box.selected_period')}
+                        actions={
+                            <>
+                                <GeneratePdfButton
+                                    href={exportPdf.url({
+                                        query: { from: fromVal, to: toVal },
+                                    })}
+                                />
+                                <GenerateXlsxButton
+                                    href={exportXlsx.url({
+                                        query: { from: fromVal, to: toVal },
+                                    })}
+                                />
+                            </>
+                        }
+                    >
+                        <div className="bg-background flex items-center gap-1 rounded-lg border p-1">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={mode === 'today' ? 'default' : 'ghost'}
+                                onClick={showToday}
+                            >
+                                {t('cash_box.today')}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    mode === 'yesterday' ? 'default' : 'ghost'
+                                }
+                                onClick={showYesterday}
+                            >
+                                {t('cash_box.yesterday')}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    mode === 'custom' ? 'default' : 'ghost'
+                                }
+                                onClick={showCustomRange}
+                            >
+                                {t('cash_box.custom_range')}
+                            </Button>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <GeneratePdfButton
-                                href={exportPdf.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
-                            />
-                            <GenerateXlsxButton
-                                href={exportXlsx.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
-                            />
-                        </div>
-                    </div>
+                        {mode === 'custom' && (
+                            <>
+                                <DateRangePicker
+                                    from={fromVal}
+                                    to={toVal}
+                                    onChange={(range) => {
+                                        setFromVal(range.from);
+                                        setToVal(range.to);
+                                    }}
+                                />
+                                <Button onClick={apply}>
+                                    {t('statistics.apply')}
+                                </Button>
+                            </>
+                        )}
+                    </SectionToolbar>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

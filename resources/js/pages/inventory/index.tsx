@@ -7,6 +7,7 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -379,37 +380,38 @@ export default function InventoryIndex() {
                         </div>
 
                         <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-4">
-                                <h3 className="font-semibold">
-                                    {t('inventory.top_up_history')}
-                                </h3>
+                            <SectionToolbar
+                                title={t('inventory.top_up_history')}
+                                actions={
+                                    <>
+                                        <GeneratePdfButton
+                                            href={exportTopupsPdf.url({
+                                                query: {
+                                                    from: historyFrom,
+                                                    to: historyTo,
+                                                },
+                                            })}
+                                        />
+                                        <GenerateXlsxButton
+                                            href={exportTanksXlsx.url({
+                                                query: {
+                                                    from: historyFrom,
+                                                    to: historyTo,
+                                                },
+                                            })}
+                                            label={t(
+                                                'inventory.export_tanks_ledger',
+                                            )}
+                                        />
+                                    </>
+                                }
+                            >
                                 <DateRangePicker
                                     from={historyFrom}
                                     to={historyTo}
                                     onChange={handleHistoryRangeChange}
                                 />
-                                <div className="ms-auto flex flex-wrap items-center gap-2">
-                                    <GenerateXlsxButton
-                                        href={exportTanksXlsx.url({
-                                            query: {
-                                                from: historyFrom,
-                                                to: historyTo,
-                                            },
-                                        })}
-                                        label={t(
-                                            'inventory.export_tanks_ledger',
-                                        )}
-                                    />
-                                    <GeneratePdfButton
-                                        href={exportTopupsPdf.url({
-                                            query: {
-                                                from: historyFrom,
-                                                to: historyTo,
-                                            },
-                                        })}
-                                    />
-                                </div>
-                            </div>
+                            </SectionToolbar>
 
                             <div className="overflow-x-auto rounded-xl border">
                                 <table className="w-full text-sm">
@@ -504,9 +506,9 @@ export default function InventoryIndex() {
                         </div>
 
                         <div className="space-y-3">
-                            <h3 className="font-semibold">
-                                {t('inventory.transfer_history')}
-                            </h3>
+                            <SectionToolbar
+                                title={t('inventory.transfer_history')}
+                            />
                             <div className="overflow-x-auto rounded-xl border">
                                 <table className="w-full text-sm">
                                     <thead>
@@ -797,9 +799,14 @@ export default function InventoryIndex() {
                             </CardContent>
                         </Card>
 
-                        <div className="flex justify-end">
-                            <GeneratePdfButton href={exportEntriesPdf.url()} />
-                        </div>
+                        <SectionToolbar
+                            title={t('inventory.history')}
+                            actions={
+                                <GeneratePdfButton
+                                    href={exportEntriesPdf.url()}
+                                />
+                            }
+                        />
 
                         <div className="overflow-x-auto rounded-xl border">
                             <table className="w-full text-sm">

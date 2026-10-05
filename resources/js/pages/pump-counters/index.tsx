@@ -6,6 +6,7 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -699,33 +700,34 @@ export default function PumpCountersIndex() {
                 </div>
 
                 <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-4">
-                        <h3 className="font-semibold">
-                            {t('pump_counters.history')}
-                        </h3>
+                    <SectionToolbar
+                        title={t('pump_counters.history')}
+                        actions={
+                            <>
+                                <GeneratePdfButton
+                                    href={exportPdf.url({ query: filters })}
+                                />
+                                {exportFuelTypes.map((fuelType) => (
+                                    <GenerateXlsxButton
+                                        key={fuelType.id}
+                                        label={fuelType.name}
+                                        href={exportXlsx.url({
+                                            query: {
+                                                fuel_type_id: fuelType.id,
+                                                ...filters,
+                                            },
+                                        })}
+                                    />
+                                ))}
+                            </>
+                        }
+                    >
                         <DateRangePicker
                             from={filters.from}
                             to={filters.to}
                             onChange={handleRangeChange}
                         />
-                        <div className="ms-auto flex flex-wrap items-center gap-2">
-                            <GeneratePdfButton
-                                href={exportPdf.url({ query: filters })}
-                            />
-                            {exportFuelTypes.map((fuelType) => (
-                                <GenerateXlsxButton
-                                    key={fuelType.id}
-                                    label={fuelType.name}
-                                    href={exportXlsx.url({
-                                        query: {
-                                            fuel_type_id: fuelType.id,
-                                            ...filters,
-                                        },
-                                    })}
-                                />
-                            ))}
-                        </div>
-                    </div>
+                    </SectionToolbar>
 
                     <div className="overflow-x-auto rounded-xl border">
                         <table className="w-full text-sm">
