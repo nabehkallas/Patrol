@@ -584,7 +584,7 @@
     "pump_counters.sales_summary_period": "Récapitulatif des ventes de la période",
     "pump_counters.previous": "Relevé précédent",
     "pump_counters.no_previous": "Premier relevé",
-    "pump_counters.last_entry_system": "Dernier relevé enregistré",
+    "pump_counters.last_entry_system": "Dernier relevé",
     "pump_counters.no_entries_yet": "Aucun relevé pour le moment",
     "pump_counters.last_entry_pump": "Dernier relevé de cette pompe",
     "pump_counters.entered_at": "Saisi le",

@@ -284,8 +284,11 @@ export default function PumpCountersIndex() {
                                         form.setData('date', e.target.value)
                                     }
                                 />
-                                <SystemLastEntry entry={lastEntry} />
                                 <InputError message={form.errors.date} />
+                                <SystemLastEntry
+                                    entry={lastEntry}
+                                    className="ms-auto"
+                                />
                             </div>
 
                             <InputError message={form.errors.readings} />

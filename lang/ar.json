@@ -584,7 +584,7 @@
     "pump_counters.sales_summary_period": "إجمالي المبيعات للفترة",
     "pump_counters.previous": "القراءة السابقة",
     "pump_counters.no_previous": "أول قراءة",
-    "pump_counters.last_entry_system": "أحدث تسجيل بالنظام",
+    "pump_counters.last_entry_system": "آخر تسجيل",
     "pump_counters.no_entries_yet": "لا توجد قراءات بعد",
     "pump_counters.last_entry_pump": "آخر تسجيل لهذه المضخة",
     "pump_counters.entered_at": "أُدخلت في",

@@ -584,7 +584,7 @@
     "pump_counters.sales_summary_period": "Dönem satış özeti",
     "pump_counters.previous": "Önceki değer",
     "pump_counters.no_previous": "İlk değer",
-    "pump_counters.last_entry_system": "Sistemdeki son kayıt",
+    "pump_counters.last_entry_system": "Son kayıt",
     "pump_counters.no_entries_yet": "Henüz sayaç değeri yok",
     "pump_counters.last_entry_pump": "Bu pompanın son kaydı",
     "pump_counters.entered_at": "Giriş zamanı",
