@@ -1,4 +1,3 @@
-import { Info } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -35,7 +34,7 @@ function stampLines(entry: EntryStamp): {
         : { day: formatDayMonthYear(entry.date), entered: enteredAt };
 }
 
-/** "Previous reading: 1,234,567" under a pump's counter input; its date shows on hover/focus. */
+/** "Previous reading: 1,234,567" under a pump's counter input; its date shows on hover. */
 export function PreviousReading({
     value,
     entry,
@@ -47,18 +46,22 @@ export function PreviousReading({
     const { day, entered } = stampLines(entry);
 
     return (
-        <Tooltip>
+        // Not hoverable and not focusable: it closes the moment the pointer leaves the label,
+        // opens below it (never over the counter input above), and lets clicks pass through.
+        <Tooltip disableHoverableContent>
             <TooltipTrigger asChild>
                 <p
-                    tabIndex={0}
-                    className="mt-1 inline-flex cursor-help items-center gap-1 whitespace-nowrap text-sm font-medium text-gray-600 underline decoration-gray-400 decoration-dotted underline-offset-4 dark:text-gray-300"
+                    className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300"
                     data-test="previous-reading"
                 >
                     {t('pump_counters.previous')}: {formatNumber(value, 0)}
-                    <Info className="size-3.5 opacity-60" aria-hidden />
                 </p>
             </TooltipTrigger>
-            <TooltipContent data-test="previous-reading-tooltip">
+            <TooltipContent
+                side="bottom"
+                className="data-[state=closed]:animate-none! pointer-events-none"
+                data-test="previous-reading-tooltip"
+            >
                 <div>
                     {t('pump_counters.last_entry_pump')}:{' '}
                     <bdi dir="ltr">{day}</bdi>
