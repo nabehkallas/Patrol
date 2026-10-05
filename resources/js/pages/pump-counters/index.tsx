@@ -12,9 +12,8 @@ import {
     SystemLastEntry,
 } from '@/components/pump-counters/last-entry';
 import { SectionToolbar } from '@/components/section-toolbar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -108,11 +107,11 @@ function tanksFor(
     return matching.length > 0 ? matching : active;
 }
 
-const TOTAL_BOX =
-    'flex items-center justify-start gap-3 rounded-xl border bg-card px-4 py-2.5 dark:border-slate-700/60 dark:bg-slate-800/80';
-const TOTAL_LABEL =
-    'text-sm font-medium text-muted-foreground dark:text-slate-400';
-const TOTAL_VALUE = 'text-xl font-extrabold md:text-2xl';
+// Sales total badges in the entry header, and the tinted pump-name badges in the table.
+const TOTAL_BADGE =
+    'inline-flex items-baseline gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium ring-1 ring-inset';
+const NEUTRAL_BADGE =
+    'bg-muted text-foreground ring-border dark:bg-slate-800 dark:ring-slate-700';
 
 type BulkRow = {
     pump_id: number;
@@ -150,8 +149,8 @@ export default function PumpCountersIndex() {
 
     // Colored accent per fuel type, keyed by order of first appearance among the pumps -- the
     // first fuel type (typically petrol) gets amber, the second (typically diesel) gets blue,
-    // matching the same convention used on the Inventory page's tank cards. Shared by the bulk
-    // entry table's per-row accent and the pump summary cards' top border below.
+    // matching the same convention used on the Inventory page's tank cards. Used for the entry
+    // table's row edge and pump-name badge, and the sales badges in the header.
     const fuelTypeOrder: number[] = [];
     pumps.forEach((pump) => {
         const fuelTypeId = pump.fuel_type_ids[0];
@@ -160,20 +159,21 @@ export default function PumpCountersIndex() {
             fuelTypeOrder.push(fuelTypeId);
         }
     });
+    tanks.forEach((tank) => {
+        if (!fuelTypeOrder.includes(tank.fuel_type_id)) {
+            fuelTypeOrder.push(tank.fuel_type_id);
+        }
+    });
 
-    const CARD_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
-    const ROW_ACCENT_BORDERS = ['border-s-amber-500', 'border-s-blue-500'];
-    const TEXT_ACCENTS = [
-        'text-amber-600 dark:text-amber-400',
-        'text-blue-600 dark:text-blue-400',
+    const BADGE_ACCENTS = [
+        'bg-amber-50 text-amber-900 ring-amber-300 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-500/40',
+        'bg-blue-50 text-blue-900 ring-blue-300 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-500/40',
     ];
-    const fuelTypeCardBorder: Record<number, string> = {};
+    const ROW_ACCENT_BORDERS = ['border-s-amber-500', 'border-s-blue-500'];
+    const fuelTypeBadge: Record<number, string> = {};
     const fuelTypeRowBorder: Record<number, string> = {};
-    const fuelTypeText: Record<number, string> = {};
     fuelTypeOrder.forEach((fuelTypeId, i) => {
-        fuelTypeCardBorder[fuelTypeId] =
-            CARD_ACCENT_BORDERS[i] ?? 'border-t-border';
-        fuelTypeText[fuelTypeId] = TEXT_ACCENTS[i] ?? 'text-foreground';
+        fuelTypeBadge[fuelTypeId] = BADGE_ACCENTS[i] ?? NEUTRAL_BADGE;
         fuelTypeRowBorder[fuelTypeId] =
             ROW_ACCENT_BORDERS[i] ?? 'border-s-border';
     });
@@ -263,7 +263,7 @@ export default function PumpCountersIndex() {
         <>
             <Head title={t('pump_counters.title')} />
 
-            <div className="space-y-6">
+            <div className="mx-auto w-full max-w-6xl space-y-6">
                 <Heading
                     variant="small"
                     title={t('pump_counters.title')}
@@ -278,17 +278,87 @@ export default function PumpCountersIndex() {
                                 <Input
                                     id="date"
                                     type="date"
-                                    className="h-9 w-auto"
+                                    className="h-9 w-auto border-slate-300 dark:border-slate-700"
                                     value={form.data.date}
                                     onChange={(e) =>
                                         form.setData('date', e.target.value)
                                     }
                                 />
                                 <InputError message={form.errors.date} />
-                                <SystemLastEntry
-                                    entry={lastEntry}
-                                    className="ms-auto"
-                                />
+                                {(fuelTypeTotals.length > 0 ||
+                                    governmentalTotals.length > 0) && (
+                                    <div
+                                        className="flex flex-wrap items-center gap-2"
+                                        title={
+                                            isSingleDay
+                                                ? t(
+                                                      'pump_counters.sales_summary_daily',
+                                                  )
+                                                : t(
+                                                      'pump_counters.sales_summary_period',
+                                                  )
+                                        }
+                                        data-test="sales-badges"
+                                    >
+                                        {fuelTypeTotals.map((total) => (
+                                            <span
+                                                key={total.fuel_type_id}
+                                                className={cn(
+                                                    TOTAL_BADGE,
+                                                    fuelTypeBadge[
+                                                        total.fuel_type_id
+                                                    ] ?? NEUTRAL_BADGE,
+                                                )}
+                                            >
+                                                <bdi>
+                                                    {total.fuel_type_name}
+                                                </bdi>
+                                                :
+                                                <bdi
+                                                    dir="ltr"
+                                                    className="font-bold tabular-nums"
+                                                >
+                                                    {formatNumber(
+                                                        total.liters_sold,
+                                                    )}{' '}
+                                                    L
+                                                </bdi>
+                                            </span>
+                                        ))}
+                                        {governmentalTotals.length > 0 && (
+                                            <span
+                                                className={cn(
+                                                    TOTAL_BADGE,
+                                                    'bg-green-50 text-green-900 ring-green-300 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/40',
+                                                )}
+                                            >
+                                                {t(
+                                                    'pump_counters.governmental_total',
+                                                )}
+                                                :
+                                                <bdi
+                                                    dir="ltr"
+                                                    className="font-bold tabular-nums"
+                                                >
+                                                    {formatNumber(
+                                                        governmentalLiters,
+                                                    )}{' '}
+                                                    L
+                                                </bdi>
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                <div className="ms-auto flex flex-wrap items-center gap-3">
+                                    <SystemLastEntry entry={lastEntry} />
+                                    <Button
+                                        type="submit"
+                                        disabled={form.processing}
+                                        data-test="save-all-readings"
+                                    >
+                                        {t('pump_counters.save_all')}
+                                    </Button>
+                                </div>
                             </div>
 
                             <InputError message={form.errors.readings} />
@@ -297,28 +367,28 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.reading_value',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.governmental_sale',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.return_liters',
                                                 )}
                                             </th>
-                                            <th className="px-4 py-4 text-center align-top">
+                                            <th className="px-3 py-2.5 text-center align-top">
                                                 {t('common.notes')}
                                             </th>
                                         </tr>
@@ -338,6 +408,13 @@ export default function PumpCountersIndex() {
                                                     pump,
                                                     tanks,
                                                 );
+                                                const rowFuelTypeId =
+                                                    pump.fuel_type_ids[0] ??
+                                                    tanks.find(
+                                                        (tank) =>
+                                                            String(tank.id) ===
+                                                            row.tank_id,
+                                                    )?.fuel_type_id;
                                                 const maxLitersSold =
                                                     pump.latest_reading &&
                                                     row.reading_value !== ''
@@ -355,35 +432,34 @@ export default function PumpCountersIndex() {
                                                     <tr
                                                         key={pump.id}
                                                         className={cn(
-                                                            'border-s-4 border-t',
+                                                            'hover:bg-muted/40 border-s-4 border-t transition-colors',
                                                             fuelTypeRowBorder[
-                                                                pump
-                                                                    .fuel_type_ids[0]
+                                                                rowFuelTypeId ??
+                                                                    -1
                                                             ] ??
                                                                 'border-s-border',
                                                         )}
                                                     >
-                                                        <td className="px-4 py-4 align-top">
-                                                            <div className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap text-base font-semibold">
-                                                                {pump.name}
-                                                                {pump.fuel_type_names.map(
-                                                                    (name) => (
-                                                                        <Badge
-                                                                            key={
-                                                                                name
-                                                                            }
-                                                                            variant="secondary"
-                                                                            className="text-sm"
-                                                                        >
-                                                                            {
-                                                                                name
-                                                                            }
-                                                                        </Badge>
-                                                                    ),
-                                                                )}
+                                                        <td className="px-3 py-2.5 align-top">
+                                                            <div className="flex min-h-9 items-center justify-center">
+                                                                <span
+                                                                    className={cn(
+                                                                        'whitespace-nowrap rounded-md px-2.5 py-1 text-base font-semibold ring-1 ring-inset',
+                                                                        fuelTypeBadge[
+                                                                            rowFuelTypeId ??
+                                                                                -1
+                                                                        ] ??
+                                                                            NEUTRAL_BADGE,
+                                                                    )}
+                                                                    title={pump.fuel_type_names.join(
+                                                                        ', ',
+                                                                    )}
+                                                                >
+                                                                    {pump.name}
+                                                                </span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4 align-top">
+                                                        <td className="px-3 py-2.5 align-top">
                                                             <Select
                                                                 value={
                                                                     row.tank_id
@@ -400,7 +476,7 @@ export default function PumpCountersIndex() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="mx-auto w-48 max-w-full dark:border-slate-600 dark:bg-slate-800/80">
+                                                                <SelectTrigger className="mx-auto w-44 max-w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -436,13 +512,13 @@ export default function PumpCountersIndex() {
                                                                 }
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-4 align-top">
-                                                            <div className="mx-auto w-48 max-w-full">
+                                                        <td className="px-3 py-2.5 align-top">
+                                                            <div className="mx-auto w-40 max-w-full">
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
                                                                     min="0"
-                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
+                                                                    className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.reading_value
                                                                     }
@@ -482,13 +558,13 @@ export default function PumpCountersIndex() {
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4 align-top">
-                                                            <div className="mx-auto w-32 max-w-full">
+                                                        <td className="px-3 py-2.5 align-top">
+                                                            <div className="mx-auto w-28 max-w-full">
                                                                 <Input
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0"
-                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
+                                                                    className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.governmental_liters
                                                                     }
@@ -529,13 +605,13 @@ export default function PumpCountersIndex() {
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4 align-top">
-                                                            <div className="mx-auto w-32 max-w-full">
+                                                        <td className="px-3 py-2.5 align-top">
+                                                            <div className="mx-auto w-28 max-w-full">
                                                                 <Input
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0"
-                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
+                                                                    className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.return_liters
                                                                     }
@@ -563,11 +639,11 @@ export default function PumpCountersIndex() {
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4 align-top">
-                                                            <div className="mx-auto w-40 max-w-full">
+                                                        <td className="px-3 py-2.5 align-top">
+                                                            <div className="mx-auto w-36 max-w-full">
                                                                 <Input
                                                                     type="text"
-                                                                    className="w-full dark:border-slate-600 dark:bg-slate-800/80"
+                                                                    className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
                                                                     value={
                                                                         row.notes
                                                                     }
@@ -593,120 +669,9 @@ export default function PumpCountersIndex() {
                                     </tbody>
                                 </table>
                             </div>
-
-                            <Button type="submit" disabled={form.processing}>
-                                {t('pump_counters.save_all')}
-                            </Button>
                         </form>
                     </CardContent>
                 </Card>
-
-                {(fuelTypeTotals.length > 0 ||
-                    governmentalTotals.length > 0) && (
-                    <div className="space-y-3">
-                        <h3 className="font-semibold">
-                            {isSingleDay
-                                ? t('pump_counters.sales_summary_daily')
-                                : t('pump_counters.sales_summary_period')}
-                        </h3>
-                        <div className="flex flex-wrap gap-3">
-                            {fuelTypeTotals.map((total) => (
-                                <div
-                                    key={total.fuel_type_id}
-                                    className={TOTAL_BOX}
-                                >
-                                    <span className={TOTAL_LABEL}>
-                                        <bdi>{total.fuel_type_name}</bdi>:
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            TOTAL_VALUE,
-                                            fuelTypeText[total.fuel_type_id] ??
-                                                'text-foreground',
-                                        )}
-                                    >
-                                        {formatNumber(total.liters_sold)} L
-                                    </span>
-                                </div>
-                            ))}
-                            {governmentalTotals.length > 0 && (
-                                <div className={TOTAL_BOX}>
-                                    <span className={TOTAL_LABEL}>
-                                        {t('pump_counters.governmental_total')}:
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            TOTAL_VALUE,
-                                            'text-green-600 dark:text-green-400',
-                                        )}
-                                    >
-                                        {formatNumber(governmentalLiters)} L
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
-                    {pumps.map((pump) => (
-                        <Card
-                            key={pump.id}
-                            className={cn(
-                                'border-t-4',
-                                fuelTypeCardBorder[pump.fuel_type_ids[0]] ??
-                                    'border-t-border',
-                            )}
-                        >
-                            <CardHeader>
-                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                                    {pump.name}
-                                    {pump.fuel_type_names.map((name) => (
-                                        <Badge key={name} variant="secondary">
-                                            {name}
-                                        </Badge>
-                                    ))}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground text-xs">
-                                        {isSingleDay
-                                            ? t('pump_counters.daily_total')
-                                            : t('pump_counters.period_total')}
-                                    </p>
-                                    <p
-                                        className={cn(
-                                            'text-lg font-bold',
-                                            pump.daily_liters_sold > 0 &&
-                                                'text-success',
-                                        )}
-                                    >
-                                        {formatNumber(pump.daily_liters_sold)} L
-                                    </p>
-                                </div>
-                                {pump.latest_reading ? (
-                                    <div>
-                                        <p className="text-muted-foreground text-xs">
-                                            {t('pump_counters.reading_value')}
-                                        </p>
-                                        <p className="text-lg font-bold">
-                                            {formatNumber(
-                                                pump.latest_reading
-                                                    .reading_value,
-                                                0,
-                                            )}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">
-                                        {t('pump_counters.no_previous')}
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
 
                 <div className="space-y-3">
                     <SectionToolbar
