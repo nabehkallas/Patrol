@@ -100,7 +100,7 @@
 
     /* Navy Light theme -- deliberately NOT pure white: a soft blue-gray wash behind white
        cards, so the app reads as "navy product" even in its light mode. */
-    --background: #eef3f8;
+    --background: #f8fafc;
     --foreground: #172033;
     --card: #ffffff;
     --card-foreground: #172033;
@@ -139,13 +139,15 @@
     --chart-4: #9333ea;
     --chart-5: var(--brand-navy);
     --radius: 0.625rem;
-    --sidebar: var(--brand-navy);
-    --sidebar-foreground: #f1f5f9;
-    --sidebar-primary: #213b5a;
+    /* Light slate sidebar that frames the content panel; the active page and the logo stay a
+       navy pill so the brand still reads. Cards and buttons use their own tokens above. */
+    --sidebar: #f1f5f9;
+    --sidebar-foreground: #1e293b;
+    --sidebar-primary: var(--brand-navy);
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #213b5a;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #213b5a;
+    --sidebar-accent: #e2e8f0;
+    --sidebar-accent-foreground: #0f172a;
+    --sidebar-border: #cbd5e1;
     --sidebar-ring: var(--brand-orange);
 }
 

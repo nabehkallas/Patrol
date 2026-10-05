@@ -223,7 +223,9 @@ function Sidebar({
       />
       <div
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          // right-scroll-bar-position: while a select locks page scrolling (hiding the scrollbar),
+          // Radix shifts this right-anchored (RTL) sidebar by the scrollbar width so it stays put.
+          "right-scroll-bar-position fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "ltr:left-0 rtl:right-0 ltr:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] rtl:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]"
             : "ltr:right-0 rtl:left-0 ltr:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] rtl:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]",
@@ -303,7 +305,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
       data-slot="sidebar-inset"
       className={cn(
         "bg-background relative flex max-w-full min-h-svh flex-1 flex-col",
-        "peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2 md:ltr:peer-data-[variant=inset]:ml-0 md:rtl:peer-data-[variant=inset]:mr-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:ltr:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0 md:rtl:peer-data-[variant=inset]:peer-data-[state=collapsed]:mr-0",
+        "peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2 md:ltr:peer-data-[variant=inset]:ml-0 md:rtl:peer-data-[variant=inset]:mr-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-sidebar-border md:peer-data-[variant=inset]:shadow-sm md:ltr:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0 md:rtl:peer-data-[variant=inset]:peer-data-[state=collapsed]:mr-0",
         className
       )}
       {...props}

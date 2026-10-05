@@ -4,10 +4,15 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+// Non-modal by default: a modal menu locks page scrolling, which hides the scrollbar and shifts
+// the whole layout sideways while it is open. Menus close on outside click either way.
 function DropdownMenu({
+  modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  return (
+    <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />
+  )
 }
 
 function DropdownMenuPortal({
