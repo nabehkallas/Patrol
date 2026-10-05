@@ -15,12 +15,14 @@ import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useLocale } from '@/hooks/use-locale';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export function NavUser() {
     const { auth } = usePage().props;
     const { state } = useSidebar();
     const isMobile = useIsMobile();
     const { direction } = useLocale();
+    const inSidebar = !isMobile && state !== 'collapsed';
 
     if (!auth.user) {
         return null;
@@ -41,10 +43,17 @@ export function NavUser() {
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
-                        className="w-(--radix-dropdown-menu-trigger-width) rounded-lg"
-                        // Opens upward from the bottom of the sidebar, inside its width; a collapsed
-                        // sidebar opens it sideways towards the content.
-                        align="end"
+                        // Expanded: opens upward, anchored to the sidebar's outer edge and a bit
+                        // narrower than the button, so it keeps a clear gap from the sidebar's
+                        // scrollbar (on the content-facing side in both directions).
+                        // Collapsed: opens sideways towards the content; mobile: below.
+                        className={cn(
+                            'rounded-lg',
+                            inSidebar
+                                ? 'w-[calc(var(--radix-dropdown-menu-trigger-width)-1.75rem)]'
+                                : 'min-w-56',
+                        )}
+                        align={inSidebar ? 'start' : 'end'}
                         side={
                             isMobile
                                 ? 'bottom'
@@ -54,7 +63,7 @@ export function NavUser() {
                                       : 'right'
                                   : 'top'
                         }
-                        sideOffset={8}
+                        sideOffset={12}
                         collisionPadding={8}
                     >
                         <UserMenuContent user={auth.user} />
