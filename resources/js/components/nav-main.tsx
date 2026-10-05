@@ -21,19 +21,18 @@ export function NavMain({
     const { isMobile, setOpenMobile } = useSidebar();
 
     return (
-        // Each group after the first is set apart by space and a thin divider; its header is a
-        // bold, muted caption and its links are indented under it with a faint guide line.
-        // (Letter-spacing only in LTR: it breaks the joins between Arabic letters.) A collapsed,
-        // icon-only sidebar drops the indent and guide line so the icons stay centred.
-        <SidebarGroup className="not-first:border-sidebar-border not-first:mt-3 not-first:border-t not-first:pt-3 px-2 py-0">
-            <SidebarGroupLabel className="text-sidebar-foreground/55 mb-1 h-7 text-[0.7rem] font-bold ltr:uppercase ltr:tracking-wider">
+        // Minimal grouping: no lines -- space above each section and a darker semibold header,
+        // with headers and links sharing the same 12px inline padding so everything lines up.
+        <SidebarGroup className="not-first:mt-5 px-2 py-0">
+            <SidebarGroupLabel className="mb-1 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {label}
             </SidebarGroupLabel>
-            <SidebarMenu className="border-sidebar-border/80 ms-2 w-auto border-s ps-2 group-data-[collapsible=icon]:ms-0 group-data-[collapsible=icon]:border-s-0 group-data-[collapsible=icon]:ps-0">
+            <SidebarMenu>
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild
+                            className="h-auto px-3 py-2"
                             isActive={isCurrentUrl(item.href)}
                             tooltip={{ children: item.title }}
                         >
