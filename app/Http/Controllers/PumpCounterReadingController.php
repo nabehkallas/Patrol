@@ -55,6 +55,8 @@ class PumpCounterReadingController extends Controller
                         'date' => $latest->date->toDateString(),
                         'reading_value' => $latest->reading_value,
                         'tank_id' => $latest->tank_id,
+                        // When it was typed in (the date above is the day it counts for).
+                        'recorded_at' => $latest->created_at?->toIso8601String(),
                     ] : null,
                 ];
             });
@@ -101,6 +103,7 @@ class PumpCounterReadingController extends Controller
 
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
+            'lastEntry' => $this->lastEntry(),
             'tanks' => $this->tankOptions(),
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
@@ -788,6 +791,22 @@ class PumpCounterReadingController extends Controller
                 $returnLiters > 0 ? $returnLiters : null,
             ];
         });
+    }
+
+    /**
+     * The most recent counter reading across all pumps, for the "latest entry in the system"
+     * hint above the entry table: the day it counts for and when it was typed in.
+     *
+     * @return array{date: string, recorded_at: string|null}|null
+     */
+    private function lastEntry(): ?array
+    {
+        $latest = PumpCounterReading::orderByDesc('date')->orderByDesc('id')->first();
+
+        return $latest ? [
+            'date' => $latest->date->toDateString(),
+            'recorded_at' => $latest->created_at?->toIso8601String(),
+        ] : null;
     }
 
     /**

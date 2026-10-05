@@ -169,6 +169,33 @@ export function formatDate(value: string): string {
     });
 }
 
+/** 'DD/MM/YYYY' — a bare calendar date as-is, a timestamp in station time. */
+export function formatDayMonthYear(value: string): string {
+    return new Date(value).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: timeZoneFor(value),
+    });
+}
+
+/** 'HH:MM' (24-hour) of a timestamp, in station time. */
+export function formatTime24(value: string): string {
+    return new Date(value).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: getStationTimeZone(),
+    });
+}
+
+/** The station-time calendar day of a timestamp, as 'YYYY-MM-DD'. */
+export function stationDateOf(value: string): string {
+    return new Date(value).toLocaleDateString('en-CA', {
+        timeZone: getStationTimeZone(),
+    });
+}
+
 /** Compact "Sep 10" style date, for a breakdown row's sub-line where a full medium date
  * (which includes the year) would be too wide. Fixed 'en-US' locale for the same reason
  * as formatDate/formatDateTime above. */

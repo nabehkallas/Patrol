@@ -6,6 +6,11 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import type { EntryStamp } from '@/components/pump-counters/last-entry';
+import {
+    PreviousReading,
+    SystemLastEntry,
+} from '@/components/pump-counters/last-entry';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,6 +65,7 @@ function loggedAt(reading: PumpCounterReading): string {
 type PageProps = {
     auth: Auth;
     pumps: PumpSummary[];
+    lastEntry: EntryStamp | null;
     tanks: TankOption[];
     readings: PumpCounterReading[];
     fuelTypeTotals: FuelTypeTotal[];
@@ -132,6 +138,7 @@ export default function PumpCountersIndex() {
     const {
         auth,
         pumps,
+        lastEntry,
         tanks,
         readings,
         fuelTypeTotals,
@@ -277,6 +284,7 @@ export default function PumpCountersIndex() {
                                         form.setData('date', e.target.value)
                                     }
                                 />
+                                <SystemLastEntry entry={lastEntry} />
                                 <InputError message={form.errors.date} />
                             </div>
 
@@ -450,18 +458,16 @@ export default function PumpCountersIndex() {
                                                                     }
                                                                 />
                                                                 {pump.latest_reading && (
-                                                                    <p className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                                        {t(
-                                                                            'pump_counters.previous',
-                                                                        )}
-                                                                        :{' '}
-                                                                        {formatNumber(
+                                                                    <PreviousReading
+                                                                        value={
                                                                             pump
                                                                                 .latest_reading
-                                                                                .reading_value,
-                                                                            0,
-                                                                        )}
-                                                                    </p>
+                                                                                .reading_value
+                                                                        }
+                                                                        entry={
+                                                                            pump.latest_reading
+                                                                        }
+                                                                    />
                                                                 )}
                                                                 <InputError
                                                                     message={

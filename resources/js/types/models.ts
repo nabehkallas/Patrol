@@ -374,6 +374,7 @@ export type PumpSummary = {
         date: string;
         reading_value: number;
         tank_id: number | null;
+        recorded_at: string | null;
     } | null;
 };
 
