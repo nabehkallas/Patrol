@@ -88,7 +88,7 @@ export function TimezoneSelect({
                         className="placeholder:text-muted-foreground h-10 w-full bg-transparent text-sm outline-none"
                     />
                 </div>
-                <div className="max-h-72 overflow-y-auto p-1" dir="ltr">
+                <div className="max-h-72 overflow-y-auto p-1">
                     {filtered.length === 0 && (
                         <p className="text-muted-foreground px-2 py-6 text-center text-sm">
                             {t('settings.preferences.timezone_none')}
@@ -112,12 +112,18 @@ export function TimezoneSelect({
                                         : 'opacity-0',
                                 )}
                             />
-                            <span className="flex-1 truncate">
+                            <bdi
+                                dir="ltr"
+                                className="flex-1 truncate text-start"
+                            >
                                 {option.value}
-                            </span>
-                            <span className="text-muted-foreground text-xs tabular-nums">
+                            </bdi>
+                            <bdi
+                                dir="ltr"
+                                className="text-muted-foreground text-xs tabular-nums"
+                            >
                                 {option.offset}
-                            </span>
+                            </bdi>
                         </button>
                     ))}
                 </div>

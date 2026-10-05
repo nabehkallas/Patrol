@@ -1,4 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/react';
+import { LocaleDirectionProvider } from '@/components/direction-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -44,10 +45,12 @@ createInertiaApp({
     strictMode: true,
     withApp(app) {
         return (
-            <TooltipProvider delayDuration={0}>
-                {app}
-                <Toaster />
-            </TooltipProvider>
+            <LocaleDirectionProvider>
+                <TooltipProvider delayDuration={0}>
+                    {app}
+                    <Toaster />
+                </TooltipProvider>
+            </LocaleDirectionProvider>
         );
     },
     progress: {

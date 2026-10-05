@@ -55,7 +55,72 @@ class DebtController extends Controller
                 'payable_outstanding' => $this->outstandingTotal($request, DebtDirection::Payable),
                 'payable_total' => $this->allDebtsTotal($request, DebtDirection::Payable),
             ],
+            'debtorCards' => $this->debtorCards(),
+            'settleable' => $request->user()->isAdmin() ? $this->settleable($request) : null,
         ]);
+    }
+
+    /**
+     * One card per debtor who still owes the station money: what they owe (by currency) and in
+     * how many unpaid debts. Biggest balances first, compared in the primary currency.
+     *
+     * @return list<array{id: int, name: string, outstanding: array<string, float>, count: int}>
+     */
+    private function debtorCards(): array
+    {
+        $debts = Debt::where('status', DebtStatus::Outstanding)
+            ->where('direction', DebtDirection::Receivable)
+            ->with(['payments', 'debtor:id,name'])
+            ->get();
+
+        $cards = [];
+        $sortKeys = [];
+
+        foreach ($debts->groupBy('debtor_id') as $debtorDebts) {
+            /** @var Debt $first */
+            $first = $debtorDebts->first();
+            $outstanding = $this->byCurrency($debtorDebts, fn (Debt $debt) => $debt->remainingAmount());
+
+            if (array_sum($outstanding) <= 0) {
+                continue;
+            }
+
+            $cards[] = [
+                'id' => (int) $first->debtor_id,
+                'name' => $first->debtor->name ?? '—',
+                'outstanding' => $outstanding,
+                'count' => $debtorDebts->count(),
+            ];
+            $sortKeys[] = ExchangeRate::convertBreakdown($outstanding, Currency::primary());
+        }
+
+        array_multisort($sortKeys, SORT_DESC, SORT_NUMERIC, $cards);
+
+        return $cards;
+    }
+
+    /**
+     * What "settle filtered debts" covers with the current filters before a date range is
+     * picked: every outstanding debt matching them, whatever its date.
+     *
+     * Kept apart by direction: without a direction filter it covers money owed to us and
+     * money we owe, which must not be added together.
+     *
+     * @return array{count: int, receivable: array<string, float>, payable: array<string, float>}
+     */
+    private function settleable(Request $request): array
+    {
+        $debts = $this->filteredQuery($request, except: ['status'])
+            ->where('status', DebtStatus::Outstanding)
+            ->get();
+
+        $remaining = fn (Debt $debt) => $debt->remainingAmount();
+
+        return [
+            'count' => $debts->count(),
+            'receivable' => $this->byCurrency($debts->where('direction', DebtDirection::Receivable), $remaining),
+            'payable' => $this->byCurrency($debts->where('direction', DebtDirection::Payable), $remaining),
+        ];
     }
 
     /**

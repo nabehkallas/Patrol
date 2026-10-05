@@ -226,4 +226,29 @@
         text-align: start;
         vertical-align: middle;
     }
+
+    /* Chrome lays date/time fields out left-to-right whatever the page direction, so in Arabic
+       the date and its calendar icon hugged the left edge of the box. Push them to the right
+       edge, keeping the usual day/month/year order inside. */
+    [dir='rtl']
+        input:is(
+            [type='date'],
+            [type='datetime-local'],
+            [type='time'],
+            [type='month']
+        ) {
+        justify-content: flex-end;
+        text-align: right;
+    }
+
+    [dir='rtl']
+        input:is(
+            [type='date'],
+            [type='datetime-local'],
+            [type='time'],
+            [type='month']
+        )::-webkit-datetime-edit {
+        flex: 0 1 auto;
+        margin-inline-start: auto;
+    }
 }

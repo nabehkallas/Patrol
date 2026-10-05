@@ -55,6 +55,20 @@ export function formatCurrencyAmount(
  * always showing a
  * primary figure.
  */
+/**
+ * Like formatBreakdown, but lists only the currencies that actually have an amount (so a debt
+ * in dollars alone doesn't read "0.0 SYP + $20.00"); all zero shows the primary currency's 0.
+ */
+export function formatNonZeroBreakdown(breakdown: CurrencyBreakdown): string {
+    const parts = Object.entries(breakdown)
+        .filter(([, amount]) => Math.abs(amount as number) > 0.004)
+        .map(([currency, amount]) =>
+            formatCurrencyAmount(amount as number, currency as Currency),
+        );
+
+    return parts.length > 0 ? parts.join(' + ') : formatPrimary(0);
+}
+
 export function formatBreakdown(breakdown: CurrencyBreakdown): string {
     return Object.entries(breakdown)
         .filter(

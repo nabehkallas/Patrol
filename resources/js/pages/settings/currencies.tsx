@@ -143,7 +143,6 @@ function AddCurrencyForm({ existing }: { existing: string[] }) {
                     </Label>
                     <Input
                         id="cur_code"
-                        dir="ltr"
                         value={form.data.code}
                         readOnly={!custom}
                         maxLength={10}
@@ -209,7 +208,6 @@ function AddCurrencyForm({ existing }: { existing: string[] }) {
                             type="number"
                             step="any"
                             min="0"
-                            dir="ltr"
                             className="sm:w-60"
                             value={form.data.rate_to_usd}
                             onChange={(e) =>

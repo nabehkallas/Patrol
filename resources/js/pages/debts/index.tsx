@@ -1,8 +1,11 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { CheckCheck } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { CurrencyCard } from '@/components/currency-card';
 import { DateRangePicker } from '@/components/date-range-picker';
+import type { DebtorCard } from '@/components/debts/debtor-overview';
+import { DebtorOverview } from '@/components/debts/debtor-overview';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -27,6 +30,7 @@ import {
 import {
     formatBreakdown,
     formatDate,
+    formatNonZeroBreakdown,
     formatNumber,
     startOfMonthInStation,
     todayInStation,
@@ -66,10 +70,19 @@ type PageProps = {
         debtor_id?: string;
     };
     totals: DebtsSummary;
+    debtorCards: DebtorCard[];
+    settleable: {
+        count: number;
+        receivable: CurrencyBreakdown;
+        payable: CurrencyBreakdown;
+    } | null;
 };
 
+const hasAmount = (breakdown: CurrencyBreakdown) =>
+    Object.values(breakdown).some((amount) => Math.abs(amount) > 0.004);
+
 export default function DebtsIndex() {
-    const { auth, debts, debtors, filters, totals } =
+    const { auth, debts, debtors, filters, totals, debtorCards, settleable } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
     const [search, setSearch] = useState(filters.search ?? '');
@@ -261,6 +274,14 @@ export default function DebtsIndex() {
                     />
                 </div>
 
+                <DebtorOverview
+                    cards={debtorCards}
+                    selectedId={filters.debtor_id}
+                    onSelect={(debtorId) =>
+                        applyFilter({ debtor_id: debtorId })
+                    }
+                />
+
                 <div className="flex flex-wrap gap-4">
                     <Input
                         value={search}
@@ -348,17 +369,69 @@ export default function DebtsIndex() {
                     />
                 </div>
 
-                {auth.isAdmin && (
-                    <div>
+                {auth.isAdmin && settleable && (
+                    <div
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/40 dark:bg-amber-500/10"
+                        data-test="settle-filtered-bar"
+                    >
+                        <div className="flex items-center gap-3">
+                            <CheckCheck className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <div>
+                                <div className="font-medium">
+                                    {t('debts.settle_filtered')}
+                                </div>
+                                <div className="text-muted-foreground text-sm">
+                                    {settleable.count === 0
+                                        ? t('debts.settle_filtered_none')
+                                        : t(
+                                              'debts.settle_filtered_summary',
+                                          ).replace(
+                                              ':count',
+                                              String(settleable.count),
+                                          )}
+                                </div>
+                                {settleable.count > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium tabular-nums">
+                                        {hasAmount(settleable.receivable) && (
+                                            <span className="text-emerald-700 dark:text-emerald-400">
+                                                {t(
+                                                    'debts.direction.receivable',
+                                                )}
+                                                :{' '}
+                                                {formatNonZeroBreakdown(
+                                                    settleable.receivable,
+                                                )}
+                                            </span>
+                                        )}
+                                        {hasAmount(settleable.payable) && (
+                                            <span className="text-red-700 dark:text-red-400">
+                                                {t('debts.direction.payable')}:{' '}
+                                                {formatNonZeroBreakdown(
+                                                    settleable.payable,
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                         <Button
                             type="button"
-                            variant="outline"
+                            size="lg"
+                            disabled={settleable.count === 0}
                             onClick={() => {
                                 setSettlePreview(null);
                                 setShowSettleFiltered(true);
                             }}
+                            data-test="settle-filtered-open"
                         >
+                            <CheckCheck className="size-4" />
                             {t('debts.settle_filtered')}
+                            {settleable.count > 0 && (
+                                <span className="rounded-full bg-black/15 px-2 py-0.5 text-xs tabular-nums">
+                                    {settleable.count}
+                                </span>
+                            )}
                         </Button>
                     </div>
                 )}
@@ -690,9 +763,14 @@ export default function DebtsIndex() {
                             </DialogClose>
                             <Button
                                 type="submit"
-                                disabled={settleFilteredForm.processing}
+                                disabled={
+                                    settleFilteredForm.processing ||
+                                    settlePreviewLoading ||
+                                    settlePreview?.count === 0
+                                }
+                                data-test="settle-filtered-confirm"
                             >
-                                {t('debts.settle_filtered')}
+                                {t('debts.settle_filtered_confirm')}
                             </Button>
                         </DialogFooter>
                     </form>
