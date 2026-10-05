@@ -59,7 +59,7 @@ class LocalesTest extends TestCase
 
     public function test_the_locale_cookie_sets_the_language_and_text_direction_of_the_page(): void
     {
-        foreach (['ar' => 'rtl', 'en' => 'ltr', 'tr' => 'ltr', 'fr' => 'ltr', 'ku' => 'ltr'] as $locale => $direction) {
+        foreach (['ar' => 'rtl', 'ur' => 'rtl', 'en' => 'ltr', 'fr' => 'ltr', 'es' => 'ltr', 'de' => 'ltr', 'it' => 'ltr', 'tr' => 'ltr', 'ru' => 'ltr', 'hi' => 'ltr', 'ku' => 'ltr'] as $locale => $direction) {
             $this->withUnencryptedCookie('locale', $locale)
                 ->get('/login')
                 ->assertOk()

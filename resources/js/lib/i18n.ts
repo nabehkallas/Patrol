@@ -16,11 +16,23 @@ type Messages = Record<string, string>;
 
 const messages: Partial<Record<Locale, Messages>> = { en, ar };
 
-const loaders: Partial<Record<Locale, () => Promise<{ default: Messages }>>> = {
-    tr: () => import('../../../lang/tr.json'),
-    fr: () => import('../../../lang/fr.json'),
-    ku: () => import('../../../lang/ku.json'),
-};
+// Every other lang/*.json becomes its own chunk, fetched the first time it is chosen.
+const lazyFiles = import.meta.glob<Messages>(
+    [
+        '../../../lang/*.json',
+        '!../../../lang/en.json',
+        '!../../../lang/ar.json',
+    ],
+    { import: 'default' },
+);
+
+const loaders: Partial<Record<Locale, () => Promise<Messages>>> =
+    Object.fromEntries(
+        Object.entries(lazyFiles).map(([path, load]) => [
+            path.match(/([a-z]+)\.json$/)![1],
+            load,
+        ]),
+    );
 
 const pending = new Map<Locale, Promise<void>>();
 const listeners = new Set<() => void>();
@@ -42,8 +54,8 @@ export function loadMessages(locale: Locale): Promise<void> {
         pending.set(
             locale,
             loader()
-                .then((module) => {
-                    messages[locale] = module.default;
+                .then((loaded) => {
+                    messages[locale] = loaded;
                     listeners.forEach((listener) => listener());
                 })
                 .catch(() => {

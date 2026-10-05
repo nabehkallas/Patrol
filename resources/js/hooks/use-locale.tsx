@@ -9,8 +9,14 @@ export type Direction = 'ltr' | 'rtl';
 export const LOCALES = {
     ar: { name: 'العربية', dir: 'rtl', intl: 'ar-SY' },
     en: { name: 'English', dir: 'ltr', intl: 'en-US' },
-    tr: { name: 'Türkçe', dir: 'ltr', intl: 'tr-TR' },
     fr: { name: 'Français', dir: 'ltr', intl: 'fr-FR' },
+    es: { name: 'Español', dir: 'ltr', intl: 'es-ES' },
+    de: { name: 'Deutsch', dir: 'ltr', intl: 'de-DE' },
+    it: { name: 'Italiano', dir: 'ltr', intl: 'it-IT' },
+    tr: { name: 'Türkçe', dir: 'ltr', intl: 'tr-TR' },
+    ru: { name: 'Русский', dir: 'ltr', intl: 'ru-RU' },
+    ur: { name: 'اردو', dir: 'rtl', intl: 'ur-PK' },
+    hi: { name: 'हिन्दी', dir: 'ltr', intl: 'hi-IN' },
     // Northern Kurdish (Kurmanji) in the Latin script, as spoken in Syria.
     ku: { name: 'Kurdî (Kurmancî)', dir: 'ltr', intl: 'ku' },
 } as const satisfies Record<

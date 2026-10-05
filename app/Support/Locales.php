@@ -14,8 +14,14 @@ final class Locales
     public const SUPPORTED = [
         'ar' => ['name' => 'العربية', 'dir' => 'rtl'],
         'en' => ['name' => 'English', 'dir' => 'ltr'],
-        'tr' => ['name' => 'Türkçe', 'dir' => 'ltr'],
         'fr' => ['name' => 'Français', 'dir' => 'ltr'],
+        'es' => ['name' => 'Español', 'dir' => 'ltr'],
+        'de' => ['name' => 'Deutsch', 'dir' => 'ltr'],
+        'it' => ['name' => 'Italiano', 'dir' => 'ltr'],
+        'tr' => ['name' => 'Türkçe', 'dir' => 'ltr'],
+        'ru' => ['name' => 'Русский', 'dir' => 'ltr'],
+        'ur' => ['name' => 'اردو', 'dir' => 'rtl'],
+        'hi' => ['name' => 'हिन्दी', 'dir' => 'ltr'],
         // Northern Kurdish (Kurmanji), written in the Latin script: the variety spoken in Syria.
         'ku' => ['name' => 'Kurdî (Kurmancî)', 'dir' => 'ltr'],
     ];

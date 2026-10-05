@@ -404,10 +404,18 @@ function useTicker() {
     return extra;
 }
 
+/** The landing content is Arabic (right-to-left) or English (left-to-right). */
+const contentDirection = (locale: string): 'ltr' | 'rtl' =>
+    locale === 'ar' ? 'rtl' : 'ltr';
+
+function useContentDirection() {
+    return contentDirection(useLocale().locale);
+}
+
 function DemoDashboard({ c }: { c: LandingText }) {
     const [mode, setMode] = useState<'today' | 'shift'>('today');
     const extra = useTicker();
-    const { direction } = useLocale();
+    const direction = useContentDirection();
 
     // "Current shift" = the afternoon shift (14:00 onwards); "today" = the whole day.
     const visible =
@@ -799,7 +807,7 @@ function CarouselBlock({
 }) {
     const editor = useContext(EditorContext);
     const { t } = useTranslation();
-    const { direction } = useLocale();
+    const direction = useContentDirection();
     const [index, setIndex] = useState(0);
     const slides = content.slides;
     const total = slides.length + (content.showRoadmapSlide ? 1 : 0);
@@ -979,8 +987,10 @@ export function LandingPage({
     content: LandingContent;
     editor?: EditorApi;
 }) {
-    // Page content exists in Arabic and English; the other interface languages show English.
-    const { locale, direction } = useLocale();
+    // Page content exists in Arabic and English; the other interface languages show English,
+    // laid out left-to-right even when the interface itself is right-to-left (Urdu).
+    const { locale } = useLocale();
+    const direction = contentDirection(locale);
     const lang = locale === 'ar' ? 'ar' : 'en';
     const c = content.text[lang];
     const Arrow = direction === 'rtl' ? ArrowLeft : ArrowRight;
@@ -1315,7 +1325,10 @@ export function LandingPage({
         <EditorContext.Provider value={editorState}>
             <TextPathContext.Provider value={(p) => `text.${lang}.${p}`}>
                 {/* The landing page is always the dark navy theme, whatever the visitor's app setting. */}
-                <div className="dark min-h-screen overflow-x-clip bg-[#06111f] text-slate-200 antialiased">
+                <div
+                    dir={direction}
+                    className="dark min-h-screen overflow-x-clip bg-[#06111f] text-slate-200 antialiased"
+                >
                     {!editing && (
                         <Head title={c.metaTitle}>
                             <meta
