@@ -113,7 +113,9 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            {/* Scrolls by wheel, touch and keyboard but shows no scrollbar of its own, so the page
+                has a single visible scrollbar. */}
+            <SidebarContent className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <NavMain
                     items={operationsNavItems}
                     label={t('nav.operations')}

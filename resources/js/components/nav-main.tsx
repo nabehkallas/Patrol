@@ -21,10 +21,10 @@ export function NavMain({
     const { isMobile, setOpenMobile } = useSidebar();
 
     return (
-        // Minimal grouping: no lines -- space above each section and a darker semibold header,
+        // Minimal grouping: no lines -- space above each section and a dark bold header,
         // with headers and links sharing the same 12px inline padding so everything lines up.
-        <SidebarGroup className="not-first:mt-5 px-2 py-0">
-            <SidebarGroupLabel className="mb-1 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <SidebarGroup className="not-first:mt-6 px-2 py-0">
+            <SidebarGroupLabel className="mb-1 px-3 text-xs font-bold text-slate-800 dark:text-slate-200">
                 {label}
             </SidebarGroupLabel>
             <SidebarMenu>

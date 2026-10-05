@@ -43,14 +43,13 @@ export function NavUser() {
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
-                        // Expanded: opens upward, anchored to the sidebar's outer edge and a bit
-                        // narrower than the button, so it keeps a clear gap from the sidebar's
-                        // scrollbar (on the content-facing side in both directions).
+                        // Expanded: opens upward, exactly as wide as the button so it stays inside
+                        // the sidebar (whose scrollbar is hidden).
                         // Collapsed: opens sideways towards the content; mobile: below.
                         className={cn(
                             'rounded-lg',
                             inSidebar
-                                ? 'w-[calc(var(--radix-dropdown-menu-trigger-width)-1.75rem)]'
+                                ? 'w-(--radix-dropdown-menu-trigger-width)'
                                 : 'min-w-56',
                         )}
                         align={inSidebar ? 'start' : 'end'}
