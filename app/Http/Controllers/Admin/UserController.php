@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\AuditLog;
 use App\Models\TenantUserDirectory;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +59,7 @@ class UserController extends Controller
         ]);
 
         $user->syncRoles([$data['role']]);
+        AuditLog::record('role.assigned', 'User', $user->id, null, ['role' => $data['role']]);
         $user->sendVerificationLink();
 
         // The central-only routing table login checks first to find which tenant database a
@@ -120,7 +122,12 @@ class UserController extends Controller
             $user->sendVerificationLink();
         }
 
+        // Roles live in a pivot table, which fires no model events, so log a change here.
+        $oldRole = $user->getRoleNames()->first();
         $user->syncRoles([$data['role']]);
+        if ($oldRole !== $data['role']) {
+            AuditLog::record('role.changed', 'User', $user->id, ['role' => $oldRole], ['role' => $data['role']]);
+        }
 
         // Not just "if the email changed" -- a user saved before this directory sync existed
         // (or one whose row was otherwise lost) has no directory entry at all yet, so re-saving

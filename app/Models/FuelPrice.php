@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use App\Support\Currency;
 use Carbon\CarbonInterface;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['fuel_type_id', 'price_per_liter', 'currency', 'set_by_id', 'effective_at'])]
 class FuelPrice extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected function casts(): array

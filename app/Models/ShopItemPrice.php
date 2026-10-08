@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['shop_item_id', 'base_price', 'sell_price', 'currency', 'set_by_id', 'effective_at'])]
 class ShopItemPrice extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected function casts(): array

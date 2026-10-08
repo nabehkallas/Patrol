@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['tank_id', 'date', 'quantity_liters', 'recorded_by_id', 'notes'])]
 class InventoryEntry extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected function casts(): array

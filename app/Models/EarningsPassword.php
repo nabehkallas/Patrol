@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 #[Fillable(['password_hash'])]
 class EarningsPassword extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected $table = 'earnings_password';

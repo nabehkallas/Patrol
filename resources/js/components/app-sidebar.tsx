@@ -10,6 +10,7 @@ import {
     ShoppingBag,
     Truck,
     TrendingUp,
+    ScrollText,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useTranslation } from '@/lib/i18n';
+import { index as auditLogIndex } from '@/routes/admin/audit-log';
 import { index as earningsIndex } from '@/routes/admin/earnings';
 import { index as exchangeRatesIndex } from '@/routes/admin/exchange-rates';
 import { index as fuelPricesIndex } from '@/routes/admin/fuel-prices';
@@ -86,6 +88,7 @@ export function AppSidebar() {
             icon: Gauge,
         },
         { title: t('nav.employees'), href: usersIndex(), icon: Users },
+        { title: t('nav.audit_log'), href: auditLogIndex(), icon: ScrollText },
     ];
 
     const stationSetupNavItems: NavItem[] = [

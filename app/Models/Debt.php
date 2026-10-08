@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use App\Support\Currency;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -33,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Debt extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected function casts(): array

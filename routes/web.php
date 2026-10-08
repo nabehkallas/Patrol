@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\EarningsController;
 use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\Admin\FuelPriceController;
@@ -182,6 +183,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::patch('fuel-prices/profit-margin/{fuelType}', [FuelPriceController::class, 'updateProfitMargin'])->name('fuel-prices.profit-margin');
 
         Route::get('exchange-rates', [ExchangeRateController::class, 'index'])->name('exchange-rates.index');
+        Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
         Route::post('exchange-rates', [ExchangeRateController::class, 'store'])->name('exchange-rates.store');
 
         Route::resource('fuel-pumps', FuelPumpController::class)->except('show');

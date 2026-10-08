@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['code', 'name', 'symbol', 'decimals', 'is_active', 'is_primary'])]
 class StationCurrency extends Model
 {
+    use Auditable;
     use SerializesDatesInAppTimezone;
 
     protected $table = 'currencies';

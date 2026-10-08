@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StationDataResetRequest;
 use App\Http\Requests\Settings\StationDataRestoreRequest;
+use App\Models\AuditLog;
 use App\Models\Debtor;
 use App\Services\StationBackupRestorer;
 use Illuminate\Http\RedirectResponse;
@@ -77,6 +78,7 @@ class StationDataController extends Controller
     public function restore(StationDataRestoreRequest $request, StationBackupRestorer $restorer): RedirectResponse
     {
         $result = $restorer->restore($request->file('backup'));
+        AuditLog::record('backup.restored', null, null, null, ['file' => $request->file('backup')->getClientOriginalName(), 'rows' => $result['rows']]);
 
         // A restored station with fuel types set up doesn't need the first-run wizard again.
         if (tenant('onboarded_at') === null && DB::table('fuel_types')->exists()) {
@@ -103,6 +105,7 @@ class StationDataController extends Controller
         Schema::enableForeignKeyConstraints();
 
         tenant()->update(['onboarded_at' => null]);
+        AuditLog::record('station.reset');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Station data reset.')]);
 

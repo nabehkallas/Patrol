@@ -28,6 +28,9 @@ class StationBackupRestorer
         'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions',
         'role_has_permissions', 'password_reset_tokens', 'sessions', 'migrations',
         'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sqlite_sequence',
+        // The audit trail is append-only (its triggers reject DELETE) and records the restore
+        // itself, so it is never replaced by a backup's older copy.
+        'audit_logs',
     ];
 
     /** A file without these isn't a station backup. */
