@@ -1,5 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    ArrowLeftRight,
+    CircleDollarSign,
+    Container,
+    Cylinder,
+    Droplets,
     Banknote,
     Calculator,
     Contact,
@@ -58,7 +63,7 @@ export function AppSidebar() {
             href: pumpCountersIndex(),
             icon: Gauge,
         },
-        { title: t('nav.inventory'), href: inventoryIndex(), icon: Gauge },
+        { title: t('nav.inventory'), href: inventoryIndex(), icon: Cylinder },
         { title: t('nav.shop'), href: shopIndex(), icon: ShoppingBag },
         { title: t('nav.sadcop'), href: sadcopIndex(), icon: Truck },
     ];
@@ -81,20 +86,24 @@ export function AppSidebar() {
             href: statisticsIndex(),
             icon: TrendingUp,
         },
-        { title: t('nav.fuel_prices'), href: fuelPricesIndex(), icon: Fuel },
+        {
+            title: t('nav.fuel_prices'),
+            href: fuelPricesIndex(),
+            icon: CircleDollarSign,
+        },
         {
             title: t('nav.exchange_rates'),
             href: exchangeRatesIndex(),
-            icon: Gauge,
+            icon: ArrowLeftRight,
         },
         { title: t('nav.employees'), href: usersIndex(), icon: Users },
         { title: t('nav.audit_log'), href: auditLogIndex(), icon: ScrollText },
     ];
 
     const stationSetupNavItems: NavItem[] = [
-        { title: t('nav.tanks'), href: tanksIndex(), icon: Gauge },
+        { title: t('nav.tanks'), href: tanksIndex(), icon: Container },
         { title: t('nav.fuel_pumps'), href: fuelPumpsIndex(), icon: Fuel },
-        { title: t('nav.fuel_types'), href: fuelTypesIndex(), icon: Fuel },
+        { title: t('nav.fuel_types'), href: fuelTypesIndex(), icon: Droplets },
         {
             title: t('nav.tank_volume_calculator'),
             href: tankVolumeIndex(),

@@ -95,6 +95,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
 
         Route::resource('transactions', TransactionController::class)->except('show');
         Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
+        Route::get('transactions/export-xlsx', [TransactionController::class, 'exportXlsx'])->name('transactions.export-xlsx');
 
         Route::get('inventory', [InventoryEntryController::class, 'index'])->name('inventory.index');
         Route::post('inventory', [InventoryEntryController::class, 'store'])->name('inventory.store');
@@ -122,6 +123,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::resource('debts', DebtController::class)->only(['index', 'create', 'store']);
         Route::resource('debts', DebtController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
         Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
+        Route::get('debts/export-xlsx', [DebtController::class, 'exportXlsx'])->name('debts.export-xlsx');
         Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
         Route::post('debts/{debt}/payments', [DebtController::class, 'storePayment'])->name('debts.payments.store');
         Route::patch('debts/{debt}/transfer', [DebtController::class, 'transfer'])->name('debts.transfer')->middleware('role:admin');
@@ -130,6 +132,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::resource('debtors', DebtorController::class)->only(['index', 'create', 'store']);
         Route::resource('debtors', DebtorController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
         Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');
+        Route::get('debtors/export-xlsx', [DebtorController::class, 'exportXlsx'])->name('debtors.export-xlsx');
         Route::patch('debtors/{debtor}/settle-all', [DebtorController::class, 'settleAll'])->name('debtors.settle-all');
 
         Route::get('sadcop', [SadcopController::class, 'index'])->name('sadcop.index');
@@ -147,6 +150,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::middleware('role:admin')->group(function () {
             Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
             Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
+            Route::get('statistics/export-xlsx', [StatisticsController::class, 'exportXlsx'])->name('statistics.export-xlsx');
             Route::post('statistics/annual/unlock', [AnnualSummaryAccessController::class, 'unlock'])->name('statistics.annual.unlock')->middleware('throttle:5,1');
             Route::post('statistics/annual/lock', [AnnualSummaryAccessController::class, 'lock'])->name('statistics.annual.lock');
         });

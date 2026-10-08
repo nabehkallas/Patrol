@@ -6,6 +6,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -147,9 +148,7 @@ export default function FuelPricesIndex() {
     }
 
     function remove(price: FuelPrice) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroy.url(price.id));
-        }
+        router.delete(destroy.url(price.id));
     }
 
     return (
@@ -337,20 +336,10 @@ export default function FuelPricesIndex() {
                                         {price.set_by?.name}
                                     </td>
                                     <td className="px-4 py-3 text-end">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => edit(price)}
-                                        >
-                                            {t('common.edit')}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(price)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                        <RowActions
+                                            edit={() => edit(price)}
+                                            remove={() => remove(price)}
+                                        />
                                     </td>
                                 </tr>
                             ))}

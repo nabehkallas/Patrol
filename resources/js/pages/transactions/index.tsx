@@ -1,5 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
@@ -20,7 +22,14 @@ import { useTranslation } from '@/lib/i18n';
 import { index as pumpCounters } from '@/routes/pump-counters';
 import { index as sadcop } from '@/routes/sadcop';
 import { index as shop } from '@/routes/shop';
-import { create, destroy, edit, exportPdf, index } from '@/routes/transactions';
+import {
+    create,
+    destroy,
+    edit,
+    exportPdf,
+    exportXlsx,
+    index,
+} from '@/routes/transactions';
 import type {
     Auth,
     Paginated,
@@ -35,7 +44,7 @@ type PageProps = {
         Transaction & { managed_by: 'pump_counters' | 'shop' | 'sadcop' | null }
     >;
     users: UserSummary[];
-    filters: { type?: string; user_id?: string };
+    filters: { type?: string; user_id?: string; from: string; to: string };
 };
 
 export default function TransactionsIndex() {
@@ -51,10 +60,10 @@ export default function TransactionsIndex() {
         currency_exchange: t('transactions.type.currency_exchange'),
     };
 
-    function applyFilter(key: 'type' | 'user_id', value: string) {
+    function applyFilter(changes: Partial<PageProps['filters']>) {
         router.get(
             index.url(),
-            { ...filters, [key]: value === 'all' ? undefined : value },
+            { ...filters, ...changes },
             { preserveState: true, replace: true },
         );
     }
@@ -108,17 +117,32 @@ export default function TransactionsIndex() {
 
                 <SectionToolbar
                     title={t('transactions.log')}
-                    actions={
-                        <GeneratePdfButton
-                            href={exportPdf.url({ query: filters })}
+                    children={
+                        <DateRangePicker
+                            from={filters.from}
+                            to={filters.to}
+                            onChange={(range) => applyFilter(range)}
                         />
+                    }
+                    actions={
+                        <>
+                            <GeneratePdfButton
+                                href={exportPdf.url({ query: filters })}
+                            />
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({ query: filters })}
+                            />
+                        </>
                     }
                     filters={
                         <>
                             <Select
                                 value={filters.type ?? 'all'}
                                 onValueChange={(value) =>
-                                    applyFilter('type', value)
+                                    applyFilter({
+                                        type:
+                                            value === 'all' ? undefined : value,
+                                    })
                                 }
                             >
                                 <SelectTrigger className="w-44">
@@ -147,7 +171,12 @@ export default function TransactionsIndex() {
                                 <Select
                                     value={filters.user_id ?? 'all'}
                                     onValueChange={(value) =>
-                                        applyFilter('user_id', value)
+                                        applyFilter({
+                                            user_id:
+                                                value === 'all'
+                                                    ? undefined
+                                                    : value,
+                                        })
                                     }
                                 >
                                     <SelectTrigger className="w-44">

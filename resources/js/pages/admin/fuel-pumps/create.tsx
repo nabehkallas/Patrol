@@ -89,7 +89,7 @@ export default function FuelPumpCreate() {
                     </div>
 
                     <Button type="submit" disabled={form.processing}>
-                        {t('common.create')}
+                        {t('fuel_pumps.save')}
                     </Button>
                 </form>
             </div>

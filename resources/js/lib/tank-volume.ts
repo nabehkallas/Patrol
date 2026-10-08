@@ -12,12 +12,17 @@ function segmentAreaRatio(ratio: number): number {
     const r = 0.5;
     const h = ratio;
     const cosArg = Math.min(1, Math.max(-1, (r - h) / r));
-    const area = r * r * Math.acos(cosArg) - (r - h) * Math.sqrt(Math.max(0, 2 * r * h - h * h));
+    const area =
+        r * r * Math.acos(cosArg) -
+        (r - h) * Math.sqrt(Math.max(0, 2 * r * h - h * h));
 
     return area / (Math.PI * r * r);
 }
 
-const COEFFICIENT_TABLE: number[] = Array.from({ length: TABLE_STEPS + 1 }, (_, i) => segmentAreaRatio(i / TABLE_STEPS));
+const COEFFICIENT_TABLE: number[] = Array.from(
+    { length: TABLE_STEPS + 1 },
+    (_, i) => segmentAreaRatio(i / TABLE_STEPS),
+);
 
 export function volumeCoefficient(ratio: number): number {
     const clamped = Math.min(1, Math.max(0, ratio));
@@ -38,8 +43,16 @@ export type TankVolumeResult = {
     volume: number;
 };
 
-export function calculateTankVolume(capacity: number, diameter: number, height: number): TankVolumeResult | null {
-    if (!Number.isFinite(capacity) || !Number.isFinite(diameter) || !Number.isFinite(height)) {
+export function calculateTankVolume(
+    capacity: number,
+    diameter: number,
+    height: number,
+): TankVolumeResult | null {
+    if (
+        !Number.isFinite(capacity) ||
+        !Number.isFinite(diameter) ||
+        !Number.isFinite(height)
+    ) {
         return null;
     }
 

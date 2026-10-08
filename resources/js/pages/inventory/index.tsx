@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
@@ -7,6 +7,7 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -170,21 +171,15 @@ export default function InventoryIndex() {
     }
 
     function removeEntry(entry: InventoryEntry) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroy.url(entry.id));
-        }
+        router.delete(destroy.url(entry.id));
     }
 
     function removeTopUp(topUp: TankTopUp) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroyTopUp.url(topUp.id));
-        }
+        router.delete(destroyTopUp.url(topUp.id));
     }
 
     function removeTransfer(transfer: TankTransfer) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroyTransfer.url(transfer.id));
-        }
+        router.delete(destroyTransfer.url(transfer.id));
     }
 
     function handleHistoryRangeChange(updates: { from?: string; to?: string }) {
@@ -477,26 +472,19 @@ export default function InventoryIndex() {
                                                     {topUp.notes}
                                                 </td>
                                                 {auth.isAdmin && (
-                                                    <td className="space-x-2 px-4 py-3 text-end">
-                                                        <Link
-                                                            href={editTopUp(
-                                                                topUp.id,
-                                                            )}
-                                                            className="text-sm underline"
-                                                        >
-                                                            {t('common.edit')}
-                                                        </Link>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
+                                                    <td className="px-4 py-3 text-end">
+                                                        <RowActions
+                                                            edit={
+                                                                editTopUp(
+                                                                    topUp.id,
+                                                                ).url
+                                                            }
+                                                            remove={() =>
                                                                 removeTopUp(
                                                                     topUp,
                                                                 )
                                                             }
-                                                        >
-                                                            {t('common.delete')}
-                                                        </Button>
+                                                        />
                                                     </td>
                                                 )}
                                             </tr>
@@ -587,26 +575,19 @@ export default function InventoryIndex() {
                                                     {transfer.notes}
                                                 </td>
                                                 {auth.isAdmin && (
-                                                    <td className="space-x-2 px-4 py-3 text-end">
-                                                        <Link
-                                                            href={editTransfer(
-                                                                transfer.id,
-                                                            )}
-                                                            className="text-sm underline"
-                                                        >
-                                                            {t('common.edit')}
-                                                        </Link>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
+                                                    <td className="px-4 py-3 text-end">
+                                                        <RowActions
+                                                            edit={
+                                                                editTransfer(
+                                                                    transfer.id,
+                                                                ).url
+                                                            }
+                                                            remove={() =>
                                                                 removeTransfer(
                                                                     transfer,
                                                                 )
                                                             }
-                                                        >
-                                                            {t('common.delete')}
-                                                        </Button>
+                                                        />
                                                     </td>
                                                 )}
                                             </tr>
@@ -867,22 +848,15 @@ export default function InventoryIndex() {
                                                 {entry.notes}
                                             </td>
                                             {auth.isAdmin && (
-                                                <td className="space-x-2 px-4 py-3 text-end">
-                                                    <Link
-                                                        href={edit(entry.id)}
-                                                        className="text-sm underline"
-                                                    >
-                                                        {t('common.edit')}
-                                                    </Link>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
+                                                <td className="px-4 py-3 text-end">
+                                                    <RowActions
+                                                        edit={
+                                                            edit(entry.id).url
+                                                        }
+                                                        remove={() =>
                                                             removeEntry(entry)
                                                         }
-                                                    >
-                                                        {t('common.delete')}
-                                                    </Button>
+                                                    />
                                                 </td>
                                             )}
                                         </tr>

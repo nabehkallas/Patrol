@@ -137,13 +137,23 @@ export default function ExchangeRatesIndex() {
                                         {rate.currency}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {formatNumber(rate.rate_to_usd)}
+                                        {formatNumber(rate.rate_to_usd, 6)}
                                     </td>
                                     <td className="px-4 py-3">
                                         {rate.set_by?.name}
                                     </td>
                                 </tr>
                             ))}
+                            {rates.data.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="text-muted-foreground px-4 py-6 text-center"
+                                    >
+                                        {t('exchange_rates.empty')}
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

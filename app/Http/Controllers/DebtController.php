@@ -16,7 +16,9 @@ use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\ExportTable;
 use App\Support\Locales;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -47,7 +49,7 @@ class DebtController extends Controller
 
         return Inertia::render('debts/index', [
             'debts' => $debts,
-            'filters' => $request->only(['search', 'status', 'direction', 'sort', 'sort_dir', 'debtor_id']),
+            'filters' => $request->only(['search', 'status', 'direction', 'sort', 'sort_dir', 'debtor_id', 'from', 'to']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'totals' => [
                 'outstanding' => $this->outstandingTotal($request, DebtDirection::Receivable),
@@ -157,6 +159,16 @@ class DebtController extends Controller
             $query->where('direction', $request->string('direction'));
         }
 
+        // An optional date range; without one every debt shows, however old (an old debt can
+        // still be outstanding).
+        if ($request->filled('from') && ! in_array('from', $except, true)) {
+            $query->whereDate('date', '>=', $request->string('from')->toString());
+        }
+
+        if ($request->filled('to') && ! in_array('to', $except, true)) {
+            $query->whereDate('date', '<=', $request->string('to')->toString());
+        }
+
         $sortDir = $request->string('sort_dir')->toString() === 'asc' ? 'asc' : 'desc';
 
         if ($request->string('sort')->toString() === 'status') {
@@ -170,59 +182,66 @@ class DebtController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = Locales::direction();
-        $debts = $this->filteredQuery($request)->get();
+        return $this->exportTable($request)->pdf($exporter);
+    }
 
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        return $this->exportTable($request)->xlsx($exporter);
+    }
+
+    /** The filtered debts as an export, with the totals each way as its subtitle. */
+    private function exportTable(Request $request): ExportTable
+    {
         $labels = Locales::labels([
             'title' => 'Debts',
             'date' => 'Date',
             'debtor' => 'Debtor',
             'what_for' => 'What for',
             'amount' => 'Amount',
+            'currency' => 'common.currency',
             'direction' => 'Direction',
             'status' => 'Status',
             'recorded_by' => 'Recorded by',
             'outstanding' => 'Outstanding',
             'settled' => 'Settled',
-            'total' => 'Total',
             'receivable' => 'Owed to us',
             'payable' => 'We owe',
             'owed_to_us' => 'Due to us',
             'we_owe' => 'Due from us',
         ]);
 
-        $rows = $debts->map(function (Debt $debt) use ($labels) {
+        $rows = $this->filteredQuery($request)->get()->map(function (Debt $debt) use ($labels) {
             $fuelTypeName = $debt->transaction?->fuelType->name ?? $debt->fuelType?->name;
             $liters = $debt->liters ?? $debt->transaction?->liters;
             $whatFor = $fuelTypeName && $liters
                 ? $fuelTypeName.' — '.number_format((float) $liters, 3).' L'
-                : ($fuelTypeName ?? $debt->details ?? '—');
+                : ($fuelTypeName ?? $debt->details);
 
             return [
                 $debt->date->format('Y-m-d'),
-                $debt->debtor->name ?? '—',
+                $debt->debtor->name ?? null,
                 $whatFor,
-                number_format((float) $debt->amount, 1).' '.$debt->currency,
+                (float) $debt->amount,
+                $debt->currency,
                 $debt->direction === DebtDirection::Payable ? $labels['payable'] : $labels['receivable'],
                 $debt->status === DebtStatus::Outstanding ? $labels['outstanding'] : $labels['settled'],
-                $debt->recordedBy->name ?? '—',
+                $debt->recordedBy->name ?? null,
             ];
-        })->all();
+        })->values()->all();
 
         $formatTotal = fn (array $breakdown) => collect($breakdown)
-            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
+            ->map(fn ($amount, $currency) => number_format($amount, Currency::decimals((string) $currency)).' '.$currency)
             ->implode(' + ');
 
-        $totalBreakdown = $labels['owed_to_us'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Receivable))
-            .' — '.$labels['we_owe'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Payable));
-
-        return $exporter->download(
-            filename: 'debts-'.now()->format('Y-m-d').'.pdf',
+        return new ExportTable(
+            name: 'debts',
             title: $labels['title'],
-            subtitle: $totalBreakdown,
-            headers: [$labels['date'], $labels['debtor'], $labels['what_for'], $labels['amount'], $labels['direction'], $labels['status'], $labels['recorded_by']],
+            subtitle: $labels['owed_to_us'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Receivable))
+                .' — '.$labels['we_owe'].': '.$formatTotal($this->allDebtsTotal($request, DebtDirection::Payable)),
+            headers: [$labels['date'], $labels['debtor'], $labels['what_for'], $labels['amount'], $labels['currency'], $labels['direction'], $labels['status'], $labels['recorded_by']],
             rows: $rows,
-            direction: $direction,
+            decimals: [3 => fn (array $row) => Currency::decimals((string) $row[4])],
         );
     }
 

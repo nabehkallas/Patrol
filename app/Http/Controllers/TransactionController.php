@@ -13,9 +13,12 @@ use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\ExportTable;
 use App\Support\Locales;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +39,11 @@ class TransactionController extends Controller
             'transactions' => $query->paginate(25)->withQueryString()
                 ->through(fn (Transaction $transaction) => [...$transaction->toArray(), 'managed_by' => $transaction->managedBy()]),
             'users' => $user->isAdmin() ? User::orderBy('name')->get(['id', 'name']) : [],
-            'filters' => $request->only(['type', 'user_id']),
+            'filters' => [
+                ...$request->only(['type', 'user_id']),
+                'from' => $this->period($request)[0]->toDateString(),
+                'to' => $this->period($request)[1]->toDateString(),
+            ],
         ]);
     }
 
@@ -47,7 +54,11 @@ class TransactionController extends Controller
     {
         $user = $request->user();
 
-        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor', 'sadcopLedgerEntry'])->latest('occurred_at');
+        [$from, $to] = $this->period($request);
+
+        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor', 'sadcopLedgerEntry'])
+            ->whereBetween('occurred_at', [$from, $to])
+            ->latest('occurred_at');
 
         if (! $user->isAdmin()) {
             $query->where('user_id', $user->id);
@@ -64,9 +75,18 @@ class TransactionController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = Locales::direction();
-        $transactions = $this->filteredQuery($request)->get();
+        return $this->exportTable($request)->pdf($exporter);
+    }
 
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        return $this->exportTable($request)->xlsx($exporter);
+    }
+
+    /** The filtered log as an export: the same columns in the PDF and the spreadsheet. */
+    private function exportTable(Request $request): ExportTable
+    {
+        [$from, $to] = $this->period($request);
         $labels = Locales::labels([
             'title' => 'Transactions',
             'date' => 'Date',
@@ -74,26 +94,45 @@ class TransactionController extends Controller
             'description' => 'Description',
             'liters' => 'Liters',
             'amount' => 'Amount',
+            'currency' => 'common.currency',
             'recorded_by' => 'Recorded by',
+            'types' => collect(TransactionType::cases())
+                ->mapWithKeys(fn (TransactionType $type) => [$type->value => 'transactions.type.'.$type->value])
+                ->all(),
         ]);
 
-        $rows = $transactions->map(fn (Transaction $transaction) => [
+        $rows = $this->filteredQuery($request)->get()->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('Y-m-d H:i'),
-            $transaction->type->value,
-            $transaction->description ?? $transaction->fuelType->name ?? '—',
-            $transaction->liters !== null ? number_format((float) $transaction->liters, 3) : '—',
-            number_format((float) $transaction->amount, 1).' '.$transaction->currency,
-            $transaction->user->name ?? '—',
-        ])->all();
+            $labels['types'][$transaction->type->value] ?? $transaction->type->value,
+            $transaction->description ?? $transaction->fuelType->name ?? null,
+            $transaction->liters !== null ? (float) $transaction->liters : null,
+            (float) $transaction->amount,
+            $transaction->currency,
+            $transaction->user->name ?? null,
+        ])->values()->all();
 
-        return $exporter->download(
-            filename: 'transactions-'.now()->format('Y-m-d').'.pdf',
+        return new ExportTable(
+            name: 'transactions',
             title: $labels['title'],
-            subtitle: null,
-            headers: [$labels['date'], $labels['type'], $labels['description'], $labels['liters'], $labels['amount'], $labels['recorded_by']],
+            subtitle: $from->format('Y-m-d').' – '.$to->format('Y-m-d'),
+            headers: [$labels['date'], $labels['type'], $labels['description'], $labels['liters'], $labels['amount'], $labels['currency'], $labels['recorded_by']],
             rows: $rows,
-            direction: $direction,
+            decimals: [3 => 3, 4 => fn (array $row) => Currency::decimals((string) $row[5])],
         );
+    }
+
+    /**
+     * The log's date range: from/to in the query string, this month by default (like the other
+     * logs). A malformed date is dropped by SanitizeDateFilters before it gets here.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    private function period(Request $request): array
+    {
+        return [
+            ($request->date('from') ?? now()->startOfMonth())->startOfDay(),
+            ($request->date('to') ?? now())->endOfDay(),
+        ];
     }
 
     public function create(): Response

@@ -147,6 +147,9 @@ export default function DebtCreate() {
                 />
 
                 <form onSubmit={submit} className="space-y-6">
+                    <h3 className="text-muted-foreground border-b pb-1.5 text-xs font-semibold uppercase tracking-wide">
+                        {t('forms.section_who')}
+                    </h3>
                     <div className="grid gap-2">
                         <Label htmlFor="direction">
                             {t('debts.direction')}
@@ -214,6 +217,9 @@ export default function DebtCreate() {
                         <InputError message={form.errors.date} />
                     </div>
 
+                    <h3 className="text-muted-foreground border-b pb-1.5 text-xs font-semibold uppercase tracking-wide">
+                        {t('forms.section_what')}
+                    </h3>
                     <div className="grid gap-2">
                         <Label htmlFor="debt_kind">
                             {t('debts.debt_kind')}
@@ -407,7 +413,7 @@ export default function DebtCreate() {
                     </div>
 
                     <Button type="submit" disabled={form.processing}>
-                        {t('debts.new')}
+                        {t('debts.save')}
                     </Button>
                 </form>
             </div>

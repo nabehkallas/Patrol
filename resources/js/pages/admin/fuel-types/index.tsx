@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
+import { RowActions } from '@/components/row-actions';
 import { useTranslation } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/fuel-types';
 import type { FuelType } from '@/types';
@@ -14,9 +14,7 @@ export default function FuelTypesIndex() {
     const { t } = useTranslation();
 
     function remove(fuelType: FuelType) {
-        if (confirm(`${t('common.confirm_delete')} (${fuelType.name})`)) {
-            router.delete(destroy.url(fuelType.id));
-        }
+        router.delete(destroy.url(fuelType.id));
     }
 
     return (
@@ -60,20 +58,11 @@ export default function FuelTypesIndex() {
                                     <td className="px-4 py-3">
                                         {fuelType.slug}
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link
-                                            href={edit(fuelType.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(fuelType)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                    <td className="px-4 py-3 text-end">
+                                        <RowActions
+                                            edit={edit(fuelType.id).url}
+                                            remove={() => remove(fuelType)}
+                                        />
                                     </td>
                                 </tr>
                             ))}

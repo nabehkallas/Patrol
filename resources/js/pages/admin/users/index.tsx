@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
+import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/users';
@@ -16,9 +16,7 @@ export default function UsersIndex() {
     const { t } = useTranslation();
 
     function remove(user: ManagedUser) {
-        if (confirm(`${t('common.confirm_delete')} (${user.name})`)) {
-            router.delete(destroy.url(user.id));
-        }
+        router.delete(destroy.url(user.id));
     }
 
     return (
@@ -76,20 +74,11 @@ export default function UsersIndex() {
                                                 : ''}
                                         </Badge>
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link
-                                            href={edit(user.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(user)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                    <td className="px-4 py-3 text-end">
+                                        <RowActions
+                                            edit={edit(user.id).url}
+                                            remove={() => remove(user)}
+                                        />
                                     </td>
                                 </tr>
                             ))}

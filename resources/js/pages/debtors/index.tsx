@@ -1,8 +1,10 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +16,7 @@ import {
     destroy,
     edit,
     exportPdf,
+    exportXlsx,
     index,
     settleAll,
 } from '@/routes/debtors';
@@ -59,9 +62,7 @@ export default function DebtorsIndex() {
     }, [search]);
 
     function remove(debtor: DebtorSummary) {
-        if (confirm(`${t('common.confirm_delete')} (${debtor.name})`)) {
-            router.delete(destroy.url(debtor.id));
-        }
+        router.delete(destroy.url(debtor.id));
     }
 
     function settleAllDebts(debtor: DebtorSummary) {
@@ -110,9 +111,14 @@ export default function DebtorsIndex() {
                 <SectionToolbar
                     title={t('debtors.list')}
                     actions={
-                        <GeneratePdfButton
-                            href={exportPdf.url({ query: filters })}
-                        />
+                        <>
+                            <GeneratePdfButton
+                                href={exportPdf.url({ query: filters })}
+                            />
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({ query: filters })}
+                            />
+                        </>
                     }
                     filters={
                         <>
@@ -165,7 +171,7 @@ export default function DebtorsIndex() {
                                     <td className="px-4 py-3">
                                         {formatBreakdown(debtor.outstanding)}
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
+                                    <td className="px-4 py-3 text-end">
                                         <Link
                                             href={`${debtsIndex.url()}?debtor_id=${debtor.id}`}
                                             className="text-sm underline"
@@ -185,21 +191,12 @@ export default function DebtorsIndex() {
                                         )}
                                         {auth.isAdmin && (
                                             <>
-                                                <Link
-                                                    href={edit(debtor.id)}
-                                                    className="text-sm underline"
-                                                >
-                                                    {t('common.edit')}
-                                                </Link>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
+                                                <RowActions
+                                                    edit={edit(debtor.id).url}
+                                                    remove={() =>
                                                         remove(debtor)
                                                     }
-                                                >
-                                                    {t('common.delete')}
-                                                </Button>
+                                                />
                                             </>
                                         )}
                                     </td>

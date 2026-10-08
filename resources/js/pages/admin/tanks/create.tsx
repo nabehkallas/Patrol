@@ -102,7 +102,7 @@ export default function TankCreate() {
                     </div>
 
                     <Button type="submit" disabled={form.processing}>
-                        {t('tanks.new')}
+                        {t('tanks.save')}
                     </Button>
                 </form>
             </div>

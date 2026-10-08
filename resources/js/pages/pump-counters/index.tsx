@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
@@ -11,6 +11,7 @@ import {
     PreviousReading,
     SystemLastEntry,
 } from '@/components/pump-counters/last-entry';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -254,9 +255,7 @@ export default function PumpCountersIndex() {
     );
 
     function removeReading(reading: PumpCounterReading) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroy.url(reading.id));
-        }
+        router.delete(destroy.url(reading.id));
     }
 
     return (
@@ -684,7 +683,9 @@ export default function PumpCountersIndex() {
                                 {exportFuelTypes.map((fuelType) => (
                                     <GenerateXlsxButton
                                         key={fuelType.id}
-                                        label={fuelType.name}
+                                        label={t('common.xlsx_for', {
+                                            name: fuelType.name,
+                                        })}
                                         href={exportXlsx.url({
                                             query: {
                                                 fuel_type_id: fuelType.id,
@@ -794,22 +795,13 @@ export default function PumpCountersIndex() {
                                             {reading.notes}
                                         </td>
                                         {auth.isAdmin && (
-                                            <td className="space-x-2 px-4 py-3 text-end">
-                                                <Link
-                                                    href={edit(reading.id)}
-                                                    className="text-sm underline"
-                                                >
-                                                    {t('common.edit')}
-                                                </Link>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
+                                            <td className="px-4 py-3 text-end">
+                                                <RowActions
+                                                    edit={edit(reading.id).url}
+                                                    remove={() =>
                                                         removeReading(reading)
                                                     }
-                                                >
-                                                    {t('common.delete')}
-                                                </Button>
+                                                />
                                             </td>
                                         )}
                                     </tr>

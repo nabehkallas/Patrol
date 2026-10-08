@@ -10,6 +10,9 @@ use App\Http\Requests\UpdateDebtorRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
+use App\Support\Currency;
+use App\Support\ExportTable;
 use App\Support\Locales;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -114,35 +117,47 @@ class DebtorController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $direction = Locales::direction();
+        return $this->exportTable($request)->pdf($exporter);
+    }
 
-        $debtors = $this->filteredQuery($request)->orderBy('name')->get();
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        return $this->exportTable($request)->xlsx($exporter);
+    }
 
+    /** Each debtor with what they owe: one row per currency they owe in (or one zero row). */
+    private function exportTable(Request $request): ExportTable
+    {
         $labels = Locales::labels([
             'title' => 'Debtors',
             'name' => 'Name',
             'phone' => 'Phone',
             'outstanding' => 'Outstanding',
+            'currency' => 'common.currency',
         ]);
 
-        $formatBreakdown = fn (array $breakdown) => collect($breakdown)
-            ->reject(fn ($amount, $currency) => $currency !== 'SYP' && $amount == 0)
-            ->map(fn ($amount, $currency) => number_format($amount, $currency === 'SYP' ? 0 : 2).' '.$currency)
-            ->implode(' + ');
+        $rows = [];
+        foreach ($this->filteredQuery($request)->orderBy('name')->get() as $debtor) {
+            $owed = collect($this->outstandingTotal($debtor))->filter(fn ($amount) => abs((float) $amount) > 0.004);
 
-        $rows = $debtors->map(fn (Debtor $debtor) => [
-            $debtor->name,
-            $debtor->phone ?? '—',
-            $formatBreakdown($this->outstandingTotal($debtor)),
-        ])->all();
+            if ($owed->isEmpty()) {
+                $rows[] = [$debtor->name, $debtor->phone, 0.0, Currency::primary()];
 
-        return $exporter->download(
-            filename: 'debtors-'.now()->format('Y-m-d').'.pdf',
+                continue;
+            }
+
+            foreach ($owed as $currency => $amount) {
+                $rows[] = [$debtor->name, $debtor->phone, (float) $amount, (string) $currency];
+            }
+        }
+
+        return new ExportTable(
+            name: 'debtors',
             title: $labels['title'],
             subtitle: null,
-            headers: [$labels['name'], $labels['phone'], $labels['outstanding']],
+            headers: [$labels['name'], $labels['phone'], $labels['outstanding'], $labels['currency']],
             rows: $rows,
-            direction: $direction,
+            decimals: [2 => fn (array $row) => Currency::decimals((string) $row[3])],
         );
     }
 

@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
+import { RowActions } from '@/components/row-actions';
 import { useTranslation } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/fuel-pumps';
 import type { FuelPump } from '@/types';
@@ -14,9 +14,7 @@ export default function FuelPumpsIndex() {
     const { t } = useTranslation();
 
     function remove(pump: FuelPump) {
-        if (confirm(`${t('common.confirm_delete')} (${pump.name})`)) {
-            router.delete(destroy.url(pump.id));
-        }
+        router.delete(destroy.url(pump.id));
     }
 
     return (
@@ -62,20 +60,11 @@ export default function FuelPumpsIndex() {
                                             ? pump.fuel_type_names.join(', ')
                                             : '—'}
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link
-                                            href={edit(pump.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(pump)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                    <td className="px-4 py-3 text-end">
+                                        <RowActions
+                                            edit={edit(pump.id).url}
+                                            remove={() => remove(pump)}
+                                        />
                                     </td>
                                 </tr>
                             ))}

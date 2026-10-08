@@ -17,7 +17,7 @@ export function GenerateXlsxButton({
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="hover:bg-muted inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium"
         >
             <FileSpreadsheet className="size-4" />
             {label ?? t('common.generate_xlsx')}

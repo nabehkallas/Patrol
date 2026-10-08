@@ -12,7 +12,9 @@ use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\AnnualFinancialSummary;
 use App\Services\PdfTableExporter;
+use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\ExportTable;
 use App\Support\Locales;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -264,9 +266,23 @@ class StatisticsController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
+        return $this->exportTable($request)->pdf($exporter);
+    }
+
+    public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
+    {
+        return $this->exportTable($request)->xlsx($exporter);
+    }
+
+    /**
+     * The period's figures as one table: fuel sold and income by fuel type and by employee (in
+     * the primary currency), then deliveries and debt activity in their own currencies.
+     */
+    private function exportTable(Request $request): ExportTable
+    {
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $direction = Locales::direction();
+        $primary = Currency::primary();
 
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
@@ -281,7 +297,8 @@ class StatisticsController extends Controller
             'section' => 'Section',
             'name' => 'Name',
             'liters' => 'Liters',
-            'income' => __('Income (:currency)', ['currency' => Currency::primary()]),
+            'amount' => 'Amount',
+            'currency' => 'common.currency',
             'by_fuel_type' => 'By fuel type',
             'by_employee' => 'By employee',
             'deliveries' => 'Fuel deliveries',
@@ -294,12 +311,13 @@ class StatisticsController extends Controller
         $rows = $transactions
             ->where('type', TransactionType::FuelSale)
             ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
-            ->map(function (Collection $txns) use ($sypRate, $labels) {
+            ->map(function (Collection $txns) use ($sypRate, $labels, $primary) {
                 return [
                     $labels['by_fuel_type'],
                     $txns->first()->fuelType->name ?? '—',
-                    number_format($txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters), 3),
-                    number_format($txns->reject(fn (Transaction $t) => $t->isPendingDebt())->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), Currency::decimals(Currency::primary())),
+                    (float) $txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters),
+                    (float) $txns->reject(fn (Transaction $t) => $t->isPendingDebt())->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)),
+                    $primary,
                 ];
             })
             ->values()
@@ -308,14 +326,15 @@ class StatisticsController extends Controller
         if ($isAdmin) {
             $employeeRows = $transactions
                 ->groupBy('user_id')
-                ->map(function (Collection $txns) use ($sypRate, $labels) {
+                ->map(function (Collection $txns) use ($sypRate, $labels, $primary) {
                     $summary = $this->summarize($txns, $sypRate);
 
                     return [
                         $labels['by_employee'],
                         $txns->first()->user->name ?? '—',
-                        number_format($summary['liters_sold'], 3),
-                        number_format($summary['income_syp'], Currency::decimals(Currency::primary())),
+                        (float) $summary['liters_sold'],
+                        (float) $summary['income_syp'],
+                        $primary,
                     ];
                 })
                 ->values()
@@ -329,8 +348,9 @@ class StatisticsController extends Controller
             ->map(fn (Transaction $t) => [
                 $labels['deliveries'],
                 ($t->fuelType->name ?? '—').' — '.($t->tank->name ?? '—'),
-                number_format((float) $t->liters, 3),
-                number_format((float) $t->amount, 0).' '.$t->currency,
+                (float) $t->liters,
+                (float) $t->amount,
+                $t->currency,
             ])
             ->values()
             ->all();
@@ -341,26 +361,28 @@ class StatisticsController extends Controller
             ...collect($debtsCreated)->map(fn (array $debt) => [
                 $labels['debts_created'],
                 $debt['debtor_name'].' ('.($debt['direction'] === 'payable' ? $labels['payable'] : $labels['receivable']).')',
-                '—',
-                number_format($debt['amount'], 0).' '.$debt['currency'],
+                null,
+                (float) $debt['amount'],
+                $debt['currency'],
             ])->all(),
             ...collect($debtsSettled)->map(fn (array $payment) => [
                 $labels['debts_settled'],
                 $payment['debtor_name'].' ('.($payment['direction'] === 'payable' ? $labels['payable'] : $labels['receivable']).')',
-                '—',
-                number_format($payment['amount'], 0).' '.$payment['currency'],
+                null,
+                (float) $payment['amount'],
+                $payment['currency'],
             ])->all(),
         ];
 
         $rows = [...$rows, ...$deliveryRows, ...$debtRows];
 
-        return $exporter->download(
-            filename: 'statistics-'.now()->format('Y-m-d').'.pdf',
+        return new ExportTable(
+            name: 'statistics',
             title: $labels['title'],
-            subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['section'], $labels['name'], $labels['liters'], $labels['income']],
+            subtitle: $from->toDateString().' – '.$to->toDateString(),
+            headers: [$labels['section'], $labels['name'], $labels['liters'], $labels['amount'], $labels['currency']],
             rows: $rows,
-            direction: $direction,
+            decimals: [2 => 3, 3 => fn (array $row) => Currency::decimals((string) $row[4])],
         );
     }
 

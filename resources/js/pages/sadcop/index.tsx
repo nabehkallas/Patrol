@@ -7,6 +7,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,9 +94,7 @@ export default function SadcopIndex() {
     }
 
     function remove(entry: SadcopLedgerEntry) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroy.url(entry.id));
-        }
+        router.delete(destroy.url(entry.id));
     }
 
     if (needsOpeningBalance) {
@@ -367,20 +366,11 @@ export default function SadcopIndex() {
                                         {entry.recorded_by?.name}
                                     </td>
                                     {auth.isAdmin && (
-                                        <td className="space-x-2 px-4 py-3 text-end">
-                                            <Link
-                                                href={edit(entry.id)}
-                                                className="text-sm underline"
-                                            >
-                                                {t('common.edit')}
-                                            </Link>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => remove(entry)}
-                                            >
-                                                {t('common.delete')}
-                                            </Button>
+                                        <td className="px-4 py-3 text-end">
+                                            <RowActions
+                                                edit={edit(entry.id).url}
+                                                remove={() => remove(entry)}
+                                            />
                                         </td>
                                     )}
                                 </tr>

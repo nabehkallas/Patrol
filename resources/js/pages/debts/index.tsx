@@ -7,9 +7,11 @@ import { DateRangePicker } from '@/components/date-range-picker';
 import type { DebtorCard } from '@/components/debts/debtor-overview';
 import { DebtorOverview } from '@/components/debts/debtor-overview';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +45,7 @@ import {
     destroy,
     edit,
     exportPdf,
+    exportXlsx,
     index,
     settle,
     settleFiltered,
@@ -70,6 +73,8 @@ type PageProps = {
         sort?: string;
         sort_dir?: string;
         debtor_id?: string;
+        from?: string;
+        to?: string;
     };
     totals: DebtsSummary;
     debtorCards: DebtorCard[];
@@ -119,9 +124,7 @@ export default function DebtsIndex() {
     }
 
     function remove(debt: Debt) {
-        if (confirm(`${t('common.confirm_delete')} (${debt.debtor?.name})`)) {
-            router.delete(destroy.url(debt.id));
-        }
+        router.delete(destroy.url(debt.id));
     }
 
     function whatFor(debt: Debt): string {
@@ -286,10 +289,28 @@ export default function DebtsIndex() {
 
                 <SectionToolbar
                     title={t('debts.log')}
-                    actions={
-                        <GeneratePdfButton
-                            href={exportPdf.url({ query: filters })}
+                    children={
+                        <DateRangePicker
+                            clearable
+                            from={filters.from ?? ''}
+                            to={filters.to ?? ''}
+                            onChange={(range) =>
+                                applyFilter({
+                                    from: range.from || undefined,
+                                    to: range.to || undefined,
+                                })
+                            }
                         />
+                    }
+                    actions={
+                        <>
+                            <GeneratePdfButton
+                                href={exportPdf.url({ query: filters })}
+                            />
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({ query: filters })}
+                            />
+                        </>
                     }
                     filters={
                         <>
@@ -382,7 +403,8 @@ export default function DebtsIndex() {
                     }
                 />
 
-                {auth.isAdmin && settleable && (
+                {/* Shown only when the filters match unsettled debts: a disabled bar with nothing to settle was noise. */}
+                {auth.isAdmin && settleable && settleable.count > 0 && (
                     <div
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/40 dark:bg-amber-500/10"
                         data-test="settle-filtered-bar"
@@ -543,7 +565,7 @@ export default function DebtsIndex() {
                                     <td className="px-4 py-3">
                                         {debt.recorded_by?.name}
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
+                                    <td className="px-4 py-3 text-end">
                                         {debt.status === 'outstanding' && (
                                             <>
                                                 <Button
@@ -579,19 +601,10 @@ export default function DebtsIndex() {
                                         )}
                                         {auth.isAdmin && (
                                             <>
-                                                <Link
-                                                    href={edit(debt.id)}
-                                                    className="text-sm underline"
-                                                >
-                                                    {t('common.edit')}
-                                                </Link>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => remove(debt)}
-                                                >
-                                                    {t('common.delete')}
-                                                </Button>
+                                                <RowActions
+                                                    edit={edit(debt.id).url}
+                                                    remove={() => remove(debt)}
+                                                />
                                             </>
                                         )}
                                     </td>

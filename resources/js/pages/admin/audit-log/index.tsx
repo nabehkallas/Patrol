@@ -1,4 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { Fragment } from 'react';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
 import { SectionToolbar } from '@/components/section-toolbar';
@@ -77,16 +78,66 @@ const ACTION_TONE: Record<string, string> = {
     deleted: 'text-red-700 dark:text-red-400',
 };
 
-function show(value: unknown): string {
+// What each logged field is called on screen. Fields not listed get a tidied version of their
+// name ("liters_sold" → "Liters sold").
+const FIELD_LABELS: Record<string, TranslationKey> = {
+    name: 'common.name',
+    email: 'common.email',
+    amount: 'common.amount',
+    currency: 'common.currency',
+    liters: 'common.liters',
+    quantity_liters: 'common.liters',
+    date: 'common.date',
+    occurred_at: 'common.date',
+    effective_at: 'common.date',
+    notes: 'common.notes',
+    details: 'common.details',
+    description: 'common.details',
+    status: 'common.status',
+    type: 'common.type',
+    direction: 'debts.direction',
+    tank_id: 'common.tank',
+    from_tank_id: 'common.tank',
+    pump_id: 'common.pump',
+    fuel_type_id: 'common.fuel_type',
+    debtor_id: 'common.debtor',
+    price_per_liter: 'transactions.price_per_liter',
+    exchange_rate_to_usd: 'transactions.exchange_rate',
+    rate_to_usd: 'transactions.exchange_rate',
+    capacity_liters: 'inventory.capacity',
+    reading_value: 'pump_counters.reading_value',
+    is_active: 'tanks.active',
+    password: 'audit.field.password',
+    must_change_password: 'audit.field.must_change_password',
+    phone: 'audit.field.phone',
+    slug: 'audit.field.slug',
+    user_id: 'audit.field.employee',
+    recorded_by_id: 'audit.field.employee',
+};
+
+function show(value: unknown, t: (key: TranslationKey) => string): string {
     if (value === null || value === undefined || value === '') {
         return '—';
+    }
+
+    if (typeof value === 'boolean') {
+        return value ? t('audit.value.yes') : t('audit.value.no');
+    }
+
+    if (value === '[changed]') {
+        return t('audit.value.changed');
     }
 
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
-/** The changed fields as "field: old → new" (arrow flipped in RTL; values only for create/delete). */
+/**
+ * The changed fields, one per line: "Field  old → new" (arrow flipped in RTL; just the value for
+ * creates and deletes). Values are isolated so Latin text and numbers keep their own order
+ * inside Arabic text.
+ */
 function Changes({ log }: { log: AuditLog }) {
+    const { t } = useTranslation();
     const { direction } = useLocale();
     const arrow = direction === 'rtl' ? '←' : '→';
     const keys = Array.from(
@@ -100,30 +151,37 @@ function Changes({ log }: { log: AuditLog }) {
         return <span className="text-muted-foreground">—</span>;
     }
 
+    const label = (key: string) =>
+        FIELD_LABELS[key]
+            ? t(FIELD_LABELS[key])
+            : key
+                  .replace(/_id$/, '')
+                  .replace(/_/g, ' ')
+                  .replace(/^\w/, (c) => c.toUpperCase());
+
     return (
-        <ul className="space-y-0.5 text-xs">
+        <dl className="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-3 gap-y-1 text-xs">
             {keys.map((key) => (
-                <li key={key} className="break-all">
-                    <span className="text-muted-foreground font-mono">
-                        {key}
-                    </span>
-                    :{' '}
-                    {log.old_values && key in log.old_values && (
-                        <>
-                            <bdi className="line-through opacity-70">
-                                {show(log.old_values[key])}
-                            </bdi>{' '}
-                            {arrow}{' '}
-                        </>
-                    )}
-                    <bdi className="font-medium">
-                        {log.new_values && key in log.new_values
-                            ? show(log.new_values[key])
-                            : '—'}
-                    </bdi>
-                </li>
+                <Fragment key={key}>
+                    <dt className="text-muted-foreground">{label(key)}</dt>
+                    <dd className="break-words">
+                        {log.old_values && key in log.old_values && (
+                            <>
+                                <bdi className="line-through opacity-70">
+                                    {show(log.old_values[key], t)}
+                                </bdi>{' '}
+                                <span aria-hidden="true">{arrow}</span>{' '}
+                            </>
+                        )}
+                        <bdi className="font-medium">
+                            {log.new_values && key in log.new_values
+                                ? show(log.new_values[key], t)
+                                : '—'}
+                        </bdi>
+                    </dd>
+                </Fragment>
             ))}
-        </ul>
+        </dl>
     );
 }
 
@@ -225,22 +283,35 @@ export default function AuditLogIndex() {
                                 <th className="px-4 py-3">
                                     {t('audit.col_changes')}
                                 </th>
-                                <th className="px-4 py-3">
-                                    {t('audit.col_ip')}
-                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {logs.data.map((log) => (
                                 <tr key={log.id} className="border-t align-top">
+                                    {/* The address the change came from sits under its time, leaving the room to the changes. */}
                                     <td className="whitespace-nowrap px-4 py-3">
-                                        {formatDateTime(log.created_at)}
+                                        <div>
+                                            {formatDateTime(log.created_at)}
+                                        </div>
+                                        {log.ip_address && (
+                                            <bdi
+                                                dir="ltr"
+                                                className="text-muted-foreground font-mono text-xs"
+                                                title={t('audit.col_ip')}
+                                            >
+                                                {log.ip_address}
+                                            </bdi>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {log.user_name ?? '—'}
+                                        {log.user_name ?? (
+                                            <span className="text-muted-foreground">
+                                                {t('audit.system')}
+                                            </span>
+                                        )}
                                     </td>
                                     <td
-                                        className={`whitespace-nowrap px-4 py-3 font-medium ${ACTION_TONE[log.action] ?? ''}`}
+                                        className={`min-w-[9rem] px-4 py-3 font-medium ${ACTION_TONE[log.action] ?? ''}`}
                                     >
                                         {actionLabel(log.action)}
                                     </td>
@@ -253,20 +324,15 @@ export default function AuditLogIndex() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="max-w-md px-4 py-3">
+                                    <td className="w-1/2 min-w-[18rem] px-4 py-3">
                                         <Changes log={log} />
-                                    </td>
-                                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">
-                                        <bdi dir="ltr">
-                                            {log.ip_address ?? '—'}
-                                        </bdi>
                                     </td>
                                 </tr>
                             ))}
                             {logs.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={6}
+                                        colSpan={5}
                                         className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}

@@ -8,6 +8,7 @@ import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -307,11 +308,9 @@ function ItemCard({ item }: { item: ShopItem }) {
     }
 
     function removeItem() {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroyItem.url(item.id), {
-                preserveScroll: true,
-            });
-        }
+        router.delete(destroyItem.url(item.id), {
+            preserveScroll: true,
+        });
     }
 
     return (
@@ -325,24 +324,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
                     <div className="flex items-center gap-1">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground h-6 rounded-md border px-2 text-xs dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-white"
-                            onClick={openEdit}
-                        >
-                            {t('common.edit')}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground h-6 rounded-md border px-2 text-xs dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-white"
-                            onClick={removeItem}
-                        >
-                            {t('common.delete')}
-                        </Button>
+                        <RowActions edit={openEdit} remove={removeItem} />
                     </div>
                 </CardTitle>
             </CardHeader>
@@ -405,7 +387,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                         <Button
                             type="button"
                             size="sm"
-                            className="h-8 rounded-lg bg-rose-600 px-3 font-medium text-white hover:bg-rose-500"
+                            className="h-8 rounded-lg bg-sky-700 px-3 font-medium text-white hover:bg-sky-600"
                             onClick={openBuy}
                         >
                             {t('shop.buy')}
@@ -677,11 +659,9 @@ export default function ShopIndex() {
     );
 
     function removeHistoryEntry(entry: HistoryEntry) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroyTransaction.url(entry.id), {
-                preserveScroll: true,
-            });
-        }
+        router.delete(destroyTransaction.url(entry.id), {
+            preserveScroll: true,
+        });
     }
 
     const [editingEntry, setEditingEntry] = useState<HistoryEntry | null>(null);
@@ -751,46 +731,44 @@ export default function ShopIndex() {
                     )}
                 </div>
 
-                <div className="space-y-3">
-                    <div>
-                        <h3 className="font-semibold">
-                            {summaryType === 'purchase'
-                                ? t('shop.quantity_purchased')
-                                : t('shop.quantity_sold')}
-                        </h3>
-                        <p className="text-muted-foreground text-sm">
-                            {summaryType === 'purchase'
-                                ? t('shop.quantity_purchased_description')
-                                : t('shop.quantity_sold_description')}
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        {itemTotals.map((row) => (
-                            <div
-                                key={row.id}
-                                className="bg-card flex items-center gap-3 rounded-xl border px-4 py-2.5 dark:border-slate-700/60 dark:bg-slate-800/80"
-                            >
-                                <span className="text-muted-foreground text-sm font-medium dark:text-slate-400">
-                                    <bdi>{row.name}</bdi>:
-                                </span>
-                                <span
-                                    className={cn(
-                                        'text-xl font-extrabold',
-                                        categoryColors(row.category).text,
-                                    )}
-                                >
-                                    {formatNumber(row.quantity, 0)}
-                                </span>
-                            </div>
-                        ))}
-                        {itemTotals.length === 0 && (
+                {/* Totals for the period; nothing to show until something was sold or bought. */}
+                {itemTotals.length > 0 && (
+                    <div className="space-y-3">
+                        <div>
+                            <h3 className="font-semibold">
+                                {summaryType === 'purchase'
+                                    ? t('shop.quantity_purchased')
+                                    : t('shop.quantity_sold')}
+                            </h3>
                             <p className="text-muted-foreground text-sm">
-                                {t('common.no_results')}
+                                {summaryType === 'purchase'
+                                    ? t('shop.quantity_purchased_description')
+                                    : t('shop.quantity_sold_description')}
                             </p>
-                        )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                            {itemTotals.map((row) => (
+                                <div
+                                    key={row.id}
+                                    className="bg-card flex items-center gap-3 rounded-xl border px-4 py-2.5 dark:border-slate-700/60 dark:bg-slate-800/80"
+                                >
+                                    <span className="text-muted-foreground text-sm font-medium dark:text-slate-400">
+                                        <bdi>{row.name}</bdi>:
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'text-xl font-extrabold',
+                                            categoryColors(row.category).text,
+                                        )}
+                                    >
+                                        {formatNumber(row.quantity, 0)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="space-y-3">
                     <SectionToolbar
@@ -953,26 +931,16 @@ export default function ShopIndex() {
                                         </td>
                                         {auth.isAdmin && (
                                             <td className="px-4 py-3 text-end">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
+                                                <RowActions
+                                                    edit={() =>
                                                         openEditEntry(entry)
                                                     }
-                                                >
-                                                    {t('common.edit')}
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
+                                                    remove={() =>
                                                         removeHistoryEntry(
                                                             entry,
                                                         )
                                                     }
-                                                >
-                                                    {t('common.delete')}
-                                                </Button>
+                                                />
                                             </td>
                                         )}
                                     </tr>

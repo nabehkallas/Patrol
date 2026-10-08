@@ -104,7 +104,7 @@ export default function DebtorCreate() {
                     </div>
 
                     <Button type="submit" disabled={form.processing}>
-                        {t('debtors.new')}
+                        {t('debtors.save')}
                     </Button>
                 </form>
             </div>

@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, formatShortDate } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { SalesChartData } from '@/types';
 
@@ -29,12 +29,7 @@ const COLORS = [
 type Range = '7' | '30';
 
 function formatChartDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-
-    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-    });
+    return formatShortDate(value);
 }
 
 export function SalesChart({ chart }: { chart: SalesChartData }) {
@@ -76,7 +71,9 @@ export function SalesChart({ chart }: { chart: SalesChartData }) {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="h-72 w-full">
+                {/* Axes and numbers read left to right in every language (in RTL the y-axis labels
+                    otherwise collide with the axis line). */}
+                <div className="h-72 w-full" dir="ltr">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data}>
                             <CartesianGrid

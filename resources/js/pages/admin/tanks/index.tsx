@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
+import { RowActions } from '@/components/row-actions';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -23,15 +23,13 @@ export default function TanksIndex() {
     const { t } = useTranslation();
 
     function remove(tank: Tank) {
-        if (confirm(`${t('common.confirm_delete')} (${tank.name})`)) {
-            router.delete(destroy.url(tank.id), {
-                onError: (errors) => {
-                    if (errors.tank) {
-                        toast.error(errors.tank);
-                    }
-                },
-            });
-        }
+        router.delete(destroy.url(tank.id), {
+            onError: (errors) => {
+                if (errors.tank) {
+                    toast.error(errors.tank);
+                }
+            },
+        });
     }
 
     function toggle(tank: Tank) {
@@ -102,20 +100,11 @@ export default function TanksIndex() {
                                                 : t('tanks.inactive')}
                                         </button>
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link
-                                            href={edit(tank.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(tank)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
+                                    <td className="px-4 py-3 text-end">
+                                        <RowActions
+                                            edit={edit(tank.id).url}
+                                            remove={() => remove(tank)}
+                                        />
                                     </td>
                                 </tr>
                             ))}

@@ -12,6 +12,7 @@ import {
 import type { Locale } from '@/hooks/use-locale';
 import { useLocale } from '@/hooks/use-locale';
 import { formatDate, formatMonthYear, formatWeekdayShort } from '@/lib/format';
+import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 /**
@@ -34,6 +35,11 @@ type DateRangePickerProps = {
     from: string;
     to: string;
     onChange: (range: { from: string; to: string }) => void;
+    /**
+     * The range is optional: empty from/to means "all dates", shown as such, and the popover
+     * offers a button to go back to all dates.
+     */
+    clearable?: boolean;
     className?: string;
 };
 
@@ -68,10 +74,13 @@ export function DateRangePicker({
     from,
     to,
     onChange,
+    clearable = false,
     className,
 }: DateRangePickerProps) {
     const [open, setOpen] = useState(false);
     const { locale, direction } = useLocale();
+    const { t } = useTranslation();
+    const isAll = !from || !to;
     const [pending, setPending] = useState<DateRange | undefined>(undefined);
 
     function handleOpenChange(nextOpen: boolean) {
@@ -99,10 +108,11 @@ export function DateRangePicker({
         }
     }
 
-    const displayed: DateRange = pending ?? {
-        from: parseDateOnly(from),
-        to: parseDateOnly(to),
-    };
+    const displayed: DateRange | undefined =
+        pending ??
+        (isAll
+            ? undefined
+            : { from: parseDateOnly(from), to: parseDateOnly(to) });
 
     return (
         <Popover open={open} onOpenChange={handleOpenChange}>
@@ -113,7 +123,9 @@ export function DateRangePicker({
                     className={cn('font-normal', className)}
                 >
                     <CalendarIcon />
-                    {formatDate(from)} – {formatDate(to)}
+                    {isAll
+                        ? t('common.all_dates')
+                        : `${formatDate(from)} – ${formatDate(to)}`}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -127,10 +139,26 @@ export function DateRangePicker({
                         formatWeekdayName: formatWeekdayShort,
                     }}
                     resetOnSelect
-                    defaultMonth={displayed.from}
+                    defaultMonth={displayed?.from}
                     selected={displayed}
                     onSelect={handleSelect}
                 />
+                {clearable && !isAll && (
+                    <div className="border-t p-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                                onChange({ from: '', to: '' });
+                                setOpen(false);
+                            }}
+                        >
+                            {t('common.all_dates')}
+                        </Button>
+                    </div>
+                )}
             </PopoverContent>
         </Popover>
     );

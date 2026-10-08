@@ -4,8 +4,10 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
+import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import { SalesChart } from '@/components/sales-chart';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { AnnualSummary } from '@/components/statistics/annual-summary';
 import type { AnnualSummaryData } from '@/components/statistics/annual-summary';
 import { AnnualUnlockDialog } from '@/components/statistics/annual-unlock-dialog';
@@ -26,7 +28,7 @@ import {
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { exportPdf, index } from '@/routes/statistics';
+import { exportPdf, exportXlsx, index } from '@/routes/statistics';
 import type {
     Auth,
     Currency,
@@ -292,26 +294,14 @@ function Overview() {
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
-    const [fromVal, setFromVal] = useState(from);
-    const [toVal, setToVal] = useState(to);
-
-    function apply() {
-        router.get(
-            index.url(),
-            { from: fromVal, to: toVal },
-            { preserveState: false },
-        );
+    // Picking a range shows it straight away, like every other report.
+    function show(range: { from: string; to: string }) {
+        router.get(index.url(), range, { preserveState: false });
     }
 
     function goToToday() {
         const today = todayInStation();
-        setFromVal(today);
-        setToVal(today);
-        router.get(
-            index.url(),
-            { from: today, to: today },
-            { preserveState: false },
-        );
+        show({ from: today, to: today });
     }
 
     const fuelText = (name: string) =>
@@ -327,31 +317,31 @@ function Overview() {
     return (
         <>
             <div className="space-y-6">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-wrap items-end gap-4">
+                <SectionToolbar
+                    title={t('statistics.period')}
+                    children={
+                        <>
                             <DateRangePicker
-                                from={fromVal}
-                                to={toVal}
-                                onChange={(range) => {
-                                    setFromVal(range.from);
-                                    setToVal(range.to);
-                                }}
+                                from={from}
+                                to={to}
+                                onChange={show}
                             />
-                            <Button onClick={apply}>
-                                {t('statistics.apply')}
-                            </Button>
                             <Button variant="outline" onClick={goToToday}>
                                 {t('statistics.today')}
                             </Button>
+                        </>
+                    }
+                    actions={
+                        <>
                             <GeneratePdfButton
-                                href={exportPdf.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
+                                href={exportPdf.url({ query: { from, to } })}
                             />
-                        </div>
-                    </CardContent>
-                </Card>
+                            <GenerateXlsxButton
+                                href={exportXlsx.url({ query: { from, to } })}
+                            />
+                        </>
+                    }
+                />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <KpiCard
@@ -383,7 +373,8 @@ function Overview() {
 
                 <SalesChart chart={salesChart} />
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+                {/* Cards wrap and stretch to fill each row, so no row ends in an empty slot. */}
+                <div className="flex flex-wrap gap-4 *:min-w-0 *:flex-[1_1_18rem]">
                     <BreakdownCard title={t('statistics.fuel_sales_by_type')}>
                         {byFuelType.map((row) => (
                             <BreakdownRow
