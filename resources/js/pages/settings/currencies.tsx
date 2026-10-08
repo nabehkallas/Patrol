@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatNumber } from '@/lib/format';
+import { currencyName, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
@@ -126,7 +126,7 @@ function AddCurrencyForm({ existing }: { existing: string[] }) {
                     <SelectContent>
                         {available.map((p) => (
                             <SelectItem key={p.code} value={p.code}>
-                                {p.code} — {p.name}
+                                {p.code} — {currencyName(p.code, p.name)}
                             </SelectItem>
                         ))}
                         <SelectItem value={CUSTOM}>
@@ -213,7 +213,9 @@ function AddCurrencyForm({ existing }: { existing: string[] }) {
                             onChange={(e) =>
                                 form.setData('rate_to_usd', e.target.value)
                             }
-                            placeholder="e.g. 0.92"
+                            placeholder={t('common.for_example', {
+                                value: '0.92',
+                            })}
                         />
                         <InputError message={form.errors.rate_to_usd} />
                     </div>
@@ -295,7 +297,7 @@ export default function Currencies() {
                                     )}
                                 </div>
                                 <div className="text-muted-foreground text-sm">
-                                    {row.name}
+                                    {currencyName(row.code, row.name)}
                                 </div>
                             </div>
                             <div

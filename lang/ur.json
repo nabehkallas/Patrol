@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "یہ اندراج :screen میں درج ہوا تھا۔ اسے وہیں تبدیل یا حذف کریں۔",
     ":tank is below zero (:liters L).": ":tank صفر سے کم ہے (:liters لیٹر)۔",
     "Record the missing delivery, or check the counter reading.": "رہ جانے والی ترسیل درج کریں یا میٹر ریڈنگ چیک کریں۔",
-    "The page expired. Please try again.": "صفحے کی میعاد ختم ہو گئی۔ براہ کرم دوبارہ کوشش کریں۔"
+    "The page expired. Please try again.": "صفحے کی میعاد ختم ہو گئی۔ براہ کرم دوبارہ کوشش کریں۔",
+    "common.current_value": "(موجودہ: :value)",
+    "common.for_example": "مثلاً :value"
 }

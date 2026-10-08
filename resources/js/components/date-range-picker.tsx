@@ -1,6 +1,7 @@
 import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
-import type { DateRange } from 'react-day-picker';
+import type { DateRange, Locale as DayPickerLocale } from 'react-day-picker';
+import { ar, de, es, fr, hi, it, ru, tr } from 'react-day-picker/locale';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -8,8 +9,26 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { formatDate } from '@/lib/format';
+import type { Locale } from '@/hooks/use-locale';
+import { useLocale } from '@/hooks/use-locale';
+import { formatDate, formatMonthYear, formatWeekdayShort } from '@/lib/format';
 import { cn } from '@/lib/utils';
+
+/**
+ * The calendar's week layout per language (which day the week starts on). Month and weekday
+ * names come from formatMonthYear/formatWeekdayShort instead, so they match the dates shown
+ * everywhere else. Languages missing here start on Sunday.
+ */
+const CALENDAR_LOCALES: Partial<Record<Locale, DayPickerLocale>> = {
+    ar,
+    de,
+    es,
+    fr,
+    hi,
+    it,
+    ru,
+    tr,
+};
 
 type DateRangePickerProps = {
     from: string;
@@ -52,6 +71,7 @@ export function DateRangePicker({
     className,
 }: DateRangePickerProps) {
     const [open, setOpen] = useState(false);
+    const { locale, direction } = useLocale();
     const [pending, setPending] = useState<DateRange | undefined>(undefined);
 
     function handleOpenChange(nextOpen: boolean) {
@@ -99,6 +119,13 @@ export function DateRangePicker({
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                     mode="range"
+                    locale={CALENDAR_LOCALES[locale]}
+                    dir={direction}
+                    numerals="latn"
+                    formatters={{
+                        formatCaption: formatMonthYear,
+                        formatWeekdayName: formatWeekdayShort,
+                    }}
                     resetOnSelect
                     defaultMonth={displayed.from}
                     selected={displayed}

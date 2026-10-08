@@ -155,5 +155,5 @@ export default function ExchangeRatesIndex() {
 }
 
 ExchangeRatesIndex.layout = {
-    breadcrumbs: [{ title: 'Exchange rates', href: index() }],
+    breadcrumbs: [{ title: 'nav.exchange_rates', href: index() }],
 };

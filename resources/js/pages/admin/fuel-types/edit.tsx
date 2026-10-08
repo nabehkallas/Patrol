@@ -1,5 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import type {FormEvent} from 'react';
+import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -34,13 +34,27 @@ export default function FuelTypeEdit() {
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="name">{t('common.name')}</Label>
-                        <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
+                        <Input
+                            id="name"
+                            value={form.data.name}
+                            onChange={(e) =>
+                                form.setData('name', e.target.value)
+                            }
+                            required
+                        />
                         <InputError message={form.errors.name} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="slug">{t('common.slug')}</Label>
-                        <Input id="slug" value={form.data.slug} onChange={(e) => form.setData('slug', e.target.value)} required />
+                        <Input
+                            id="slug"
+                            value={form.data.slug}
+                            onChange={(e) =>
+                                form.setData('slug', e.target.value)
+                            }
+                            required
+                        />
                         <InputError message={form.errors.slug} />
                     </div>
 
@@ -55,7 +69,7 @@ export default function FuelTypeEdit() {
 
 FuelTypeEdit.layout = {
     breadcrumbs: [
-        { title: 'Fuel types', href: index() },
-        { title: 'Edit', href: '' },
+        { title: 'nav.fuel_types', href: index() },
+        { title: 'common.edit', href: '' },
     ],
 };

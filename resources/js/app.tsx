@@ -10,6 +10,7 @@ import PlatformLayout from '@/layouts/platform-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import {
     getStationTimeZone,
+    setCurrencies,
     setPrimaryCurrency,
     setStationTimeZone,
 } from '@/lib/format';
@@ -22,6 +23,7 @@ getStationTimeZone();
 router.on('navigate', (event) => {
     setStationTimeZone(event.detail.page.props.timezone);
     setPrimaryCurrency(event.detail.page.props.primaryCurrency);
+    setCurrencies(event.detail.page.props.currencies);
 });
 
 createInertiaApp({

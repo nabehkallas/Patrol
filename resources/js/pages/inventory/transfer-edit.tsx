@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { formatDate } from '@/lib/format';
+import { formatDate, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index } from '@/routes/inventory';
 import { update } from '@/routes/tank-transfers';
@@ -29,7 +29,7 @@ export default function TransferEdit() {
     const { t } = useTranslation();
 
     const form = useForm({
-        liters: transfer.liters,
+        liters: trimDecimal(transfer.liters),
         notes: transfer.notes ?? '',
     });
 
@@ -99,7 +99,7 @@ export default function TransferEdit() {
 
 TransferEdit.layout = {
     breadcrumbs: [
-        { title: 'Inventory', href: index() },
-        { title: 'Edit transfer', href: '' },
+        { title: 'nav.inventory', href: index() },
+        { title: 'inventory.edit_transfer', href: '' },
     ],
 };

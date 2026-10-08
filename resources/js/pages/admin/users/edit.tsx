@@ -1,13 +1,19 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import type {FormEvent} from 'react';
+import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTranslation  } from '@/lib/i18n';
-import type {TranslationKey} from '@/lib/i18n';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useTranslation } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import { index, update } from '@/routes/admin/users';
 import type { ManagedUser, UserRole } from '@/types';
 
@@ -42,7 +48,14 @@ export default function UserEdit() {
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="name">{t('common.name')}</Label>
-                        <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
+                        <Input
+                            id="name"
+                            value={form.data.name}
+                            onChange={(e) =>
+                                form.setData('name', e.target.value)
+                            }
+                            required
+                        />
                         <InputError message={form.errors.name} />
                     </div>
 
@@ -52,19 +65,25 @@ export default function UserEdit() {
                             id="email"
                             type="email"
                             value={form.data.email}
-                            onChange={(e) => form.setData('email', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('email', e.target.value)
+                            }
                             required
                         />
                         <InputError message={form.errors.email} />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="password">{t('common.new_password')}</Label>
+                        <Label htmlFor="password">
+                            {t('common.new_password')}
+                        </Label>
                         <Input
                             id="password"
                             type="password"
                             value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('password', e.target.value)
+                            }
                             placeholder={t('common.password_hint')}
                         />
                         <InputError message={form.errors.password} />
@@ -72,7 +91,12 @@ export default function UserEdit() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="role">{t('common.role')}</Label>
-                        <Select value={form.data.role} onValueChange={(value) => form.setData('role', value as UserRole)}>
+                        <Select
+                            value={form.data.role}
+                            onValueChange={(value) =>
+                                form.setData('role', value as UserRole)
+                            }
+                        >
                             <SelectTrigger id="role" className="w-full">
                                 <SelectValue />
                             </SelectTrigger>
@@ -98,7 +122,7 @@ export default function UserEdit() {
 
 UserEdit.layout = {
     breadcrumbs: [
-        { title: 'Employees', href: index() },
-        { title: 'Edit', href: '' },
+        { title: 'nav.employees', href: index() },
+        { title: 'common.edit', href: '' },
     ],
 };

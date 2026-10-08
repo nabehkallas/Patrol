@@ -284,5 +284,5 @@ export default function AuditLogIndex() {
 }
 
 AuditLogIndex.layout = {
-    breadcrumbs: [{ title: 'Audit log', href: index() }],
+    breadcrumbs: [{ title: 'nav.audit_log', href: index() }],
 };

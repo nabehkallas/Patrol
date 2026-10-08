@@ -15,7 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/sadcop';
@@ -48,9 +48,9 @@ export default function SadcopEntryEdit() {
 
     const form = useForm({
         tank_id: String(entry.tank_id ?? selectableTanks(tanks)[0]?.id ?? ''),
-        liters: entry.liters ?? '',
-        price_per_liter: entry.price_per_liter ?? '',
-        amount: entry.amount,
+        liters: trimDecimal(entry.liters),
+        price_per_liter: trimDecimal(entry.price_per_liter),
+        amount: trimDecimal(entry.amount),
         occurred_at: entry.occurred_at.slice(0, 10),
         notes: entry.notes ?? '',
     });
@@ -225,7 +225,7 @@ export default function SadcopEntryEdit() {
 
 SadcopEntryEdit.layout = {
     breadcrumbs: [
-        { title: 'Sadcop', href: index() },
-        { title: 'Edit entry', href: '' },
+        { title: 'nav.sadcop', href: index() },
+        { title: 'sadcop.edit_entry', href: '' },
     ],
 };

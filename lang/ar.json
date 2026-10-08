@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "سُجّل هذا القيد من :screen. عدّله أو احذفه من هناك.",
     ":tank is below zero (:liters L).": ":tank تحت الصفر (:liters لتر).",
     "Record the missing delivery, or check the counter reading.": "سجّل التوريد الناقص أو راجع قراءة العداد.",
-    "The page expired. Please try again.": "انتهت صلاحية الصفحة. يرجى المحاولة مرة أخرى."
+    "The page expired. Please try again.": "انتهت صلاحية الصفحة. يرجى المحاولة مرة أخرى.",
+    "common.current_value": "(الحالي: :value)",
+    "common.for_example": "مثال: :value"
 }

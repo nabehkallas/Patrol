@@ -86,7 +86,7 @@ export default function SadcopDepositCreate() {
 
 SadcopDepositCreate.layout = {
     breadcrumbs: [
-        { title: 'Sadcop', href: index() },
-        { title: 'Transfer money', href: '' },
+        { title: 'nav.sadcop', href: index() },
+        { title: 'sadcop.transfer_money', href: '' },
     ],
 };

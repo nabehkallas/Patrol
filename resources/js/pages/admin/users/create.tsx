@@ -1,13 +1,19 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import type {FormEvent} from 'react';
+import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTranslation  } from '@/lib/i18n';
-import type {TranslationKey} from '@/lib/i18n';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useTranslation } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import { index, store } from '@/routes/admin/users';
 import type { UserRole } from '@/types';
 
@@ -41,7 +47,14 @@ export default function UserCreate() {
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="name">{t('common.name')}</Label>
-                        <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
+                        <Input
+                            id="name"
+                            value={form.data.name}
+                            onChange={(e) =>
+                                form.setData('name', e.target.value)
+                            }
+                            required
+                        />
                         <InputError message={form.errors.name} />
                     </div>
 
@@ -51,7 +64,9 @@ export default function UserCreate() {
                             id="email"
                             type="email"
                             value={form.data.email}
-                            onChange={(e) => form.setData('email', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('email', e.target.value)
+                            }
                             required
                         />
                         <InputError message={form.errors.email} />
@@ -63,7 +78,9 @@ export default function UserCreate() {
                             id="password"
                             type="password"
                             value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('password', e.target.value)
+                            }
                             required
                         />
                         <InputError message={form.errors.password} />
@@ -71,7 +88,12 @@ export default function UserCreate() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="role">{t('common.role')}</Label>
-                        <Select value={form.data.role} onValueChange={(value) => form.setData('role', value as UserRole)}>
+                        <Select
+                            value={form.data.role}
+                            onValueChange={(value) =>
+                                form.setData('role', value as UserRole)
+                            }
+                        >
                             <SelectTrigger id="role" className="w-full">
                                 <SelectValue />
                             </SelectTrigger>
@@ -97,7 +119,7 @@ export default function UserCreate() {
 
 UserCreate.layout = {
     breadcrumbs: [
-        { title: 'Employees', href: index() },
-        { title: 'New employee', href: '' },
+        { title: 'nav.employees', href: index() },
+        { title: 'users.new', href: '' },
     ],
 };

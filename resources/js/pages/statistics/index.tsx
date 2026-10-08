@@ -479,5 +479,5 @@ function Overview() {
 }
 
 StatisticsIndex.layout = {
-    breadcrumbs: [{ title: 'Statistics', href: index() }],
+    breadcrumbs: [{ title: 'nav.statistics', href: index() }],
 };

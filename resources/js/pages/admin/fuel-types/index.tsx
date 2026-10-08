@@ -25,8 +25,15 @@ export default function FuelTypesIndex() {
 
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <Heading variant="small" title={t('fuel_types.title')} description={t('fuel_types.description')} />
-                    <Link href={create()} className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium">
+                    <Heading
+                        variant="small"
+                        title={t('fuel_types.title')}
+                        description={t('fuel_types.description')}
+                    />
+                    <Link
+                        href={create()}
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
+                    >
                         {t('fuel_types.new')}
                     </Link>
                 </div>
@@ -35,21 +42,36 @@ export default function FuelTypesIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-3">{t('common.name')}</th>
-                                <th className="px-4 py-3">{t('common.slug')}</th>
+                                <th className="px-4 py-3">
+                                    {t('common.name')}
+                                </th>
+                                <th className="px-4 py-3">
+                                    {t('common.slug')}
+                                </th>
                                 <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {fuelTypes.map((fuelType) => (
                                 <tr key={fuelType.id} className="border-t">
-                                    <td className="px-4 py-3">{fuelType.name}</td>
-                                    <td className="px-4 py-3">{fuelType.slug}</td>
+                                    <td className="px-4 py-3">
+                                        {fuelType.name}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {fuelType.slug}
+                                    </td>
                                     <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link href={edit(fuelType.id)} className="text-sm underline">
+                                        <Link
+                                            href={edit(fuelType.id)}
+                                            className="text-sm underline"
+                                        >
                                             {t('common.edit')}
                                         </Link>
-                                        <Button variant="ghost" size="sm" onClick={() => remove(fuelType)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => remove(fuelType)}
+                                        >
                                             {t('common.delete')}
                                         </Button>
                                     </td>
@@ -64,5 +86,5 @@ export default function FuelTypesIndex() {
 }
 
 FuelTypesIndex.layout = {
-    breadcrumbs: [{ title: 'Fuel types', href: index() }],
+    breadcrumbs: [{ title: 'nav.fuel_types', href: index() }],
 };

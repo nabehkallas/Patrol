@@ -60,7 +60,9 @@ export default function Profile() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">{t('common.email_address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('common.email_address')}
+                                </Label>
 
                                 <Input
                                     id="email"

@@ -35,6 +35,7 @@ import {
     formatNumber,
     startOfMonthInStation,
     todayInStation,
+    formatCurrencyAmount,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -506,22 +507,26 @@ export default function DebtsIndex() {
                                         debt.status === 'outstanding' ? (
                                             <div>
                                                 <div>
-                                                    {formatNumber(
+                                                    {formatCurrencyAmount(
                                                         debt.remaining_amount,
-                                                    )}{' '}
-                                                    {debt.currency}
+                                                        debt.currency,
+                                                    )}
                                                 </div>
                                                 <div className="text-muted-foreground text-xs">
                                                     {t('debts.original_amount')}
                                                     :{' '}
-                                                    {formatNumber(debt.amount)}{' '}
-                                                    {debt.currency}
+                                                    {formatCurrencyAmount(
+                                                        debt.amount,
+                                                        debt.currency,
+                                                    )}
                                                 </div>
                                             </div>
                                         ) : (
                                             <>
-                                                {formatNumber(debt.amount)}{' '}
-                                                {debt.currency}
+                                                {formatCurrencyAmount(
+                                                    debt.amount,
+                                                    debt.currency,
+                                                )}
                                             </>
                                         )}
                                     </td>
@@ -793,5 +798,5 @@ export default function DebtsIndex() {
 }
 
 DebtsIndex.layout = {
-    breadcrumbs: [{ title: 'Debts', href: index() }],
+    breadcrumbs: [{ title: 'nav.debts', href: index() }],
 };

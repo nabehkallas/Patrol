@@ -18,7 +18,9 @@ export default function ConfirmPassword() {
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">{t('common.password')}</Label>
+                            <Label htmlFor="password">
+                                {t('common.password')}
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"

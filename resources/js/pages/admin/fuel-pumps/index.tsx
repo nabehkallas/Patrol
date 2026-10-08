@@ -98,5 +98,5 @@ export default function FuelPumpsIndex() {
 }
 
 FuelPumpsIndex.layout = {
-    breadcrumbs: [{ title: 'Fuel pumps', href: index() }],
+    breadcrumbs: [{ title: 'nav.fuel_pumps', href: index() }],
 };

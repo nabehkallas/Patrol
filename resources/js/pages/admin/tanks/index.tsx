@@ -138,5 +138,5 @@ export default function TanksIndex() {
 }
 
 TanksIndex.layout = {
-    breadcrumbs: [{ title: 'Tanks', href: index() }],
+    breadcrumbs: [{ title: 'nav.tanks', href: index() }],
 };

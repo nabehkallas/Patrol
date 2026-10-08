@@ -1032,5 +1032,5 @@ export default function InventoryIndex() {
 }
 
 InventoryIndex.layout = {
-    breadcrumbs: [{ title: 'Inventory', href: index() }],
+    breadcrumbs: [{ title: 'nav.inventory', href: index() }],
 };

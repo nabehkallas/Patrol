@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index, update } from '@/routes/transactions';
@@ -80,14 +80,14 @@ export default function TransactionEdit() {
         tank_id: String(
             transaction.tank_id ?? selectableTanks(tanks)[0]?.id ?? '',
         ),
-        liters: transaction.liters ?? '',
-        price_per_liter: transaction.price_per_liter ?? '',
+        liters: trimDecimal(transaction.liters),
+        price_per_liter: trimDecimal(transaction.price_per_liter),
         description: transaction.description ?? '',
-        amount: transaction.amount,
+        amount: trimDecimal(transaction.amount),
         currency: transaction.currency as Currency,
         to_currency: (transaction.to_currency ?? 'USD') as Currency,
-        to_amount: transaction.to_amount ?? '',
-        exchange_rate_to_usd: transaction.exchange_rate_to_usd ?? '',
+        to_amount: trimDecimal(transaction.to_amount),
+        exchange_rate_to_usd: trimDecimal(transaction.exchange_rate_to_usd),
         occurred_at: transaction.occurred_at.slice(0, 10),
         notes: transaction.notes ?? '',
         other_income_category: (transaction.other_income_category ??
@@ -672,7 +672,7 @@ export default function TransactionEdit() {
 
 TransactionEdit.layout = {
     breadcrumbs: [
-        { title: 'Transactions', href: index() },
-        { title: 'Edit', href: '' },
+        { title: 'nav.transactions', href: index() },
+        { title: 'common.edit', href: '' },
     ],
 };

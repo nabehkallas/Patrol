@@ -226,5 +226,5 @@ export default function DebtorsIndex() {
 }
 
 DebtorsIndex.layout = {
-    breadcrumbs: [{ title: 'Debtors', href: index() }],
+    breadcrumbs: [{ title: 'nav.debtors', href: index() }],
 };

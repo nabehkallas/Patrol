@@ -23,7 +23,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/hooks/use-locale';
-import { formatNumber, todayInStation, getPrimaryCurrency } from '@/lib/format';
+import {
+    todayInStation,
+    getPrimaryCurrency,
+    formatCurrencyAmount,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
     debts,
@@ -511,7 +515,10 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                             >
                                 <span>{debt.debtor_name}</span>
                                 <span>
-                                    {formatNumber(debt.amount)} {debt.currency}
+                                    {formatCurrencyAmount(
+                                        debt.amount,
+                                        debt.currency,
+                                    )}
                                 </span>
                             </li>
                         ))}

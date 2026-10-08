@@ -22,6 +22,8 @@ import {
     formatNumber,
     todayInStation,
     getPrimaryCurrency,
+    formatCurrencyAmount,
+    trimDecimal,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -44,7 +46,7 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelTypeOption }) {
     const { t } = useTranslation();
 
     const form = useForm({
-        profit_margin_percent: fuelType.profit_margin_percent ?? '',
+        profit_margin_percent: trimDecimal(fuelType.profit_margin_percent),
     });
 
     function submit(event: FormEvent) {
@@ -133,7 +135,7 @@ export default function FuelPricesIndex() {
         setEditingId(price.id);
         form.setData({
             fuel_type_id: String(price.fuel_type_id),
-            price_per_liter: price.price_per_liter,
+            price_per_liter: trimDecimal(price.price_per_liter),
             currency: price.currency,
             effective_at: price.effective_at.slice(0, 10),
         });
@@ -326,8 +328,10 @@ export default function FuelPricesIndex() {
                                         {price.fuel_type?.name}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {formatNumber(price.price_per_liter)}{' '}
-                                        {price.currency}
+                                        {formatCurrencyAmount(
+                                            price.price_per_liter,
+                                            price.currency,
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         {price.set_by?.name}
@@ -361,5 +365,5 @@ export default function FuelPricesIndex() {
 }
 
 FuelPricesIndex.layout = {
-    breadcrumbs: [{ title: 'Fuel prices', href: index() }],
+    breadcrumbs: [{ title: 'nav.fuel_prices', href: index() }],
 };

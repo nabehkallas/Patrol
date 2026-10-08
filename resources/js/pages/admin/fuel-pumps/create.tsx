@@ -99,7 +99,7 @@ export default function FuelPumpCreate() {
 
 FuelPumpCreate.layout = {
     breadcrumbs: [
-        { title: 'Fuel pumps', href: index() },
-        { title: 'New pump', href: '' },
+        { title: 'nav.fuel_pumps', href: index() },
+        { title: 'fuel_pumps.new', href: '' },
     ],
 };

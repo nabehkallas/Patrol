@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, update } from '@/routes/debts';
 import type {
@@ -48,11 +49,11 @@ export default function DebtEdit() {
         direction: debt.direction,
         debtor_id: String(debt.debtor_id),
         fuel_type_id: debt.fuel_type_id ? String(debt.fuel_type_id) : '',
-        liters: debt.liters ?? '',
-        price_per_liter: debt.price_per_liter ?? '',
-        amount: debt.amount,
+        liters: trimDecimal(debt.liters),
+        price_per_liter: trimDecimal(debt.price_per_liter),
+        amount: trimDecimal(debt.amount),
         currency: debt.currency,
-        exchange_rate_to_usd: debt.exchange_rate_to_usd ?? '',
+        exchange_rate_to_usd: trimDecimal(debt.exchange_rate_to_usd),
         date: debt.date.slice(0, 10),
         details: debt.details ?? '',
         status: debt.status,
@@ -416,7 +417,7 @@ export default function DebtEdit() {
 
 DebtEdit.layout = {
     breadcrumbs: [
-        { title: 'Debts', href: index() },
-        { title: 'Edit', href: '' },
+        { title: 'nav.debts', href: index() },
+        { title: 'common.edit', href: '' },
     ],
 };

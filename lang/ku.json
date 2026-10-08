@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "Ev tomar li :screen hatiye tomarkirin. Li wir biguherîne an jê bibe.",
     ":tank is below zero (:liters L).": ":tank di bin sifirê de ye (:liters L).",
     "Record the missing delivery, or check the counter reading.": "Gihandina kêm tomar bike, an jî xwendina jimarkerê kontrol bike.",
-    "The page expired. Please try again.": "Dema rûpelê derbas bû. Ji kerema xwe dîsa biceribîne."
+    "The page expired. Please try again.": "Dema rûpelê derbas bû. Ji kerema xwe dîsa biceribîne.",
+    "common.current_value": "(niha: :value)",
+    "common.for_example": "mînak: :value"
 }

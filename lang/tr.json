@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "Bu kayıt :screen içinde oluşturuldu. Orada değiştirin veya silin.",
     ":tank is below zero (:liters L).": ":tank sıfırın altında (:liters L).",
     "Record the missing delivery, or check the counter reading.": "Eksik teslimatı kaydedin veya sayaç okumasını kontrol edin.",
-    "The page expired. Please try again.": "Sayfanın süresi doldu. Lütfen tekrar deneyin."
+    "The page expired. Please try again.": "Sayfanın süresi doldu. Lütfen tekrar deneyin.",
+    "common.current_value": "(şu anki: :value)",
+    "common.for_example": "örn. :value"
 }

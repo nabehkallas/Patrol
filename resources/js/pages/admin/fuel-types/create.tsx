@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import type {FormEvent} from 'react';
+import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,14 @@ export default function FuelTypeCreate() {
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="name">{t('common.name')}</Label>
-                        <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
+                        <Input
+                            id="name"
+                            value={form.data.name}
+                            onChange={(e) =>
+                                form.setData('name', e.target.value)
+                            }
+                            required
+                        />
                         <InputError message={form.errors.name} />
                     </div>
 
@@ -36,7 +43,9 @@ export default function FuelTypeCreate() {
                         <Input
                             id="slug"
                             value={form.data.slug}
-                            onChange={(e) => form.setData('slug', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('slug', e.target.value)
+                            }
                             placeholder={t('fuel_types.slug_hint')}
                         />
                         <InputError message={form.errors.slug} />
@@ -53,7 +62,7 @@ export default function FuelTypeCreate() {
 
 FuelTypeCreate.layout = {
     breadcrumbs: [
-        { title: 'Fuel types', href: index() },
-        { title: 'New fuel type', href: '' },
+        { title: 'nav.fuel_types', href: index() },
+        { title: 'fuel_types.new', href: '' },
     ],
 };

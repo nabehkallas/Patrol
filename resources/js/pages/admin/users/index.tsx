@@ -2,8 +2,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTranslation  } from '@/lib/i18n';
-import type {TranslationKey} from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/users';
 import type { ManagedUser } from '@/types';
 
@@ -27,8 +27,15 @@ export default function UsersIndex() {
 
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <Heading variant="small" title={t('users.title')} description={t('users.description')} />
-                    <Link href={create()} className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium">
+                    <Heading
+                        variant="small"
+                        title={t('users.title')}
+                        description={t('users.description')}
+                    />
+                    <Link
+                        href={create()}
+                        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
+                    >
                         {t('users.new')}
                     </Link>
                 </div>
@@ -37,9 +44,15 @@ export default function UsersIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-3">{t('common.name')}</th>
-                                <th className="px-4 py-3">{t('common.email')}</th>
-                                <th className="px-4 py-3">{t('common.role')}</th>
+                                <th className="px-4 py-3">
+                                    {t('common.name')}
+                                </th>
+                                <th className="px-4 py-3">
+                                    {t('common.email')}
+                                </th>
+                                <th className="px-4 py-3">
+                                    {t('common.role')}
+                                </th>
                                 <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
@@ -49,15 +62,32 @@ export default function UsersIndex() {
                                     <td className="px-4 py-3">{user.name}</td>
                                     <td className="px-4 py-3">{user.email}</td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                                            {user.role ? t(`roles.${user.role}` as TranslationKey) : ''}
+                                        <Badge
+                                            variant={
+                                                user.role === 'admin'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {user.role
+                                                ? t(
+                                                      `roles.${user.role}` as TranslationKey,
+                                                  )
+                                                : ''}
                                         </Badge>
                                     </td>
                                     <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link href={edit(user.id)} className="text-sm underline">
+                                        <Link
+                                            href={edit(user.id)}
+                                            className="text-sm underline"
+                                        >
                                             {t('common.edit')}
                                         </Link>
-                                        <Button variant="ghost" size="sm" onClick={() => remove(user)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => remove(user)}
+                                        >
                                             {t('common.delete')}
                                         </Button>
                                     </td>
@@ -72,5 +102,5 @@ export default function UsersIndex() {
 }
 
 UsersIndex.layout = {
-    breadcrumbs: [{ title: 'Employees', href: index() }],
+    breadcrumbs: [{ title: 'nav.employees', href: index() }],
 };

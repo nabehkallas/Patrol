@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index, update } from '@/routes/pump-counters';
@@ -60,8 +60,8 @@ export default function PumpCounterReadingEdit() {
         tank_id: String(reading.tank_id ?? selectableTanks(tanks)[0]?.id ?? ''),
         date: reading.date,
         reading_value: reading.reading_value,
-        governmental_liters: reading.governmental_liters ?? '',
-        return_liters: reading.return_liters ?? '',
+        governmental_liters: trimDecimal(reading.governmental_liters),
+        return_liters: trimDecimal(reading.return_liters),
         notes: reading.notes ?? '',
     });
 
@@ -264,7 +264,7 @@ export default function PumpCounterReadingEdit() {
 
 PumpCounterReadingEdit.layout = {
     breadcrumbs: [
-        { title: 'Pump counters', href: index() },
-        { title: 'Edit reading', href: '' },
+        { title: 'nav.pump_counters', href: index() },
+        { title: 'pump_counters.edit_reading', href: '' },
     ],
 };

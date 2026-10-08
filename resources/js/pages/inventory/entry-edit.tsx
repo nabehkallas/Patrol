@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/inventory';
@@ -46,7 +47,7 @@ export default function InventoryEntryEdit() {
     const form = useForm({
         tank_id: String(entry.tank_id),
         date: entry.date,
-        quantity_liters: entry.quantity_liters,
+        quantity_liters: trimDecimal(entry.quantity_liters),
         notes: entry.notes ?? '',
     });
 
@@ -142,7 +143,7 @@ export default function InventoryEntryEdit() {
 
 InventoryEntryEdit.layout = {
     breadcrumbs: [
-        { title: 'Inventory', href: index() },
-        { title: 'Edit entry', href: '' },
+        { title: 'nav.inventory', href: index() },
+        { title: 'inventory.edit_entry', href: '' },
     ],
 };

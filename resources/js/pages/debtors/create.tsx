@@ -114,7 +114,7 @@ export default function DebtorCreate() {
 
 DebtorCreate.layout = {
     breadcrumbs: [
-        { title: 'Debtors', href: index() },
-        { title: 'New debtor', href: '' },
+        { title: 'nav.debtors', href: index() },
+        { title: 'debtors.new', href: '' },
     ],
 };

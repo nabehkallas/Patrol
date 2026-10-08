@@ -259,7 +259,7 @@ export default function SadcopDeliveryCreate() {
 
 SadcopDeliveryCreate.layout = {
     breadcrumbs: [
-        { title: 'Sadcop', href: index() },
-        { title: 'Record delivery', href: '' },
+        { title: 'nav.sadcop', href: index() },
+        { title: 'sadcop.record_delivery', href: '' },
     ],
 };

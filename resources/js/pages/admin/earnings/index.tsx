@@ -492,5 +492,5 @@ export default function EarningsIndex() {
 }
 
 EarningsIndex.layout = {
-    breadcrumbs: [{ title: 'Earnings', href: earnings.index() }],
+    breadcrumbs: [{ title: 'nav.earnings', href: earnings.index() }],
 };

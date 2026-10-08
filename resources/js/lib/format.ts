@@ -1,26 +1,80 @@
 import type { Currency, CurrencyBreakdown } from '@/types';
 
 /**
- * Formats a number (or a Laravel decimal-cast numeric string) with a fixed
- * number of decimal digits, using a consistent 'en-US' locale regardless of
- * the browser's locale or the app's ar/en language toggle.
+ * Formats a number (or a Laravel decimal-cast numeric string) with up to `digits` decimals,
+ * dropping trailing zeros: 50000 litres read "50,000", not "50,000.0". Always Western digits
+ * and en-US grouping, whatever the browser's or the app's language, so figures look the same
+ * everywhere (and line up with what people type into the number fields).
  */
 export function formatNumber(value: string | number, digits = 1): string {
     const num = typeof value === 'string' ? parseFloat(value) : value;
 
     return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: digits,
+        minimumFractionDigits: 0,
         maximumFractionDigits: digits,
-    }).format(num);
+    }).format(Number.isFinite(num) ? num : 0);
 }
 
+/** A stored decimal ("1500.0000", "5.000000") as a plain value for a form field ("1500", "5"). */
+export function trimDecimal(value: string | number | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+
+    return Number.isFinite(num) ? String(num) : String(value);
+}
+
+let currencyDecimals: Record<string, number> | null = null;
+
+/** Keeps the cached decimals current when the station's currencies change. */
+export function setCurrencies(currencies: unknown): void {
+    if (!Array.isArray(currencies)) {
+        currencyDecimals ??= {};
+
+        return;
+    }
+
+    currencyDecimals = Object.fromEntries(
+        currencies
+            .filter((c) => typeof c?.code === 'string')
+            .map((c) => [c.code as string, Number(c.decimals ?? 2)]),
+    );
+}
+
+/**
+ * How many decimals a currency is shown with (Settings > Currencies), from the `currencies`
+ * page prop: SYP is usually 0, USD 2.
+ */
+function decimalsFor(currency: string): number {
+    if (currencyDecimals === null) {
+        try {
+            const page = document.querySelector('script[data-page="app"]');
+            setCurrencies(
+                JSON.parse(page?.textContent ?? '{}').props?.currencies,
+            );
+        } catch {
+            currencyDecimals = {};
+        }
+    }
+
+    return currencyDecimals?.[currency] ?? (currency === 'SYP' ? 0 : 2);
+}
+
+/** An amount and its currency code, with that currency's decimals: "2,670,000 SYP", "12.50 TRY". */
 export function formatMoney(
     amount: string | number,
     currency: Currency,
 ): string {
     const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const digits = decimalsFor(currency);
+    const number = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    }).format(Number.isFinite(value) ? value : 0);
 
-    return `${value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${currency}`;
+    return `${number} ${currency}`;
 }
 
 export function formatUsd(amount: number): string {
@@ -31,19 +85,17 @@ export function formatUsd(amount: number): string {
 }
 
 export function formatSyp(amount: number): string {
-    return formatNumber(amount, 1) + ' SYP';
+    return formatMoney(amount, 'SYP');
 }
 
 export function formatCurrencyAmount(
-    amount: number,
+    amount: string | number,
     currency: Currency,
 ): string {
-    if (currency === 'SYP') {
-        return formatSyp(amount);
-    }
-
     if (currency === 'USD') {
-        return formatUsd(amount);
+        return formatUsd(
+            typeof amount === 'string' ? parseFloat(amount) : amount,
+        );
     }
 
     return formatMoney(amount, currency);
@@ -148,23 +200,40 @@ function timeZoneFor(value: string): string {
     return /^\d{4}-\d{2}-\d{2}$/.test(value) ? 'UTC' : getStationTimeZone();
 }
 
+let displayLocale = 'en-US';
+
+/** The language dates are written in (month names), kept in step by the locale provider. */
+export function setDisplayLocale(intlLocale: string): void {
+    displayLocale = intlLocale;
+}
+
 /**
- * Formats a date/time using a fixed 'en-US' locale regardless of the browser's own locale —
- * otherwise a browser set to Arabic renders these with Arabic-Indic digits and a different
- * layout than the rest of the app (which always shows Western numerals, see formatNumber
- * above), making the two look inconsistent/broken side by side. Shown in station time.
+ * Dates are written in the user's language ("11 Sep 2026" / "11 سبتمبر 2026") but always with
+ * Western digits, like every number in the app, and times on a 24-hour clock.
  */
+function dateLocale(): string {
+    return `${displayLocale}-u-nu-latn`;
+}
+
+/** A date and time, e.g. "11 Sep 2026, 15:25", in station time. */
 export function formatDateTime(value: string): string {
-    return new Date(value).toLocaleString('en-US', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
+    return new Date(value).toLocaleString(dateLocale(), {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
         timeZone: timeZoneFor(value),
     });
 }
 
+/** A date, e.g. "11 Sep 2026". A bare calendar date as-is, a timestamp in station time. */
 export function formatDate(value: string): string {
-    return new Date(value).toLocaleDateString('en-US', {
-        dateStyle: 'medium',
+    return new Date(value).toLocaleDateString(dateLocale(), {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
         timeZone: timeZoneFor(value),
     });
 }
@@ -196,11 +265,10 @@ export function stationDateOf(value: string): string {
     });
 }
 
-/** Compact "Sep 10" style date, for a breakdown row's sub-line where a full medium date
- * (which includes the year) would be too wide. Fixed 'en-US' locale for the same reason
- * as formatDate/formatDateTime above. */
+/** Compact "10 Sep" style date, for a breakdown row's sub-line or a chart axis, where a full
+ * date (which includes the year) would be too wide. */
 export function formatShortDate(value: string): string {
-    return new Date(value).toLocaleDateString('en-US', {
+    return new Date(value).toLocaleDateString(dateLocale(), {
         month: 'short',
         day: 'numeric',
         timeZone: timeZoneFor(value),
@@ -256,4 +324,46 @@ export function formatNumberWithCommas(value: string): string {
     return decimalPart !== undefined
         ? `${groupedInteger}.${decimalPart}`
         : groupedInteger;
+}
+
+/**
+ * A currency's name in the user's language ("Syrian Pound" reads "ليرة سورية" in Arabic). A
+ * name the station typed itself (anything but the standard English name) is shown as typed.
+ */
+export function currencyName(code: string, storedName: string): string {
+    try {
+        const english = new Intl.DisplayNames('en', { type: 'currency' }).of(
+            code,
+        );
+
+        if (
+            english &&
+            english.toLowerCase() !== storedName.trim().toLowerCase()
+        ) {
+            return storedName;
+        }
+
+        return (
+            new Intl.DisplayNames(displayLocale, { type: 'currency' }).of(
+                code,
+            ) ?? storedName
+        );
+    } catch {
+        return storedName;
+    }
+}
+
+/** "October 2026" in the user's language, for a calendar's month caption. */
+export function formatMonthYear(date: Date): string {
+    return new Intl.DateTimeFormat(dateLocale(), {
+        month: 'long',
+        year: 'numeric',
+    }).format(date);
+}
+
+/** A one-letter weekday name ("M" / "ن"), for a calendar's narrow column headers. */
+export function formatWeekdayShort(date: Date): string {
+    return new Intl.DateTimeFormat(dateLocale(), { weekday: 'narrow' }).format(
+        date,
+    );
 }

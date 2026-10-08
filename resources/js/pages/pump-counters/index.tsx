@@ -834,5 +834,5 @@ export default function PumpCountersIndex() {
 }
 
 PumpCountersIndex.layout = {
-    breadcrumbs: [{ title: 'Pump counters', href: index() }],
+    breadcrumbs: [{ title: 'nav.pump_counters', href: index() }],
 };

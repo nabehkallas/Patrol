@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "Эта запись создана в разделе «:screen». Измените или удалите её там.",
     ":tank is below zero (:liters L).": ":tank ниже нуля (:liters л).",
     "Record the missing delivery, or check the counter reading.": "Внесите недостающую поставку или проверьте показание счётчика.",
-    "The page expired. Please try again.": "Срок действия страницы истёк. Попробуйте ещё раз."
+    "The page expired. Please try again.": "Срок действия страницы истёк. Попробуйте ещё раз.",
+    "common.current_value": "(текущий: :value)",
+    "common.for_example": "напр. :value"
 }

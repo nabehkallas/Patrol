@@ -1,4 +1,6 @@
+import { router } from '@inertiajs/react';
 import { useSyncExternalStore } from 'react';
+import { setDisplayLocale } from '@/lib/format';
 
 export type Direction = 'ltr' | 'rtl';
 
@@ -69,6 +71,7 @@ const applyLocale = (locale: Locale): void => {
 
     document.documentElement.lang = locale;
     document.documentElement.dir = directionFor(locale);
+    setDisplayLocale(LOCALES[locale].intl);
 };
 
 const subscribe = (callback: () => void) => {
@@ -109,6 +112,12 @@ export function useLocale(): UseLocaleReturn {
 
         applyLocale(locale);
         notify();
+
+        // Fresh page data, so dates already on screen and texts the server wrote (flash
+        // messages, labels) switch language too.
+        if (document.querySelector('script[data-page="app"]')) {
+            router.reload();
+        }
     };
 
     return { locale, direction: directionFor(locale), updateLocale } as const;

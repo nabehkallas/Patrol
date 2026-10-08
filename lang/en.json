@@ -739,5 +739,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "This entry was recorded in :screen. Change or delete it there.",
     ":tank is below zero (:liters L).": ":tank is below zero (:liters L).",
     "Record the missing delivery, or check the counter reading.": "Record the missing delivery, or check the counter reading.",
-    "The page expired. Please try again.": "The page expired. Please try again."
+    "The page expired. Please try again.": "The page expired. Please try again.",
+    "common.current_value": "(current: :value)",
+    "common.for_example": "e.g. :value"
 }

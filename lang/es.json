@@ -1011,5 +1011,7 @@
     "This entry was recorded in :screen. Change or delete it there.": "Este registro se hizo en :screen. Cámbielo o elimínelo allí.",
     ":tank is below zero (:liters L).": ":tank está bajo cero (:liters L).",
     "Record the missing delivery, or check the counter reading.": "Registre la entrega que falta o revise la lectura del contador.",
-    "The page expired. Please try again.": "La página caducó. Inténtelo de nuevo."
+    "The page expired. Please try again.": "La página caducó. Inténtelo de nuevo.",
+    "common.current_value": "(actual: :value)",
+    "common.for_example": "p. ej. :value"
 }

@@ -33,6 +33,8 @@ import {
     formatNumber,
     todayInStation,
     getPrimaryCurrency,
+    formatCurrencyAmount,
+    trimDecimal,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -695,7 +697,7 @@ export default function ShopIndex() {
         editEntryForm.setData({
             shop_item_id: entry.shop_item_id,
             quantity: String(entry.quantity),
-            amount: entry.amount,
+            amount: trimDecimal(entry.amount),
             currency: entry.currency,
             date: entry.occurred_at.slice(0, 10),
         });
@@ -941,8 +943,10 @@ export default function ShopIndex() {
                                             {formatNumber(entry.quantity, 0)}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {formatNumber(entry.amount)}{' '}
-                                            {entry.currency}
+                                            {formatCurrencyAmount(
+                                                entry.amount,
+                                                entry.currency,
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             {entry.recorded_by}
@@ -1226,5 +1230,5 @@ export default function ShopIndex() {
 }
 
 ShopIndex.layout = {
-    breadcrumbs: [{ title: 'Shop', href: index() }],
+    breadcrumbs: [{ title: 'nav.shop', href: index() }],
 };

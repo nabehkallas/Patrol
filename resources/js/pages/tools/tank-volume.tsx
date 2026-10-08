@@ -93,7 +93,7 @@ export default function TankVolume() {
                                     onChange={(e) => setHeight(e.target.value)}
                                 />
                                 {heightExceedsDiameter && (
-                                    <p className="text-xs text-destructive">
+                                    <p className="text-destructive text-xs">
                                         {t('tank_volume.height_warning')}
                                     </p>
                                 )}

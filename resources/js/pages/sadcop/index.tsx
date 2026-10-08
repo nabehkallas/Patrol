@@ -406,5 +406,5 @@ export default function SadcopIndex() {
 }
 
 SadcopIndex.layout = {
-    breadcrumbs: [{ title: 'Sadcop', href: index() }],
+    breadcrumbs: [{ title: 'nav.sadcop', href: index() }],
 };

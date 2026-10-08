@@ -866,5 +866,5 @@ export default function CashBoxIndex() {
 }
 
 CashBoxIndex.layout = {
-    breadcrumbs: [{ title: 'Cash Box', href: index() }],
+    breadcrumbs: [{ title: 'nav.cash_box', href: index() }],
 };

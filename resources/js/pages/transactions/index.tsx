@@ -11,7 +11,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import {
+    formatDateTime,
+    formatNumber,
+    formatCurrencyAmount,
+} from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index as pumpCounters } from '@/routes/pump-counters';
 import { index as sadcop } from '@/routes/sadcop';
@@ -221,8 +225,10 @@ export default function TransactionsIndex() {
                                         {detailFor(transaction)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {formatNumber(transaction.amount)}{' '}
-                                        {transaction.currency}
+                                        {formatCurrencyAmount(
+                                            transaction.amount,
+                                            transaction.currency,
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         {transaction.debt && (
@@ -273,5 +279,5 @@ export default function TransactionsIndex() {
 }
 
 TransactionsIndex.layout = {
-    breadcrumbs: [{ title: 'Transactions', href: index() }],
+    breadcrumbs: [{ title: 'nav.transactions', href: index() }],
 };

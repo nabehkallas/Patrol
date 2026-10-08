@@ -111,7 +111,7 @@ export default function DebtorEdit() {
 
 DebtorEdit.layout = {
     breadcrumbs: [
-        { title: 'Debtors', href: index() },
-        { title: 'Edit', href: '' },
+        { title: 'nav.debtors', href: index() },
+        { title: 'common.edit', href: '' },
     ],
 };

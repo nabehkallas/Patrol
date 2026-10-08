@@ -560,11 +560,11 @@ export default function TransactionCreate() {
                             <Label htmlFor="exchange_rate_to_usd">
                                 {t('transactions.exchange_rate')}
                                 <span className="text-muted-foreground ms-1 text-xs">
-                                    (default{' '}
-                                    {formatNumber(
-                                        exchangeRates[form.data.currency],
-                                    )}
-                                    )
+                                    {t('common.current_value', {
+                                        value: formatNumber(
+                                            exchangeRates[form.data.currency],
+                                        ),
+                                    })}
                                 </span>
                             </Label>
                             <MoneyInput
@@ -692,7 +692,7 @@ export default function TransactionCreate() {
 
 TransactionCreate.layout = {
     breadcrumbs: [
-        { title: 'Transactions', href: index() },
-        { title: 'New transaction', href: '' },
+        { title: 'nav.transactions', href: index() },
+        { title: 'transactions.new', href: '' },
     ],
 };

@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { index } from '@/routes/inventory';
@@ -46,7 +47,7 @@ export default function TopUpEdit() {
     const form = useForm({
         tank_id: String(topUp.tank_id),
         date: topUp.date,
-        liters: topUp.liters,
+        liters: trimDecimal(topUp.liters),
         notes: topUp.notes ?? '',
     });
 
@@ -140,7 +141,7 @@ export default function TopUpEdit() {
 
 TopUpEdit.layout = {
     breadcrumbs: [
-        { title: 'Inventory', href: index() },
-        { title: 'Edit top-up', href: '' },
+        { title: 'nav.inventory', href: index() },
+        { title: 'inventory.edit_topup', href: '' },
     ],
 };
