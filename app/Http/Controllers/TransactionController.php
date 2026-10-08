@@ -9,12 +9,9 @@ use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Debtor;
 use App\Models\ExchangeRate;
-use App\Models\FuelPump;
-use App\Models\PumpCounterReading;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Support\Currency;
 use App\Support\Locales;
@@ -29,8 +26,6 @@ use Inertia\Response;
 
 class TransactionController extends Controller
 {
-    public function __construct(private readonly FuelCostAllocationService $allocationService) {}
-
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -38,7 +33,8 @@ class TransactionController extends Controller
         $query = $this->filteredQuery($request);
 
         return Inertia::render('transactions/index', [
-            'transactions' => $query->paginate(25)->withQueryString(),
+            'transactions' => $query->paginate(25)->withQueryString()
+                ->through(fn (Transaction $transaction) => [...$transaction->toArray(), 'managed_by' => $transaction->managedBy()]),
             'users' => $user->isAdmin() ? User::orderBy('name')->get(['id', 'name']) : [],
             'filters' => $request->only(['type', 'user_id']),
         ]);
@@ -51,7 +47,7 @@ class TransactionController extends Controller
     {
         $user = $request->user();
 
-        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor'])->latest('occurred_at');
+        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor', 'sadcopLedgerEntry'])->latest('occurred_at');
 
         if (! $user->isAdmin()) {
             $query->where('user_id', $user->id);
@@ -104,7 +100,6 @@ class TransactionController extends Controller
     {
         return Inertia::render('transactions/create', [
             'tanks' => $this->tankOptions(),
-            'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'exchangeRates' => collect(Currency::codes())->mapWithKeys(
                 fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
@@ -138,10 +133,6 @@ class TransactionController extends Controller
         DB::transaction(function () use ($data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction = Transaction::create($data);
 
-            if ($transaction->type === TransactionType::FuelSale) {
-                $this->allocationService->allocate($transaction);
-            }
-
             if ($markAsDebt) {
                 $transaction->debt()->create([
                     'direction' => $debtDirection,
@@ -154,8 +145,6 @@ class TransactionController extends Controller
                     'recorded_by_id' => $transaction->user_id,
                 ]);
             }
-
-            $this->syncPumpCounterReading($transaction);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction recorded.')]);
@@ -163,9 +152,13 @@ class TransactionController extends Controller
         return to_route('transactions.index');
     }
 
-    public function edit(Transaction $transaction): Response
+    public function edit(Transaction $transaction): Response|RedirectResponse
     {
         $this->authorize('update', $transaction);
+
+        if ($transaction->managedBy() !== null) {
+            return $this->managedElsewhere($transaction);
+        }
 
         $transaction->loadMissing('debt');
 
@@ -179,7 +172,6 @@ class TransactionController extends Controller
                 'debt' => $transaction->debt?->only(['debtor_id', 'direction']),
             ],
             'tanks' => $this->tankOptions(),
-            'pumps' => $this->pumpOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'exchangeRates' => collect(Currency::codes())->mapWithKeys(
                 fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
@@ -190,6 +182,10 @@ class TransactionController extends Controller
     public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
         $this->authorize('update', $transaction);
+
+        if ($transaction->managedBy() !== null) {
+            return $this->managedElsewhere($transaction);
+        }
 
         $data = $request->validated();
 
@@ -213,16 +209,7 @@ class TransactionController extends Controller
         unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
 
         DB::transaction(function () use ($transaction, $data, $markAsDebt, $debtDebtorId, $debtDirection) {
-            // Reversed before the update (not just when it stops being a fuel sale) since liters
-            // or fuel_type_id may also be changing -- either way the old allocation no longer
-            // matches and the transaction needs a clean re-allocation against current layers.
-            $this->allocationService->reverse($transaction);
-
             $transaction->update($data);
-
-            if ($transaction->type === TransactionType::FuelSale) {
-                $this->allocationService->allocate($transaction);
-            }
 
             $existingDebt = $transaction->debt;
 
@@ -247,8 +234,6 @@ class TransactionController extends Controller
             } elseif ($existingDebt) {
                 $existingDebt->delete();
             }
-
-            $this->syncPumpCounterReading($transaction);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
@@ -260,7 +245,12 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
 
-        $transaction->pumpCounterReading()->delete();
+        // Shop entries are deleted from the Shop's own log through this route; fuel sales and
+        // Sadcop entries are tied to a reading or ledger entry and are removed from there.
+        if (! in_array($transaction->managedBy(), [null, 'shop'], true)) {
+            return $this->managedElsewhere($transaction);
+        }
+
         $transaction->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction deleted.')]);
@@ -272,61 +262,6 @@ class TransactionController extends Controller
         // preserves any active filters/pagination on the Transactions page itself rather than
         // resetting them.
         return back();
-    }
-
-    /**
-     * Keeps a fuel_sale transaction's pump counter in sync: a sale through a pump really did
-     * advance that pump's physical meter, so we record it as a PumpCounterReading (not a
-     * separate tally) — this way Pump Counters' daily totals/history pick it up automatically,
-     * and the next real meter reading's diff won't double-count these liters.
-     */
-    private function syncPumpCounterReading(Transaction $transaction): void
-    {
-        $existing = $transaction->pumpCounterReading;
-
-        if ($transaction->type !== TransactionType::FuelSale || $transaction->pump_id === null) {
-            $existing?->delete();
-
-            return;
-        }
-
-        $baselineQuery = PumpCounterReading::where('pump_id', $transaction->pump_id)
-            ->orderByDesc('date')
-            ->orderByDesc('id');
-
-        if ($existing) {
-            $baselineQuery->where('id', '!=', $existing->id);
-        }
-
-        $baseline = (float) ($baselineQuery->first()->reading_value ?? 0);
-        $liters = (float) $transaction->liters;
-
-        $existing?->delete();
-
-        PumpCounterReading::create([
-            'pump_id' => $transaction->pump_id,
-            'tank_id' => $transaction->tank_id,
-            'date' => $transaction->occurred_at->toDateString(),
-            'reading_value' => round($baseline + $liters, 3),
-            'liters_sold' => round($liters, 3),
-            'transaction_id' => $transaction->id,
-            'recorded_by_id' => $transaction->user_id,
-            'notes' => __('Recorded from Transactions'),
-        ]);
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function pumpOptions(): array
-    {
-        return FuelPump::with('fuelTypes')->orderBy('name')->get()
-            ->map(fn (FuelPump $pump) => [
-                'id' => $pump->id,
-                'name' => $pump->name,
-                'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
-            ])
-            ->all();
     }
 
     /**
@@ -348,5 +283,19 @@ class TransactionController extends Controller
                 'remaining_liters' => round($tank->remainingCapacity(), 3),
             ])
             ->all();
+    }
+
+    /** A transaction recorded by another screen is corrected there, so its records stay in step. */
+    private function managedElsewhere(Transaction $transaction): RedirectResponse
+    {
+        $screen = match ($transaction->managedBy()) {
+            'pump_counters' => __('nav.pump_counters'),
+            'shop' => __('nav.shop'),
+            default => __('nav.sadcop'),
+        };
+
+        Inertia::flash('toast', ['type' => 'error', 'message' => __('This entry was recorded in :screen. Change or delete it there.', ['screen' => $screen])]);
+
+        return back(303);
     }
 }

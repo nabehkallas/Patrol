@@ -351,7 +351,7 @@ class PumpCounterReadingController extends Controller
             ? __(':liters L recorded as a fuel sale.', ['liters' => $reading->liters_sold])
             : __('Counter reading saved (no previous reading to compare).');
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+        $this->flashWithStockCheck($message, [(int) $data['tank_id']]);
 
         return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
     }
@@ -416,7 +416,7 @@ class PumpCounterReadingController extends Controller
             ? __('1 reading saved.')
             : __(':count readings saved.', ['count' => $savedCount]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+        $this->flashWithStockCheck($message, $rowsToSave->pluck('tank_id')->map(fn ($id) => (int) $id)->all());
 
         return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date']]);
     }
@@ -586,7 +586,7 @@ class PumpCounterReadingController extends Controller
             }
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading updated.')]);
+        $this->flashWithStockCheck(__('Reading updated.'), [(int) $data['tank_id']]);
 
         return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
     }
@@ -826,5 +826,32 @@ class PumpCounterReadingController extends Controller
                 'is_active' => $tank->is_active,
             ])
             ->all();
+    }
+
+    /**
+     * The save toast, turned into a warning when a tank the readings drew from now holds less
+     * than nothing: sales were recorded that the tank's stock can't cover, which means a missing
+     * delivery or a mistyped counter. The readings are kept either way; the station may well
+     * have sold that fuel and recorded the delivery late.
+     *
+     * @param  array<int>  $tankIds
+     */
+    private function flashWithStockCheck(string $message, array $tankIds): void
+    {
+        $belowZero = Tank::whereIn('id', array_unique($tankIds))->get()
+            ->filter(fn (Tank $tank) => $tank->expectedLiters() < -0.0005)
+            ->map(fn (Tank $tank) => __(':tank is below zero (:liters L).', [
+                'tank' => $tank->name,
+                'liters' => number_format($tank->expectedLiters(), 0),
+            ]));
+
+        if ($belowZero->isEmpty()) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+            return;
+        }
+
+        Inertia::flash('toast', ['type' => 'warning', 'message' => $message.' '.$belowZero->implode(' ').' '
+            .__('Record the missing delivery, or check the counter reading.')]);
     }
 }

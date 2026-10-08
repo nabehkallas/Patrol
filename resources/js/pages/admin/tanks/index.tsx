@@ -57,7 +57,7 @@ export default function TanksIndex() {
                     </Link>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border">
+                <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">

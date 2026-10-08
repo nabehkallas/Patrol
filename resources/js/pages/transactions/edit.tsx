@@ -54,27 +54,20 @@ function convertAmount(
     return (amount / fromRate) * toRate;
 }
 
-type PumpOption = {
-    id: number;
-    name: string;
-    fuel_type_ids: number[];
-};
-
 type PageProps = {
     transaction: Transaction;
     tanks: TankOption[];
-    pumps: PumpOption[];
     debtors: Debtor[];
     exchangeRates: Record<Currency, number>;
 };
 
 export default function TransactionEdit() {
-    const { transaction, tanks, pumps, debtors, exchangeRates } =
+    const { transaction, tanks, debtors, exchangeRates } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
 
-    const typeLabels: Record<TransactionType, string> = {
-        fuel_sale: t('transactions.type.fuel_sale'),
+    // Fuel sales are recorded by pump counters, so they aren't a type to pick here.
+    const typeLabels: Record<Exclude<TransactionType, 'fuel_sale'>, string> = {
         fuel_delivery: t('transactions.type.fuel_delivery'),
         other_income: t('transactions.type.other_income'),
         expense: t('transactions.type.expense'),
@@ -87,7 +80,6 @@ export default function TransactionEdit() {
         tank_id: String(
             transaction.tank_id ?? selectableTanks(tanks)[0]?.id ?? '',
         ),
-        pump_id: String(transaction.pump_id ?? pumps[0]?.id ?? ''),
         liters: transaction.liters ?? '',
         price_per_liter: transaction.price_per_liter ?? '',
         description: transaction.description ?? '',
@@ -115,8 +107,7 @@ export default function TransactionEdit() {
         form.setData('mark_as_debt', checked);
     }
 
-    const tankBased =
-        form.data.type === 'fuel_sale' || form.data.type === 'fuel_delivery';
+    const tankBased = form.data.type === 'fuel_delivery';
     const showDescription = !tankBased && !isExchange;
 
     const selectedTank = useMemo(
@@ -124,23 +115,10 @@ export default function TransactionEdit() {
         [tanks, form.data.tank_id],
     );
 
-    const selectedPump = useMemo(
-        () => pumps.find((pump) => pump.id === Number(form.data.pump_id)),
-        [pumps, form.data.pump_id],
+    const availableTanks = useMemo(
+        () => selectableTanks(tanks, form.data.tank_id),
+        [tanks, form.data.tank_id],
     );
-
-    const availableTanks = useMemo(() => {
-        const byFuelType =
-            form.data.type === 'fuel_sale' &&
-            selectedPump &&
-            selectedPump.fuel_type_ids.length > 0
-                ? tanks.filter((tank) =>
-                      selectedPump.fuel_type_ids.includes(tank.fuel_type_id),
-                  )
-                : tanks;
-
-        return selectableTanks(byFuelType, form.data.tank_id);
-    }, [tanks, selectedPump, form.data.type, form.data.tank_id]);
 
     // The transaction being edited is already counted in the tank's expected stock, so if it's
     // an existing delivery into this same tank, add its own liters back to get the true ceiling.
@@ -167,25 +145,6 @@ export default function TransactionEdit() {
             tank_id: id,
             price_per_liter:
                 tank?.currentPrice?.price_per_liter ?? data.price_per_liter,
-        }));
-    }
-
-    function handlePumpChange(id: string) {
-        const pump = pumps.find((item) => item.id === Number(id));
-        const nextTanks =
-            pump && pump.fuel_type_ids.length > 0
-                ? tanks.filter((tank) =>
-                      pump.fuel_type_ids.includes(tank.fuel_type_id),
-                  )
-                : tanks;
-        const nextTank = selectableTanks(nextTanks)[0];
-
-        form.setData((data) => ({
-            ...data,
-            pump_id: id,
-            tank_id: String(nextTank?.id ?? ''),
-            price_per_liter:
-                nextTank?.currentPrice?.price_per_liter ?? data.price_per_liter,
         }));
     }
 
@@ -357,36 +316,6 @@ export default function TransactionEdit() {
 
                     {tankBased && (
                         <>
-                            {form.data.type === 'fuel_sale' && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="pump_id">
-                                        {t('common.pump')}
-                                    </Label>
-                                    <Select
-                                        value={String(form.data.pump_id)}
-                                        onValueChange={handlePumpChange}
-                                    >
-                                        <SelectTrigger
-                                            id="pump_id"
-                                            className="w-full"
-                                        >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {pumps.map((pump) => (
-                                                <SelectItem
-                                                    key={pump.id}
-                                                    value={String(pump.id)}
-                                                >
-                                                    {pump.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={form.errors.pump_id} />
-                                </div>
-                            )}
-
                             <div className="grid gap-2">
                                 <Label htmlFor="tank_id">
                                     {t('common.tank')}

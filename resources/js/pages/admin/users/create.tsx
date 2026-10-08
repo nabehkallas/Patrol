@@ -1,12 +1,13 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { type FormEvent } from 'react';
+import type {FormEvent} from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTranslation, type TranslationKey } from '@/lib/i18n';
+import { useTranslation  } from '@/lib/i18n';
+import type {TranslationKey} from '@/lib/i18n';
 import { index, store } from '@/routes/admin/users';
 import type { UserRole } from '@/types';
 

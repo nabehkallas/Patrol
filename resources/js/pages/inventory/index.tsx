@@ -306,12 +306,25 @@ export default function InventoryIndex() {
                                             <p className="text-muted-foreground text-xs">
                                                 {t('inventory.amount')}
                                             </p>
-                                            <p className="text-2xl font-bold">
-                                                {formatNumber(
-                                                    tank.expected_liters,
-                                                )}{' '}
-                                                L
+                                            <p
+                                                className={cn(
+                                                    'text-2xl font-bold',
+                                                    tank.expected_liters < 0 &&
+                                                        'text-destructive',
+                                                )}
+                                            >
+                                                <bdi dir="ltr">
+                                                    {formatNumber(
+                                                        tank.expected_liters,
+                                                    )}{' '}
+                                                    L
+                                                </bdi>
                                             </p>
+                                            {tank.expected_liters < 0 && (
+                                                <p className="text-destructive bg-destructive/10 mt-2 rounded-md px-2 py-1.5 text-xs font-medium">
+                                                    {t('inventory.below_zero')}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <form
@@ -413,7 +426,7 @@ export default function InventoryIndex() {
                                 />
                             </SectionToolbar>
 
-                            <div className="overflow-x-auto rounded-xl border">
+                            <div className="table-stack overflow-x-auto rounded-xl border">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
@@ -509,7 +522,7 @@ export default function InventoryIndex() {
                             <SectionToolbar
                                 title={t('inventory.transfer_history')}
                             />
-                            <div className="overflow-x-auto rounded-xl border">
+                            <div className="table-stack overflow-x-auto rounded-xl border">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
@@ -808,7 +821,7 @@ export default function InventoryIndex() {
                             }
                         />
 
-                        <div className="overflow-x-auto rounded-xl border">
+                        <div className="table-stack overflow-x-auto rounded-xl border">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/50 text-start">

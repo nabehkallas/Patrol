@@ -84,8 +84,22 @@ export function useTranslation() {
         void loadMessages(locale);
     }, [locale]);
 
-    function t(key: TranslationKey): string {
-        return active[key] ?? en[key] ?? key;
+    /** The text for `key`, with `:name` placeholders filled from `replace` (as the server's `__()` does). */
+    function t(
+        key: TranslationKey,
+        replace?: Record<string, string | number>,
+    ): string {
+        const text = active[key] ?? en[key] ?? key;
+
+        if (!replace) {
+            return text;
+        }
+
+        return Object.entries(replace).reduce(
+            (result, [name, value]) =>
+                result.replaceAll(`:${name}`, String(value)),
+            text,
+        );
     }
 
     return { t, locale };

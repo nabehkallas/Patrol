@@ -132,6 +132,28 @@ class Transaction extends Model
         return $this->hasMany(FuelCostAllocation::class);
     }
 
+    /**
+     * The screen that records this transaction and is the only place it can be corrected: fuel
+     * sales come from pump counters, item sales and purchases from the shop, and balance
+     * transfers and deliveries from Sadcop. Null for an entry made on the Transactions page.
+     */
+    public function managedBy(): ?string
+    {
+        if ($this->type === TransactionType::FuelSale) {
+            return 'pump_counters';
+        }
+
+        if ($this->shop_item_id !== null) {
+            return 'shop';
+        }
+
+        $hasSadcopEntry = $this->relationLoaded('sadcopLedgerEntry')
+            ? $this->sadcopLedgerEntry !== null
+            : $this->sadcopLedgerEntry()->exists();
+
+        return $hasSadcopEntry ? 'sadcop' : null;
+    }
+
     public function isPendingDebt(): bool
     {
         return $this->debt !== null && $this->debt->status === DebtStatus::Outstanding;

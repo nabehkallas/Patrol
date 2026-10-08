@@ -29,6 +29,7 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+            case name === 'error':
                 return null;
             case name === 'platform/landing-editor':
                 return null;

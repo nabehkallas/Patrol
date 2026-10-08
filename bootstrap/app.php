@@ -12,7 +12,9 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Inertia\Inertia;
 use Spatie\Permission\Middleware\RoleMiddleware;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -62,4 +64,30 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*')
                 || ($request->expectsJson() && ! $request->hasHeader('X-Inertia')),
         );
+
+        // Error pages in the app's own look and the user's language, instead of the framework's
+        // plain English ones. With APP_DEBUG on, server errors keep the detailed debug page.
+        $exceptions->respond(function (SymfonyResponse $response, Throwable $exception, Request $request) {
+            $status = $response->getStatusCode();
+
+            if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
+                return $response;
+            }
+
+            // An expired form (usually a tab left open overnight): back to it, with a note.
+            if ($status === 419) {
+                Inertia::flash('toast', ['type' => 'error', 'message' => __('The page expired. Please try again.')]);
+
+                return back(303);
+            }
+
+            $shown = config('app.debug') ? [403, 404] : [403, 404, 500, 503];
+            if (! in_array($status, $shown, true)) {
+                return $response;
+            }
+
+            return Inertia::render('error', ['status' => $status])
+                ->toResponse($request)
+                ->setStatusCode($status);
+        });
     })->create();

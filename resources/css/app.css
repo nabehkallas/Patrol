@@ -267,3 +267,77 @@
         margin-inline-start: auto;
     }
 }
+
+/*
+ * Tables on phones: instead of scrolling sideways (which hid the amount column off-screen), each
+ * row becomes a small card of "label  value" lines. The labels are the column headers, copied
+ * onto every cell by useStackedTables(). Wider screens keep the normal table.
+ */
+@media (max-width: 767px) {
+    .table-stack {
+        overflow: visible;
+        max-height: none;
+    }
+
+    .table-stack table,
+    .table-stack tbody,
+    .table-stack tr,
+    .table-stack td {
+        display: block;
+        width: 100%;
+    }
+
+    .table-stack thead {
+        display: none;
+    }
+
+    .table-stack tbody tr {
+        padding: 0.75rem 1rem;
+    }
+
+    .table-stack tbody tr + tr {
+        border-top-width: 1px;
+    }
+
+    .table-stack td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.25rem 0 !important;
+        max-width: none !important;
+        text-align: end;
+        white-space: normal;
+    }
+
+    .table-stack td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        max-width: 45%;
+        text-align: start;
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
+    }
+
+    /* Cells with nothing in them, and headerless action cells, add no empty lines. */
+    .table-stack td:empty,
+    .table-stack td[data-label='']:not(:has(*)) {
+        display: none;
+    }
+
+    .table-stack td[data-label=''] {
+        justify-content: flex-end;
+    }
+
+    /* Inputs in an entry table (pump counters) take the room next to their label. */
+    .table-stack td > :is(input, button[role='combobox'], div:has(> input)) {
+        flex: 1 1 60%;
+        max-width: 60%;
+    }
+
+    /* A single full-width cell (an empty-table message) stays centred. */
+    .table-stack td[colspan] {
+        justify-content: center;
+        text-align: center;
+    }
+}

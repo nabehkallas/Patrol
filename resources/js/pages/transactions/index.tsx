@@ -2,8 +2,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import Heading from '@/components/heading';
 import PaginationLinks from '@/components/pagination-links';
+import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
-import { Button } from '@/components/ui/button';
 import {
     Select,
     SelectContent,
@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/select';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { index as pumpCounters } from '@/routes/pump-counters';
+import { index as sadcop } from '@/routes/sadcop';
+import { index as shop } from '@/routes/shop';
 import { create, destroy, edit, exportPdf, index } from '@/routes/transactions';
 import type {
     Auth,
@@ -24,7 +27,9 @@ import type {
 
 type PageProps = {
     auth: Auth;
-    transactions: Paginated<Transaction>;
+    transactions: Paginated<
+        Transaction & { managed_by: 'pump_counters' | 'shop' | 'sadcop' | null }
+    >;
     users: UserSummary[];
     filters: { type?: string; user_id?: string };
 };
@@ -50,11 +55,15 @@ export default function TransactionsIndex() {
         );
     }
 
-    function remove(transaction: Transaction) {
-        if (confirm(t('common.confirm_delete'))) {
-            router.delete(destroy.url(transaction.id));
-        }
-    }
+    // Rows another screen recorded are corrected on that screen, so their records stay in step.
+    const managedScreens = {
+        pump_counters: {
+            label: t('nav.pump_counters'),
+            href: pumpCounters.url(),
+        },
+        shop: { label: t('nav.shop'), href: shop.url() },
+        sadcop: { label: t('nav.sadcop'), href: sadcop.url() },
+    };
 
     function detailFor(transaction: Transaction): string {
         if (
@@ -163,7 +172,7 @@ export default function TransactionsIndex() {
                     }
                 />
 
-                <div className="overflow-x-auto rounded-xl border">
+                <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
@@ -187,7 +196,9 @@ export default function TransactionsIndex() {
                                 <th className="px-4 py-3">
                                     {t('transactions.debt_label')}
                                 </th>
-                                <th className="px-4 py-3"></th>
+                                {auth.isAdmin && (
+                                    <th className="px-4 py-3"></th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -221,21 +232,24 @@ export default function TransactionsIndex() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="space-x-2 px-4 py-3 text-end">
-                                        <Link
-                                            href={edit(transaction.id)}
-                                            className="text-sm underline"
-                                        >
-                                            {t('common.edit')}
-                                        </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => remove(transaction)}
-                                        >
-                                            {t('common.delete')}
-                                        </Button>
-                                    </td>
+                                    {auth.isAdmin && (
+                                        <td className="px-4 py-3 text-end">
+                                            <RowActions
+                                                edit={edit.url(transaction.id)}
+                                                remove={destroy.url(
+                                                    transaction.id,
+                                                )}
+                                                managedIn={
+                                                    transaction.managed_by
+                                                        ? managedScreens[
+                                                              transaction
+                                                                  .managed_by
+                                                          ]
+                                                        : undefined
+                                                }
+                                            />
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                             {transactions.data.length === 0 && (

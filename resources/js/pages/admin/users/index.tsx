@@ -2,7 +2,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTranslation, type TranslationKey } from '@/lib/i18n';
+import { useTranslation  } from '@/lib/i18n';
+import type {TranslationKey} from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/users';
 import type { ManagedUser } from '@/types';
 
@@ -32,7 +33,7 @@ export default function UsersIndex() {
                     </Link>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border">
+                <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">

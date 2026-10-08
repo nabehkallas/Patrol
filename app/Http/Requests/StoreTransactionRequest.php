@@ -5,12 +5,12 @@ namespace App\Http\Requests;
 use App\Enums\DebtDirection;
 use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
-use App\Models\FuelPump;
 use App\Models\Tank;
 use App\Support\Currency;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreTransactionRequest extends FormRequest
@@ -21,11 +21,12 @@ class StoreTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', new Enum(TransactionType::class)],
-            'tank_id' => ['required_if:type,fuel_sale,fuel_delivery', 'nullable', 'exists:tanks,id'],
-            'pump_id' => ['required_if:type,fuel_sale', 'nullable', 'exists:fuel_pumps,id'],
-            'liters' => ['required_if:type,fuel_sale,fuel_delivery', 'nullable', 'numeric', 'min:0.001'],
-            'price_per_liter' => ['required_if:type,fuel_sale', 'nullable', 'numeric', 'min:0'],
+            // Fuel sales are recorded by pump counters only (each one is a counter reading), so
+            // they can't be entered here as well and counted twice.
+            'type' => ['required', Rule::enum(TransactionType::class)->except([TransactionType::FuelSale])],
+            'tank_id' => ['required_if:type,fuel_delivery', 'nullable', 'exists:tanks,id'],
+            'liters' => ['required_if:type,fuel_delivery', 'nullable', 'numeric', 'min:0.001'],
+            'price_per_liter' => ['nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', Currency::rule()],
@@ -49,12 +50,6 @@ class StoreTransactionRequest extends FormRequest
                 $validator->errors()->add('to_currency', __('Choose a different currency to exchange into.'));
             }
 
-            if ($this->input('type') === TransactionType::FuelSale->value) {
-                $this->validatePumpFuelTypeMatch($validator);
-
-                return;
-            }
-
             if ($this->input('type') !== TransactionType::FuelDelivery->value) {
                 return;
             }
@@ -74,19 +69,5 @@ class StoreTransactionRequest extends FormRequest
                 ]));
             }
         });
-    }
-
-    private function validatePumpFuelTypeMatch(Validator $validator): void
-    {
-        $pump = FuelPump::find($this->integer('pump_id'));
-        $tank = Tank::find($this->integer('tank_id'));
-
-        if (! $pump || ! $tank || $pump->fuelTypes()->doesntExist()) {
-            return;
-        }
-
-        if (! $pump->fuelTypes()->whereKey($tank->fuel_type_id)->exists()) {
-            $validator->errors()->add('tank_id', __('This tank\'s fuel type does not match the selected pump.'));
-        }
     }
 }

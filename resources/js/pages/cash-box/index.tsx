@@ -442,7 +442,7 @@ function CashBoxHistory({
                 description={t('cash_box.history_description')}
             />
 
-            <div className="max-h-[32rem] overflow-auto rounded-xl border">
+            <div className="table-stack max-h-[32rem] overflow-auto rounded-xl border">
                 <table className="w-full text-sm">
                     <thead className="sticky top-0 z-10">
                         <tr className="bg-muted text-start">
