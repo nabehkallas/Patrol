@@ -4,9 +4,12 @@ namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
 use App\Enums\StationStatus;
+use App\Http\Responses\CountedFailedPasswordResetResponse;
+use App\Http\Responses\PasswordResetLinkRequestedResponse;
 use App\Models\Tenant;
 use App\Models\TenantUserDirectory;
 use App\Models\User;
+use App\Support\ClientIp;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -19,6 +22,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetResponse;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -29,7 +34,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Forgot-password answers the same whether or not the email has an account, and wrong
+        // reset tokens are counted so a link dies after five failed attempts.
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, PasswordResetLinkRequestedResponse::class);
+        $this->app->bind(FailedPasswordResetResponse::class, CountedFailedPasswordResetResponse::class);
     }
 
     /**
@@ -160,9 +168,19 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureRateLimiting(): void
     {
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.ClientIp::of($request));
 
             return Limit::perMinute(5)->by($throttleKey);
+        });
+
+        // Every page and action: 100 requests a minute per signed-in user (per station), or per
+        // IP for guests -- generous for people, a ceiling for scripts and scrapers.
+        RateLimiter::for('web-requests', function (Request $request) {
+            $user = $request->user();
+
+            return Limit::perMinute(100)->by($user
+                ? 'user:'.(tenant()?->getTenantKey() ?? 'central').':'.$user->getAuthIdentifier()
+                : 'ip:'.ClientIp::of($request));
         });
     }
 }

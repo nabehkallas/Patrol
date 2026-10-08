@@ -694,5 +694,6 @@
     "wizard.debt_amount": "Amount",
     "wizard.debt_currency": "Currency",
     "wizard.debt_details": "What for (optional)",
-    "wizard.add_debt": "Add debt"
+    "wizard.add_debt": "Add debt",
+    "passwords.sent": "If this email is registered, password reset instructions have been sent."
 }

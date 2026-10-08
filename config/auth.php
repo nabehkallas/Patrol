@@ -96,7 +96,9 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // Minutes a reset link stays valid; the broker's own throttle (below) keeps a
+            // 60-second cooldown between links for the same account.
+            'expire' => 5,
             'throttle' => 60,
         ],
     ],

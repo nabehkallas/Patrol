@@ -954,7 +954,7 @@
     "Your station :station is now active": "Deine Station :station ist jetzt aktiv",
     "cash advance": "Barvorschuss",
     "passwords.reset": "Dein Passwort wurde zurückgesetzt.",
-    "passwords.sent": "Wir haben dir den Link zum Zurücksetzen des Passworts per E-Mail gesendet.",
+    "passwords.sent": "Wenn diese E-Mail-Adresse registriert ist, wurden Anweisungen zum Zurücksetzen des Passworts gesendet.",
     "passwords.throttled": "Bitte warte, bevor du es erneut versuchst.",
     "passwords.token": "Der Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.",
     "passwords.user": "Es gibt keinen Benutzer mit dieser E-Mail-Adresse.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Falsches Passwort.",
     "validation.extensions": "Die Datei muss vom Typ :values sein.",
     "validation.max.file": "Die Datei darf nicht größer als :max Kilobyte sein.",
-    "validation.unique": "Dieser Wert wird bereits verwendet."
+    "validation.unique": "Dieser Wert wird bereits verwendet.",
+    "Your :app password was changed": "Dein :app-Passwort wurde geändert",
+    "The password for your account (:email) was changed on :time.": "Das Passwort deines Kontos (:email) wurde am :time geändert.",
+    "Every other device signed in to this account has been signed out.": "Alle anderen Geräte, die bei diesem Konto angemeldet waren, wurden abgemeldet.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Wenn du diese Änderung nicht vorgenommen hast, setze dein Passwort sofort zurück und wende dich an den Administrator deiner Station.",
+    "Reset password": "Passwort zurücksetzen"
 }

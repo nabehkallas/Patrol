@@ -4,12 +4,14 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandleLocale;
 use App\Http\Middleware\InitializeTenancyFromSession;
+use App\Http\Middleware\SanitizeDateFilters;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -29,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             InitializeTenancyFromSession::class,
+            // Global request budget (see the 'web-requests' limiter in FortifyServiceProvider).
+            ThrottleRequests::class.':web-requests',
+            SanitizeDateFilters::class,
             HandleAppearance::class,
             HandleLocale::class,
             HandleInertiaRequests::class,

@@ -954,7 +954,7 @@
     "Your station :station is now active": "La tua stazione :station ora è attiva",
     "cash advance": "anticipo in contanti",
     "passwords.reset": "La tua password è stata reimpostata.",
-    "passwords.sent": "Ti abbiamo inviato via e-mail il link per reimpostare la password.",
+    "passwords.sent": "Se questo indirizzo e-mail è registrato, sono state inviate le istruzioni per reimpostare la password.",
     "passwords.throttled": "Attendi prima di riprovare.",
     "passwords.token": "Il link di reimpostazione della password non è valido o è scaduto.",
     "passwords.user": "Nessun utente con questo indirizzo e-mail.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Password errata.",
     "validation.extensions": "Il file deve essere di tipo: :values.",
     "validation.max.file": "Il file non può superare :max kilobyte.",
-    "validation.unique": "Questo valore è già in uso."
+    "validation.unique": "Questo valore è già in uso.",
+    "Your :app password was changed": "La password di :app è stata cambiata",
+    "The password for your account (:email) was changed on :time.": "La password del tuo account (:email) è stata cambiata il :time.",
+    "Every other device signed in to this account has been signed out.": "Tutti gli altri dispositivi collegati a questo account sono stati disconnessi.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Se non hai effettuato tu questa modifica, reimposta subito la password e contatta l'amministratore della tua stazione.",
+    "Reset password": "Reimposta password"
 }

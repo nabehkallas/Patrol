@@ -954,7 +954,7 @@
     "Your station :station is now active": "आपका स्टेशन :station अब सक्रिय है",
     "cash advance": "नक़द अग्रिम",
     "passwords.reset": "आपका पासवर्ड रीसेट हो गया है।",
-    "passwords.sent": "हमने आपके ईमेल पर पासवर्ड रीसेट लिंक भेज दिया है।",
+    "passwords.sent": "यदि यह ईमेल पंजीकृत है, तो पासवर्ड रीसेट करने के निर्देश भेज दिए गए हैं।",
     "passwords.throttled": "कृपया दोबारा कोशिश करने से पहले रुकें।",
     "passwords.token": "पासवर्ड रीसेट लिंक अमान्य है या उसकी अवधि समाप्त हो गई है।",
     "passwords.user": "इस ईमेल का कोई यूज़र नहीं है।",
@@ -962,5 +962,10 @@
     "validation.current_password": "पासवर्ड ग़लत है।",
     "validation.extensions": "फ़ाइल इनमें से किसी प्रकार की होनी चाहिए: :values।",
     "validation.max.file": "फ़ाइल :max किलोबाइट से बड़ी नहीं होनी चाहिए।",
-    "validation.unique": "यह मान पहले से इस्तेमाल में है।"
+    "validation.unique": "यह मान पहले से इस्तेमाल में है।",
+    "Your :app password was changed": "आपका :app पासवर्ड बदल दिया गया",
+    "The password for your account (:email) was changed on :time.": "आपके खाते (:email) का पासवर्ड :time को बदला गया।",
+    "Every other device signed in to this account has been signed out.": "इस खाते में लॉग इन बाकी सभी डिवाइस से लॉग आउट कर दिया गया है।",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "अगर यह बदलाव आपने नहीं किया, तो तुरंत अपना पासवर्ड रीसेट करें और अपने स्टेशन एडमिन से संपर्क करें।",
+    "Reset password": "पासवर्ड रीसेट करें"
 }

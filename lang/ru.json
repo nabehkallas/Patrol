@@ -954,7 +954,7 @@
     "Your station :station is now active": "Ваша АЗС :station теперь работает",
     "cash advance": "денежный аванс",
     "passwords.reset": "Ваш пароль сброшен.",
-    "passwords.sent": "Мы отправили ссылку для сброса пароля на вашу почту.",
+    "passwords.sent": "Если этот адрес почты зарегистрирован, инструкции по сбросу пароля отправлены.",
     "passwords.throttled": "Подождите, прежде чем пытаться снова.",
     "passwords.token": "Ссылка для сброса пароля недействительна или устарела.",
     "passwords.user": "Пользователь с таким адресом почты не найден.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Неверный пароль.",
     "validation.extensions": "Файл должен быть одного из типов: :values.",
     "validation.max.file": "Размер файла не должен превышать :max КБ.",
-    "validation.unique": "Это значение уже используется."
+    "validation.unique": "Это значение уже используется.",
+    "Your :app password was changed": "Пароль :app изменён",
+    "The password for your account (:email) was changed on :time.": "Пароль вашего аккаунта (:email) был изменён :time.",
+    "Every other device signed in to this account has been signed out.": "На всех остальных устройствах, где был выполнен вход в этот аккаунт, выполнен выход.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Если это были не вы, немедленно сбросьте пароль и свяжитесь с администратором АЗС.",
+    "Reset password": "Сбросить пароль"
 }

@@ -954,7 +954,7 @@
     "Your station :station is now active": "Tu estación :station ya está activa",
     "cash advance": "anticipo en efectivo",
     "passwords.reset": "Tu contraseña se ha restablecido.",
-    "passwords.sent": "Te hemos enviado por correo el enlace para restablecer la contraseña.",
+    "passwords.sent": "Si este correo está registrado, se han enviado las instrucciones para restablecer la contraseña.",
     "passwords.throttled": "Espera un momento antes de volver a intentarlo.",
     "passwords.token": "El enlace para restablecer la contraseña no es válido o ha caducado.",
     "passwords.user": "No hay ningún usuario con ese correo.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Contraseña incorrecta.",
     "validation.extensions": "El archivo debe ser de tipo: :values.",
     "validation.max.file": "El archivo no puede superar :max kilobytes.",
-    "validation.unique": "Este valor ya está en uso."
+    "validation.unique": "Este valor ya está en uso.",
+    "Your :app password was changed": "Se ha cambiado tu contraseña de :app",
+    "The password for your account (:email) was changed on :time.": "La contraseña de tu cuenta (:email) se cambió el :time.",
+    "Every other device signed in to this account has been signed out.": "Se ha cerrado la sesión en todos los demás dispositivos conectados a esta cuenta.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Si no hiciste este cambio, restablece tu contraseña de inmediato y contacta con el administrador de tu estación.",
+    "Reset password": "Restablecer contraseña"
 }

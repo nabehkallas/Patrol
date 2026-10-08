@@ -954,7 +954,7 @@
     "Your station :station is now active": "Stasyona te :station niha çalak e",
     "cash advance": "pêşdayîna pereyan",
     "passwords.reset": "Şîfreya te hate nûkirin.",
-    "passwords.sent": "Me girêdana nûkirina şîfreyê ji e-nameya te re şand.",
+    "passwords.sent": "Heke ev e-name tomarkirî be, rêwerzên nûkirina şîfreyê hatin şandin.",
     "passwords.throttled": "Ji kerema xwe berî ku dîsa biceribînî bisekine.",
     "passwords.token": "Girêdana nûkirina şîfreyê ne derbasdar e an jî qediyaye.",
     "passwords.user": "Bikarhênerekî bi vê e-nameyê tune.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Şîfre çewt e.",
     "validation.extensions": "Divê pel ji van cureyan be: :values.",
     "validation.max.file": "Divê pel ji :max kîlobaytan mezintir nebe.",
-    "validation.unique": "Ev nirx jixwe tê bikaranîn."
+    "validation.unique": "Ev nirx jixwe tê bikaranîn.",
+    "Your :app password was changed": "Şîfreya te ya :app hate guhertin",
+    "The password for your account (:email) was changed on :time.": "Şîfreya hesabê te (:email) di :time de hate guhertin.",
+    "Every other device signed in to this account has been signed out.": "Hemû amûrên din ên ku ketibûn vî hesabî hatin derxistin.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Heke te ev guhertin nekiribe, şîfreya xwe yekser nû bike û bi rêvebirê stasyona xwe re têkilî dayne.",
+    "Reset password": "Şîfreyê nû bike"
 }

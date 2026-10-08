@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use App\Notifications\PasswordChanged;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -43,6 +44,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendVerificationLink(): void
     {
         rescue(fn () => $this->sendEmailVerificationNotification());
+    }
+
+    /**
+     * Emails the "your password was changed" security notice. A mail failure is logged but never
+     * undoes or blocks the change itself.
+     */
+    public function notifyPasswordChanged(): void
+    {
+        rescue(fn () => $this->notify(new PasswordChanged));
     }
 
     /**

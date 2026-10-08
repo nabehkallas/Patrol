@@ -66,6 +66,7 @@ class PlatformAccountController extends Controller
         ]);
 
         $request->user()->update(['password' => $data['password']]);
+        $request->user()->notifyPasswordChanged();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 

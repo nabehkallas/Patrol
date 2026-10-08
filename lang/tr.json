@@ -954,7 +954,7 @@
     "Your station :station is now active": ":station istasyonunuz artık aktif",
     "cash advance": "nakit avans",
     "passwords.reset": "Şifreniz sıfırlandı.",
-    "passwords.sent": "Şifre sıfırlama bağlantısını e-posta adresinize gönderdik.",
+    "passwords.sent": "Bu e-posta adresi kayıtlıysa şifre sıfırlama talimatları gönderildi.",
     "passwords.throttled": "Lütfen tekrar denemeden önce bekleyin.",
     "passwords.token": "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş.",
     "passwords.user": "Bu e-posta adresine sahip bir kullanıcı yok.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Şifre yanlış.",
     "validation.extensions": "Dosya şu türlerden biri olmalıdır: :values.",
     "validation.max.file": "Dosya :max kilobayttan büyük olmamalıdır.",
-    "validation.unique": "Bu değer zaten kullanılıyor."
+    "validation.unique": "Bu değer zaten kullanılıyor.",
+    "Your :app password was changed": ":app şifreniz değiştirildi",
+    "The password for your account (:email) was changed on :time.": "Hesabınızın (:email) şifresi :time tarihinde değiştirildi.",
+    "Every other device signed in to this account has been signed out.": "Bu hesapta oturumu açık olan diğer tüm cihazların oturumu kapatıldı.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Bu değişikliği siz yapmadıysanız şifrenizi hemen sıfırlayın ve istasyon yöneticinizle iletişime geçin.",
+    "Reset password": "Şifreyi sıfırla"
 }

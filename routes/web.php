@@ -50,7 +50,7 @@ Route::get('registration/pending', [StationRegistrationController::class, 'pendi
     ->middleware(['auth', 'verified', RequireTenant::class])
     ->name('registration.pending');
 
-Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name('platform.')->group(function () {
+Route::middleware(['auth', 'auth.session', RequireSuperAdmin::class])->prefix('platform')->name('platform.')->group(function () {
     Route::get('/', [StationController::class, 'index'])->name('home');
     Route::get('stations/create', [StationController::class, 'create'])->name('stations.create');
     Route::post('stations', [StationController::class, 'store'])->name('stations.store');
@@ -72,7 +72,7 @@ Route::middleware(['auth', RequireSuperAdmin::class])->prefix('platform')->name(
 
 // 'verified': a station account can't use the app until its email address is confirmed through
 // the link emailed to it (Fortify's verification.* routes and screen handle that step).
-Route::middleware(['auth', 'verified', RequireTenant::class, RequireActiveStation::class, ForcePasswordChange::class])->group(function () {
+Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, RequireActiveStation::class, ForcePasswordChange::class])->group(function () {
     Route::get('password/force-change', [ForcePasswordChangeController::class, 'edit'])->name('password.force-change');
     Route::patch('password/force-change', [ForcePasswordChangeController::class, 'update'])->name('password.force-change.update');
 

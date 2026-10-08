@@ -954,7 +954,7 @@
     "Your station :station is now active": "آپ کا اسٹیشن :station اب فعال ہے",
     "cash advance": "نقد پیشگی",
     "passwords.reset": "آپ کا پاس ورڈ ری سیٹ ہو گیا۔",
-    "passwords.sent": "ہم نے پاس ورڈ ری سیٹ لنک آپ کی ای میل پر بھیج دیا ہے۔",
+    "passwords.sent": "اگر یہ ای میل رجسٹرڈ ہے تو پاس ورڈ ری سیٹ کرنے کی ہدایات بھیج دی گئی ہیں۔",
     "passwords.throttled": "دوبارہ کوشش کرنے سے پہلے انتظار کریں۔",
     "passwords.token": "پاس ورڈ ری سیٹ لنک غلط ہے یا اس کی مدت ختم ہو گئی ہے۔",
     "passwords.user": "اس ای میل کا کوئی صارف موجود نہیں۔",
@@ -962,5 +962,10 @@
     "validation.current_password": "پاس ورڈ غلط ہے۔",
     "validation.extensions": "فائل ان اقسام میں سے ہونی چاہیے: :values۔",
     "validation.max.file": "فائل :max کلوبائٹ سے بڑی نہیں ہونی چاہیے۔",
-    "validation.unique": "یہ قدر پہلے سے استعمال میں ہے۔"
+    "validation.unique": "یہ قدر پہلے سے استعمال میں ہے۔",
+    "Your :app password was changed": "آپ کا :app پاس ورڈ تبدیل کر دیا گیا",
+    "The password for your account (:email) was changed on :time.": "آپ کے اکاؤنٹ (:email) کا پاس ورڈ :time کو تبدیل کیا گیا۔",
+    "Every other device signed in to this account has been signed out.": "اس اکاؤنٹ میں لاگ اِن تمام دیگر ڈیوائسز سے لاگ آؤٹ کر دیا گیا ہے۔",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "اگر یہ تبدیلی آپ نے نہیں کی تو فوراً اپنا پاس ورڈ ری سیٹ کریں اور اپنے اسٹیشن ایڈمن سے رابطہ کریں۔",
+    "Reset password": "پاس ورڈ ری سیٹ کریں"
 }

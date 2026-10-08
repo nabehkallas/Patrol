@@ -954,7 +954,7 @@
     "Your station :station is now active": "Votre station :station est désormais active",
     "cash advance": "avance en espèces",
     "passwords.reset": "Votre mot de passe a été réinitialisé.",
-    "passwords.sent": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe.",
+    "passwords.sent": "Si cette adresse e-mail est enregistrée, les instructions de réinitialisation du mot de passe ont été envoyées.",
     "passwords.throttled": "Veuillez patienter avant de réessayer.",
     "passwords.token": "Le lien de réinitialisation du mot de passe est invalide ou a expiré.",
     "passwords.user": "Aucun utilisateur ne correspond à cette adresse e-mail.",
@@ -962,5 +962,10 @@
     "validation.current_password": "Mot de passe incorrect.",
     "validation.extensions": "Le fichier doit être de type : :values.",
     "validation.max.file": "Le fichier ne doit pas dépasser :max kilo-octets.",
-    "validation.unique": "Cette valeur est déjà utilisée."
+    "validation.unique": "Cette valeur est déjà utilisée.",
+    "Your :app password was changed": "Le mot de passe de votre compte :app a été modifié",
+    "The password for your account (:email) was changed on :time.": "Le mot de passe de votre compte (:email) a été modifié le :time.",
+    "Every other device signed in to this account has been signed out.": "Tous les autres appareils connectés à ce compte ont été déconnectés.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "Si vous n'êtes pas à l'origine de ce changement, réinitialisez immédiatement votre mot de passe et contactez l'administrateur de votre station.",
+    "Reset password": "Réinitialiser le mot de passe"
 }

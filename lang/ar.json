@@ -954,7 +954,7 @@
     "Your station :station is now active": "تم تفعيل محطتك :station",
     "cash advance": "سلفة نقدية",
     "passwords.reset": "تمت إعادة تعيين كلمة المرور.",
-    "passwords.sent": "أرسلنا رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.",
+    "passwords.sent": "إذا كان هذا البريد الإلكتروني مسجلاً لدينا، فقد أرسلنا إليه تعليمات إعادة تعيين كلمة المرور.",
     "passwords.throttled": "يرجى الانتظار قبل المحاولة مرة أخرى.",
     "passwords.token": "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.",
     "passwords.user": "لا يوجد مستخدم بهذا البريد الإلكتروني.",
@@ -962,5 +962,10 @@
     "validation.current_password": "كلمة المرور غير صحيحة.",
     "validation.extensions": "يجب أن يكون الملف من نوع: :values.",
     "validation.max.file": "يجب ألا يتجاوز حجم الملف :max كيلوبايت.",
-    "validation.unique": "هذه القيمة مستخدمة مسبقاً."
+    "validation.unique": "هذه القيمة مستخدمة مسبقاً.",
+    "Your :app password was changed": "تم تغيير كلمة مرور :app الخاصة بك",
+    "The password for your account (:email) was changed on :time.": "تم تغيير كلمة مرور حسابك (:email) بتاريخ :time.",
+    "Every other device signed in to this account has been signed out.": "تم تسجيل الخروج من جميع الأجهزة الأخرى المسجّل دخولها إلى هذا الحساب.",
+    "If you did not make this change, reset your password right away and contact your station administrator.": "إذا لم تقم بهذا التغيير، فأعد تعيين كلمة المرور فوراً وتواصل مع مدير المحطة.",
+    "Reset password": "إعادة تعيين كلمة المرور"
 }

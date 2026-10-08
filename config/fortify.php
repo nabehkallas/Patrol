@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\InitializeTenancyForPasswordReset;
+use App\Http\Middleware\ProtectPasswordReset;
 use Laravel\Fortify\Features;
 
 return [
@@ -104,7 +105,9 @@ return [
 
     // InitializeTenancyForPasswordReset: station users live in their station's database, so the
     // guest reset routes must switch to it before the password broker looks the user up.
-    'middleware' => ['web', InitializeTenancyForPasswordReset::class],
+    // ProtectPasswordReset runs before the station is resolved, so its per-IP counters and locks
+    // live in the central database rather than being split across stations.
+    'middleware' => ['web', ProtectPasswordReset::class, InitializeTenancyForPasswordReset::class],
 
     /*
     |--------------------------------------------------------------------------
