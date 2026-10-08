@@ -987,5 +987,11 @@
     "audit.action.station_reset": "إعادة تعيين بيانات المحطة",
     "audit.action.backup_restored": "استعادة نسخة احتياطية",
     "audit.entity.debt_payment": "دفعة دين",
-    "audit.entity.shop_price": "سعر صنف"
+    "audit.entity.shop_price": "سعر صنف",
+    "platform.reset_admin_password": "إعادة تعيين كلمة مرور المدير",
+    "platform.confirm.reset_password_title": "إعادة تعيين كلمة مرور مدير :station؟",
+    "platform.confirm.reset_password_message": "تتوقف كلمة المرور الحالية لمدير المحطة عن العمل ويُسجَّل خروجه من جميع الجلسات. ستظهر لك كلمة مرور مؤقتة لمرة واحدة لتسلّمها له، وعليه اختيار كلمة جديدة عند تسجيل الدخول التالي. لا حاجة للبريد الإلكتروني.",
+    "platform.confirm.reset_password_button": "إعادة تعيين كلمة المرور",
+    "platform.credentials.reset_title": "كلمة مرور مؤقتة جديدة لـ :station",
+    "audit.action.password_override": "إعادة تعيين كلمة المرور من المشرف العام"
 }

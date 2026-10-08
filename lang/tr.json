@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Veriler sıfırlandı",
     "audit.action.backup_restored": "Yedek geri yüklendi",
     "audit.entity.debt_payment": "Borç ödemesi",
-    "audit.entity.shop_price": "Market fiyatı"
+    "audit.entity.shop_price": "Market fiyatı",
+    "platform.reset_admin_password": "Yönetici şifresini sıfırla",
+    "platform.confirm.reset_password_title": ":station yöneticisinin şifresi sıfırlansın mı?",
+    "platform.confirm.reset_password_message": "İstasyon yöneticisinin mevcut şifresi geçersiz olur ve oturumları kapatılır. Ona vermeniz için tek kullanımlık geçici bir şifre gösterilir; bir sonraki girişinde yenisini belirlemesi gerekir. E-posta gerekmez.",
+    "platform.confirm.reset_password_button": "Sıfırla",
+    "platform.credentials.reset_title": ":station için yeni geçici şifre",
+    "audit.action.password_override": "Şifre süper yönetici tarafından sıfırlandı"
 }

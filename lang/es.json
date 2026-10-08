@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Datos reiniciados",
     "audit.action.backup_restored": "Copia restaurada",
     "audit.entity.debt_payment": "Pago de deuda",
-    "audit.entity.shop_price": "Precio de tienda"
+    "audit.entity.shop_price": "Precio de tienda",
+    "platform.reset_admin_password": "Restablecer contraseña del administrador",
+    "platform.confirm.reset_password_title": "¿Restablecer la contraseña del administrador de :station?",
+    "platform.confirm.reset_password_message": "La contraseña actual del administrador deja de funcionar y se cierran sus sesiones. Verás una contraseña temporal de un solo uso para dársela; deberá elegir una nueva en su próximo inicio de sesión. No hace falta correo.",
+    "platform.confirm.reset_password_button": "Restablecer",
+    "platform.credentials.reset_title": "Nueva contraseña temporal para :station",
+    "audit.action.password_override": "Contraseña restablecida por el superadministrador"
 }

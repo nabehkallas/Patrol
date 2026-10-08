@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Données réinitialisées",
     "audit.action.backup_restored": "Sauvegarde restaurée",
     "audit.entity.debt_payment": "Remboursement",
-    "audit.entity.shop_price": "Prix boutique"
+    "audit.entity.shop_price": "Prix boutique",
+    "platform.reset_admin_password": "Réinitialiser le mot de passe admin",
+    "platform.confirm.reset_password_title": "Réinitialiser le mot de passe de l'administrateur de :station ?",
+    "platform.confirm.reset_password_message": "Le mot de passe actuel de l'administrateur cesse de fonctionner et ses sessions sont fermées. Un mot de passe temporaire à usage unique vous sera affiché ; il devra en choisir un nouveau à sa prochaine connexion. Aucun e-mail n'est nécessaire.",
+    "platform.confirm.reset_password_button": "Réinitialiser",
+    "platform.credentials.reset_title": "Nouveau mot de passe temporaire pour :station",
+    "audit.action.password_override": "Mot de passe réinitialisé par le super admin"
 }

@@ -6,6 +6,7 @@ use App\Models\Concerns\SerializesDatesInAppTimezone;
 use App\Support\ClientIp;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
@@ -64,9 +65,13 @@ class AuditLog extends Model
         $user = auth()->user();
         $request = app()->runningInConsole() ? null : request();
 
+        // A platform admin acting on a station is a central account: its id means nothing in the
+        // station's database, so record the name only, marked as such.
+        $isPlatformAdmin = $user instanceof User && $user->getConnectionName() !== DB::getDefaultConnection();
+
         static::create([
-            'user_id' => $user?->getAuthIdentifier(),
-            'user_name' => $user instanceof User ? $user->name : null,
+            'user_id' => $isPlatformAdmin ? null : $user?->getAuthIdentifier(),
+            'user_name' => $user instanceof User ? ($isPlatformAdmin ? 'Super admin: '.$user->name : $user->name) : null,
             'action' => $action,
             'entity_type' => $entityType,
             'entity_id' => is_numeric($entityId) ? (int) $entityId : null,

@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Daten zurückgesetzt",
     "audit.action.backup_restored": "Sicherung wiederhergestellt",
     "audit.entity.debt_payment": "Schuldenzahlung",
-    "audit.entity.shop_price": "Shoppreis"
+    "audit.entity.shop_price": "Shoppreis",
+    "platform.reset_admin_password": "Admin-Passwort zurücksetzen",
+    "platform.confirm.reset_password_title": "Admin-Passwort von :station zurücksetzen?",
+    "platform.confirm.reset_password_message": "Das aktuelle Passwort des Stationsadmins funktioniert nicht mehr und seine Sitzungen werden beendet. Du siehst ein einmaliges vorläufiges Passwort zum Weitergeben; bei der nächsten Anmeldung muss er ein neues wählen. Keine E-Mail nötig.",
+    "platform.confirm.reset_password_button": "Zurücksetzen",
+    "platform.credentials.reset_title": "Neues vorläufiges Passwort für :station",
+    "audit.action.password_override": "Passwort vom Super-Admin zurückgesetzt"
 }

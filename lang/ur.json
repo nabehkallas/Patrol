@@ -987,5 +987,11 @@
     "audit.action.station_reset": "ڈیٹا ری سیٹ",
     "audit.action.backup_restored": "بیک اپ بحال",
     "audit.entity.debt_payment": "ادھار کی ادائیگی",
-    "audit.entity.shop_price": "دکان کی قیمت"
+    "audit.entity.shop_price": "دکان کی قیمت",
+    "platform.reset_admin_password": "ایڈمن کا پاس ورڈ ری سیٹ کریں",
+    "platform.confirm.reset_password_title": ":station کے ایڈمن کا پاس ورڈ ری سیٹ کریں؟",
+    "platform.confirm.reset_password_message": "اسٹیشن ایڈمن کا موجودہ پاس ورڈ کام کرنا بند کر دے گا اور اس کے سیشن ختم ہو جائیں گے۔ آپ کو ایک بار کا عارضی پاس ورڈ دکھایا جائے گا جو آپ اسے دیں گے؛ اگلی بار لاگ اِن پر اسے نیا پاس ورڈ بنانا ہو گا۔ ای میل کی ضرورت نہیں۔",
+    "platform.confirm.reset_password_button": "ری سیٹ کریں",
+    "platform.credentials.reset_title": ":station کے لیے نیا عارضی پاس ورڈ",
+    "audit.action.password_override": "سپر ایڈمن نے پاس ورڈ ری سیٹ کیا"
 }

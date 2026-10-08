@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\StationStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\StoreStationRequest;
+use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\StationApproved;
@@ -164,6 +165,39 @@ class StationController extends Controller
     }
 
     /** Freezes a live station: its users can't sign in, and anyone signed in is signed out. */
+    /**
+     * Offline-safe recovery for a station admin who can't use the email reset link: after the
+     * platform admin confirms their own password, the station admin gets a one-time temporary
+     * password (shown once, like a new station's) that must be changed at the next sign-in.
+     * Their other sessions end, they're emailed the security notice, and it's audit-logged.
+     */
+    public function resetAdminPassword(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->confirmPassword($request);
+
+        $temporaryPassword = Str::password(16);
+
+        $admin = $tenant->run(function () use ($temporaryPassword) {
+            $admin = User::role(UserRole::Admin->value)->orderBy('id')->first();
+            abort_unless($admin !== null, 422, 'This station has no admin account.');
+
+            $admin->forceFill(['password' => $temporaryPassword, 'must_change_password' => true])->save();
+            AuditLog::record('password.admin_override', 'User', $admin->id);
+            $admin->notifyPasswordChanged();
+
+            return $admin;
+        });
+
+        Session::flash('new_station_credentials', [
+            'station' => $tenant->name,
+            'email' => $admin->email,
+            'password' => $temporaryPassword,
+            'kind' => 'reset',
+        ]);
+
+        return to_route('platform.home');
+    }
+
     public function suspend(Request $request, Tenant $tenant): RedirectResponse
     {
         $this->confirmPassword($request);

@@ -62,6 +62,7 @@ Route::middleware(['auth', 'auth.session', RequireSuperAdmin::class])->prefix('p
         Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
         Route::post('stations/{tenant}/suspend', [StationController::class, 'suspend'])->name('stations.suspend');
         Route::post('stations/{tenant}/reactivate', [StationController::class, 'reactivate'])->name('stations.reactivate');
+        Route::post('stations/{tenant}/reset-admin-password', [StationController::class, 'resetAdminPassword'])->name('stations.reset-admin-password');
         Route::delete('stations/{tenant}', [StationController::class, 'destroy'])->name('stations.destroy');
     });
     Route::patch('account', [PlatformAccountController::class, 'updateProfile'])->name('account.update');

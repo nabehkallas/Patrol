@@ -68,6 +68,7 @@ const ACTION_LABELS: Record<string, TranslationKey> = {
     'role.changed': 'audit.action.role_changed',
     'station.reset': 'audit.action.station_reset',
     'backup.restored': 'audit.action.backup_restored',
+    'password.admin_override': 'audit.action.password_override',
 };
 
 const ACTION_TONE: Record<string, string> = {

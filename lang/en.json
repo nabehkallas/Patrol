@@ -715,5 +715,11 @@
     "audit.action.station_reset": "Station data reset",
     "audit.action.backup_restored": "Backup restored",
     "audit.entity.debt_payment": "Debt payment",
-    "audit.entity.shop_price": "Shop price"
+    "audit.entity.shop_price": "Shop price",
+    "platform.reset_admin_password": "Reset admin password",
+    "platform.confirm.reset_password_title": "Reset the admin password of :station?",
+    "platform.confirm.reset_password_message": "The station admin's current password stops working and their sessions are signed out. You'll see a one-time temporary password to give them; they must choose a new one at their next sign-in. No email is needed.",
+    "platform.confirm.reset_password_button": "Reset password",
+    "platform.credentials.reset_title": "New temporary password for :station",
+    "audit.action.password_override": "Password reset by super admin"
 }

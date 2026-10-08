@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Dati azzerati",
     "audit.action.backup_restored": "Backup ripristinato",
     "audit.entity.debt_payment": "Pagamento debito",
-    "audit.entity.shop_price": "Prezzo negozio"
+    "audit.entity.shop_price": "Prezzo negozio",
+    "platform.reset_admin_password": "Reimposta password amministratore",
+    "platform.confirm.reset_password_title": "Reimpostare la password dell'amministratore di :station?",
+    "platform.confirm.reset_password_message": "La password attuale dell'amministratore smette di funzionare e le sue sessioni vengono chiuse. Vedrai una password temporanea monouso da consegnargli; al prossimo accesso dovrà sceglierne una nuova. Non serve l'e-mail.",
+    "platform.confirm.reset_password_button": "Reimposta",
+    "platform.credentials.reset_title": "Nuova password temporanea per :station",
+    "audit.action.password_override": "Password reimpostata dal super amministratore"
 }

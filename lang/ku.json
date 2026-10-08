@@ -987,5 +987,11 @@
     "audit.action.station_reset": "Dane hatin sifirkirin",
     "audit.action.backup_restored": "Paşekeft hate vegerandin",
     "audit.entity.debt_payment": "Dayîna deyn",
-    "audit.entity.shop_price": "Bihayê dikanê"
+    "audit.entity.shop_price": "Bihayê dikanê",
+    "platform.reset_admin_password": "Şîfreya rêveber nû bike",
+    "platform.confirm.reset_password_title": "Şîfreya rêveberê :station nû bike?",
+    "platform.confirm.reset_password_message": "Şîfreya niha ya rêveberê stasyonê êdî naxebite û danişînên wî diqedin. Şîfreyeke demkî ya yekcarî dê ji te re xuya bibe ku tu bidî wî; di têketina pêş de divê ew yeke nû hilbijêre. E-name ne pêwîst e.",
+    "platform.confirm.reset_password_button": "Nû bike",
+    "platform.credentials.reset_title": "Şîfreya demkî ya nû ji bo :station",
+    "audit.action.password_override": "Şîfre ji aliyê rêvebirê bilind ve hate nûkirin"
 }

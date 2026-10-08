@@ -987,5 +987,11 @@
     "audit.action.station_reset": "डेटा रीसेट",
     "audit.action.backup_restored": "बैकअप बहाल",
     "audit.entity.debt_payment": "उधार भुगतान",
-    "audit.entity.shop_price": "दुकान का दाम"
+    "audit.entity.shop_price": "दुकान का दाम",
+    "platform.reset_admin_password": "एडमिन पासवर्ड रीसेट करें",
+    "platform.confirm.reset_password_title": ":station के एडमिन का पासवर्ड रीसेट करें?",
+    "platform.confirm.reset_password_message": "स्टेशन एडमिन का मौजूदा पासवर्ड काम करना बंद कर देगा और उसके सत्र समाप्त हो जाएँगे। आपको एक बार इस्तेमाल होने वाला अस्थायी पासवर्ड दिखेगा जो आप उसे देंगे; अगली बार लॉग इन करने पर उसे नया पासवर्ड चुनना होगा। ईमेल की ज़रूरत नहीं।",
+    "platform.confirm.reset_password_button": "रीसेट करें",
+    "platform.credentials.reset_title": ":station के लिए नया अस्थायी पासवर्ड",
+    "audit.action.password_override": "सुपर एडमिन ने पासवर्ड रीसेट किया"
 }

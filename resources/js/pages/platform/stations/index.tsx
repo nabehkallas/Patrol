@@ -39,6 +39,7 @@ import {
     destroy,
     reactivate,
     reject,
+    resetAdminPassword,
     suspend,
 } from '@/routes/platform/stations';
 
@@ -68,6 +69,8 @@ type NewStationCredentials = {
     station: string;
     email: string;
     password: string;
+    // 'reset': a temporary password issued by "Reset admin password" instead of a new station.
+    kind?: 'reset';
 };
 
 type PageProps = {
@@ -204,7 +207,13 @@ export default function StationsIndex() {
 
     // Every station action goes through the password confirmation dialog.
     const ask = (
-        kind: 'approve' | 'reject' | 'suspend' | 'reactivate' | 'delete',
+        kind:
+            | 'approve'
+            | 'reject'
+            | 'suspend'
+            | 'reactivate'
+            | 'delete'
+            | 'reset_password',
         target: { id: string; name: string },
     ) => {
         const fill = (key: TranslationKey) =>
@@ -239,6 +248,12 @@ export default function StationsIndex() {
                 method: 'delete',
                 tone: 'danger',
                 icon: Trash2,
+            },
+            reset_password: {
+                url: resetAdminPassword.url(target.id),
+                method: 'post',
+                tone: 'warning',
+                icon: KeyRound,
             },
         } as const;
 
@@ -300,7 +315,11 @@ export default function StationsIndex() {
                         <CardContent className="space-y-3 px-5">
                             <div className="flex items-center gap-2 font-semibold">
                                 <KeyRound className="text-primary size-5" />
-                                {t('platform.credentials.title').replace(
+                                {t(
+                                    newStationCredentials.kind === 'reset'
+                                        ? 'platform.credentials.reset_title'
+                                        : 'platform.credentials.title',
+                                ).replace(
                                     ':station',
                                     newStationCredentials.station,
                                 )}
@@ -563,6 +582,19 @@ export default function StationsIndex() {
                                             )}
                                             <ChevronRight className="size-3.5 opacity-60 rtl:rotate-180" />
                                         </button>
+
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() =>
+                                                ask('reset_password', station)
+                                            }
+                                            data-test="station-reset-admin-password"
+                                        >
+                                            <KeyRound className="size-4" />
+                                            {t('platform.reset_admin_password')}
+                                        </Button>
 
                                         <div className="flex gap-2 border-t pt-4">
                                             {station.suspended ? (
