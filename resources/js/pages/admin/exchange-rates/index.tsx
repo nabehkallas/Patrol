@@ -1,9 +1,9 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,8 +50,7 @@ export default function ExchangeRatesIndex() {
             <Head title={t('exchange_rates.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('exchange_rates.title')}
                     description={t('exchange_rates.description_generic')}
                 />

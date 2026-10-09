@@ -1,7 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,7 @@ export default function FuelTypeCreate() {
             <Head title={t('fuel_types.new')} />
 
             <div className="max-w-md space-y-6">
-                <Heading variant="small" title={t('fuel_types.new')} />
+                <PageHeader title={t('fuel_types.new')} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">

@@ -5,9 +5,9 @@ import { CurrencyOptions } from '@/components/currency-options';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
@@ -316,11 +316,11 @@ function ItemCard({ item }: { item: ShopItem }) {
     return (
         <Card
             className={cn(
-                'gap-2 border-t-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/90',
+                'border-t-4 dark:border-slate-700 dark:bg-slate-800/90',
                 categoryColors(item.category).border,
             )}
         >
-            <CardHeader className="px-3">
+            <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                     <span>{item.name}</span>
                     <div className="flex items-center gap-1">
@@ -328,7 +328,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 px-3 text-sm">
+            <CardContent className="flex flex-1 flex-col gap-2 text-sm">
                 <div className="flex items-center justify-between">
                     <span>
                         <span className="text-xs font-normal text-slate-500">
@@ -346,7 +346,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                     </span>
                 </div>
 
-                <form onSubmit={submitSell} className="space-y-1.5">
+                <form onSubmit={submitSell} className="mt-auto space-y-1.5">
                     <div className="flex gap-2">
                         <Input
                             type="number"
@@ -709,16 +709,14 @@ export default function ShopIndex() {
             </datalist>
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('shop.title')}
-                        description={t('shop.description')}
-                    />
+                <PageHeader
+                    title={t('shop.title')}
+                    description={t('shop.description')}
+                >
                     <Button type="button" onClick={() => setShowAddItem(true)}>
                         {t('shop.add_item')}
                     </Button>
-                </div>
+                </PageHeader>
 
                 <div className="panel-grid">
                     {items.map((item) => (

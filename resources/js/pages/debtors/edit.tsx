@@ -1,7 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,7 @@ export default function DebtorEdit() {
             <Head title={t('debtors.edit')} />
 
             <div className="max-w-xl space-y-6">
-                <Heading variant="small" title={t('debtors.edit')} />
+                <PageHeader title={t('debtors.edit')} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">

@@ -1,8 +1,8 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -110,10 +110,7 @@ export default function PumpCounterReadingEdit() {
             <Head title={t('pump_counters.edit_reading')} />
 
             <div className="max-w-md space-y-6">
-                <Heading
-                    variant="small"
-                    title={t('pump_counters.edit_reading')}
-                />
+                <PageHeader title={t('pump_counters.edit_reading')} />
 
                 {reading.liters_sold !== null && (
                     <p className="text-muted-foreground text-sm">

@@ -251,8 +251,34 @@
         margin-right: 0 !important;
     }
 
+    /* The base size grows a step on wide monitors so the app doesn't look tiny there; everything
+       is sized in rem, so it all scales together. Arabic stays one step above (see above). */
+    html {
+        font-size: 16px;
+    }
+
     html[dir='rtl'] {
-        font-size: 1.125rem;
+        font-size: 18px;
+    }
+
+    @media (min-width: 1920px) {
+        html {
+            font-size: 17px;
+        }
+
+        html[dir='rtl'] {
+            font-size: 19px;
+        }
+    }
+
+    @media (min-width: 2400px) {
+        html {
+            font-size: 18px;
+        }
+
+        html[dir='rtl'] {
+            font-size: 20px;
+        }
     }
 
     /* Browsers center <th> text by default and don't let it inherit the row's text-align, so
@@ -292,43 +318,61 @@
 }
 
 /*
- * The two card grids every page uses, so cards are one family everywhere. Each card has a fixed
- * width range (it never stretches across a wide monitor), and the rows are centred on the page:
- * a laptop shows three or four cards per row, a large monitor more, a phone one.
- *   card-grid:  summary and stat cards (a label and a figure), 240-270px wide
- *   panel-grid: cards with content inside (tanks, shop items, stations, panels), 300-360px wide
- * Cards inside either grid share the same padding, spacing and title size, whatever page they are on.
+ * The one content container every page lives in (applied by the app and platform layouts): full
+ * width up to a maximum, centred, with the same side padding everywhere. The page title, the
+ * cards, the filters and the tables all start and end at its edges.
  */
-@utility card-grid {
-    display: grid;
-    gap: 1.5rem;
+@utility page-container {
     width: 100%;
-    justify-content: center;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 270px));
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+
+    @media (min-width: 48rem) {
+        padding-inline: 1.5rem;
+    }
+
+    @media (min-width: 64rem) {
+        padding-inline: 2rem;
+    }
 }
 
+/*
+ * The two card grids every page uses. Both fill the container from its start edge (right in
+ * Arabic); every card in a row has the same height, so their bottom actions line up.
+ *   panel-grid: cards with content inside (tanks, shop items, panels) - 1 / 2 / 3 per row
+ *   card-grid:  small KPI cards (a label and a figure) - 1 / 2 / 3 / 4 per row
+ */
 @utility panel-grid {
     display: grid;
     gap: 1.5rem;
-    width: 100%;
-    justify-content: center;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 360px));
+    grid-template-columns: minmax(0, 1fr);
+
+    @media (min-width: 48rem) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 80rem) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
-:is(.card-grid, .panel-grid) > [data-slot='card'] {
-    gap: 0.75rem;
-    padding-block: 1.25rem;
-}
+@utility card-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
 
-:is(.card-grid, .panel-grid)
-    > [data-slot='card']
-    > :is([data-slot='card-header'], [data-slot='card-content']) {
-    padding-inline: 1.25rem;
-}
+    @media (min-width: 40rem) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
-:is(.card-grid, .panel-grid) > [data-slot='card'] [data-slot='card-title'] {
-    font-size: 1rem;
-    font-weight: 600;
+    @media (min-width: 64rem) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (min-width: 80rem) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 }
 
 /* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */

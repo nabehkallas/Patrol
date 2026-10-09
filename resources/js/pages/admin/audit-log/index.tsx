@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Fragment } from 'react';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { SectionToolbar } from '@/components/section-toolbar';
 import {
@@ -212,8 +212,7 @@ export default function AuditLogIndex() {
             <Head title={t('audit.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('audit.title')}
                     description={t('audit.description')}
                 />

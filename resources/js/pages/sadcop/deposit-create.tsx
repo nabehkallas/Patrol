@@ -1,8 +1,8 @@
 import { Head, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,8 +32,7 @@ export default function SadcopDepositCreate() {
             <Head title={t('sadcop.transfer_money')} />
 
             <div className="max-w-xl space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('sadcop.transfer_money')}
                     description={t('sadcop.transfer_description')}
                 />

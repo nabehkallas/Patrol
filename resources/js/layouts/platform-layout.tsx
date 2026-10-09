@@ -46,7 +46,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
     return (
         <div className="bg-background min-h-screen">
             <header className="bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 z-30 border-b">
-                <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+                <div className="page-container flex h-16 items-center gap-3">
                     <Link href={home()} className="flex items-center gap-2.5">
                         <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 items-center justify-center rounded-lg">
                             <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
@@ -153,9 +153,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-                {children}
-            </main>
+            <main className="page-container py-8">{children}</main>
 
             <AccountDialog
                 open={accountOpen}

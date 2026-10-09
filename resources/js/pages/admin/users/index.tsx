@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Copy, KeyRound, MoreHorizontal, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -80,19 +80,17 @@ export default function UsersIndex() {
             <Head title={t('users.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('users.title')}
-                        description={t('users.description')}
-                    />
+                <PageHeader
+                    title={t('users.title')}
+                    description={t('users.description')}
+                >
                     <Link
                         href={create()}
                         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('users.new')}
                     </Link>
-                </div>
+                </PageHeader>
 
                 {resetCredentials && (
                     <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-700/60 dark:bg-amber-950/40">

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { SalesChart } from '@/components/sales-chart';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { AnnualSummary } from '@/components/statistics/annual-summary';
@@ -98,8 +98,8 @@ function KpiCard({
     accent: string;
 }) {
     return (
-        <Card className={cn('gap-2 border-t-4 py-4', accent)}>
-            <CardHeader className="px-4">
+        <Card className={cn('border-t-4', accent)}>
+            <CardHeader>
                 <CardDescription>{label}</CardDescription>
                 <CardTitle className="text-2xl font-bold">{value}</CardTitle>
             </CardHeader>
@@ -117,14 +117,14 @@ function BreakdownCard({
     children: ReactNode;
 }) {
     return (
-        <Card className="gap-3 py-4">
-            <CardHeader className="px-4">
+        <Card>
+            <CardHeader>
                 <CardTitle className="text-base">{title}</CardTitle>
                 {description && (
                     <CardDescription>{description}</CardDescription>
                 )}
             </CardHeader>
-            <CardContent className="divide-y px-4">{children}</CardContent>
+            <CardContent className="divide-y">{children}</CardContent>
         </Card>
     );
 }
@@ -225,8 +225,7 @@ export default function StatisticsIndex() {
             <Head title={t('statistics.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('statistics.title')}
                     description={t('statistics.description')}
                 />

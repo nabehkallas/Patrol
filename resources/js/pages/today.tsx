@@ -11,7 +11,7 @@ import {
     Gauge,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { TankLevel } from '@/components/tank-level';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -69,8 +69,8 @@ function Panel({
     children: ReactNode;
 }) {
     return (
-        <Card className="min-w-0 gap-4 py-5">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 px-5">
+        <Card className="min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                     <Icon className="text-muted-foreground size-4" />
                     {title}
@@ -84,7 +84,7 @@ function Panel({
                     </Link>
                 )}
             </CardHeader>
-            <CardContent className="space-y-3 px-5">{children}</CardContent>
+            <CardContent className="space-y-3">{children}</CardContent>
         </Card>
     );
 }
@@ -147,8 +147,7 @@ export default function Today() {
             <Head title={t('nav.today')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('nav.today')}
                     description={formatDate(day)}
                 />

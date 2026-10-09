@@ -1,9 +1,9 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -118,8 +118,7 @@ export default function SadcopDeliveryCreate() {
             <Head title={t('sadcop.record_delivery')} />
 
             <div className="max-w-xl space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('sadcop.record_delivery')}
                     description={t('sadcop.delivery_description')}
                 />

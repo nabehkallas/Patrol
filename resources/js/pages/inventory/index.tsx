@@ -5,8 +5,8 @@ import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
@@ -243,8 +243,7 @@ export default function InventoryIndex() {
             <Head title={t('inventory.title')} />
 
             <div className="space-y-8">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('inventory.title')}
                     description={t('inventory.description')}
                 />
@@ -280,13 +279,13 @@ export default function InventoryIndex() {
                                         key={tank.id}
                                         data-test="tank-card"
                                         className={cn(
-                                            'gap-4 border-t-4 py-5',
+                                            'border-t-4',
                                             fuelTypeAccentBorder[
                                                 tank.fuel_type.id
                                             ],
                                         )}
                                     >
-                                        <CardHeader className="px-5">
+                                        <CardHeader>
                                             <CardTitle className="text-lg font-semibold">
                                                 {tank.fuel_type.name} —{' '}
                                                 {tank.name}
@@ -299,7 +298,7 @@ export default function InventoryIndex() {
                                                 L
                                             </span>
                                         </CardHeader>
-                                        <CardContent className="flex flex-1 flex-col gap-4 px-5 text-sm">
+                                        <CardContent className="flex flex-1 flex-col text-sm">
                                             <div>
                                                 <p className="text-muted-foreground text-xs">
                                                     {t('inventory.amount')}
@@ -415,7 +414,7 @@ export default function InventoryIndex() {
                                 className="gap-5 py-5"
                                 data-test="inventory-movements"
                             >
-                                <CardHeader className="gap-4 px-5">
+                                <CardHeader>
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <CardTitle className="text-base">
                                             {t('inventory.movements')}
@@ -493,30 +492,32 @@ export default function InventoryIndex() {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="space-y-4 px-5">
+                                <CardContent className="space-y-4">
                                     {logTab === 'topups' && (
                                         <>
                                             <div className="card-grid">
                                                 {Object.values(
                                                     topUpTotalsByFuelType,
                                                 ).map((total) => (
-                                                    <div
+                                                    <Card
                                                         key={total.name}
-                                                        className="rounded-lg border border-s-4 border-s-green-500 px-4 py-3"
+                                                        className="border-t-4 border-t-green-500"
                                                     >
-                                                        <p className="text-muted-foreground text-xs">
-                                                            {t(
-                                                                'inventory.total_added_liters',
-                                                            )}{' '}
-                                                            — {total.name}
-                                                        </p>
-                                                        <p className="text-xl font-bold">
-                                                            {formatNumber(
-                                                                total.liters,
-                                                            )}{' '}
-                                                            L
-                                                        </p>
-                                                    </div>
+                                                        <CardContent className="space-y-1">
+                                                            <p className="text-muted-foreground text-sm">
+                                                                {t(
+                                                                    'inventory.total_added_liters',
+                                                                )}{' '}
+                                                                — {total.name}
+                                                            </p>
+                                                            <p className="text-2xl font-bold">
+                                                                {formatNumber(
+                                                                    total.liters,
+                                                                )}{' '}
+                                                                L
+                                                            </p>
+                                                        </CardContent>
+                                                    </Card>
                                                 ))}
                                             </div>
 

@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/lib/i18n';
@@ -23,19 +23,17 @@ export default function FuelPumpsIndex() {
             <Head title={t('fuel_pumps.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('fuel_pumps.title')}
-                        description={t('fuel_pumps.description')}
-                    />
+                <PageHeader
+                    title={t('fuel_pumps.title')}
+                    description={t('fuel_pumps.description')}
+                >
                     <Link
                         href={create()}
                         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('fuel_pumps.new')}
                     </Link>
-                </div>
+                </PageHeader>
 
                 <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

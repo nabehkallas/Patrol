@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { useTranslation } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/fuel-types';
@@ -22,19 +22,17 @@ export default function FuelTypesIndex() {
             <Head title={t('fuel_types.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('fuel_types.title')}
-                        description={t('fuel_types.description')}
-                    />
+                <PageHeader
+                    title={t('fuel_types.title')}
+                    description={t('fuel_types.description')}
+                >
                     <Link
                         href={create()}
                         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('fuel_types.new')}
                     </Link>
-                </div>
+                </PageHeader>
 
                 <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

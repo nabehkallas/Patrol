@@ -2,9 +2,9 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -140,8 +140,7 @@ export default function DebtCreate() {
             <Head title={t('debts.new')} />
 
             <div className="max-w-xl space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('debts.new')}
                     description={t('debts.description')}
                 />

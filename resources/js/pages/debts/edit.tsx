@@ -2,9 +2,9 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -149,7 +149,7 @@ export default function DebtEdit() {
             <Head title={t('debts.edit')} />
 
             <div className="max-w-xl space-y-6">
-                <Heading variant="small" title={t('debts.edit')} />
+                <PageHeader title={t('debts.edit')} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">

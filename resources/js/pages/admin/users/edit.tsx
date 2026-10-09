@@ -1,7 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,7 @@ export default function UserEdit() {
             <Head title={t('users.edit_title')} />
 
             <div className="max-w-md space-y-6">
-                <Heading variant="small" title={t('users.edit_title')} />
+                <PageHeader title={t('users.edit_title')} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">

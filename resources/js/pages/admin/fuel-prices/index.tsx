@@ -2,9 +2,9 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { Button } from '@/components/ui/button';
@@ -162,8 +162,7 @@ export default function FuelPricesIndex() {
             <Head title={t('fuel_prices.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('fuel_prices.title')}
                     description={t('fuel_prices.description')}
                 />

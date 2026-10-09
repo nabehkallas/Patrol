@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -135,7 +135,7 @@ function StatCard({
     const tokens = ACCENT_TOKENS[accent];
 
     return (
-        <Card className="relative overflow-hidden py-0">
+        <Card className="relative overflow-hidden">
             <div className={cn('absolute inset-x-0 top-0 h-1', tokens.bar)} />
             <CardContent className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -585,8 +585,7 @@ export default function CashBoxIndex() {
 
             <div className="space-y-6">
                 <div className="space-y-4">
-                    <Heading
-                        variant="small"
+                    <PageHeader
                         title={t('cash_box.title')}
                         description={t('cash_box.description')}
                     />

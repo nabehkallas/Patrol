@@ -13,8 +13,9 @@ export default function AppSidebarLayout({
             <AppSidebar />
             <AppContent variant="sidebar" className="overflow-x-hidden">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                {/* One padding for every page, so nothing sits against the sidebar edge. */}
-                <div className="flex flex-1 flex-col px-4 py-6 md:px-6 lg:px-8">
+                {/* Every page lives in the same container, so titles, cards, filters and tables
+                    all start and end at the same edges on any screen. */}
+                <div className="page-container flex flex-1 flex-col py-6">
                     {children}
                 </div>
             </AppContent>

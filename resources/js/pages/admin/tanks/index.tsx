@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { TankLevel } from '@/components/tank-level';
 import { formatNumber } from '@/lib/format';
@@ -42,19 +42,17 @@ export default function TanksIndex() {
             <Head title={t('tanks.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('tanks.title')}
-                        description={t('tanks.description')}
-                    />
+                <PageHeader
+                    title={t('tanks.title')}
+                    description={t('tanks.description')}
+                >
                     <Link
                         href={create()}
                         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('tanks.new')}
                     </Link>
-                </div>
+                </PageHeader>
 
                 <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

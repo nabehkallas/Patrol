@@ -2,7 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
@@ -94,19 +94,17 @@ export default function DebtorsIndex() {
             <Head title={t('debtors.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('debtors.title')}
-                        description={t('debtors.description')}
-                    />
+                <PageHeader
+                    title={t('debtors.title')}
+                    description={t('debtors.description')}
+                >
                     <Link
                         href={create()}
                         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                     >
                         {t('debtors.new')}
                     </Link>
-                </div>
+                </PageHeader>
 
                 <SectionToolbar
                     title={t('debtors.list')}

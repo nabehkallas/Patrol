@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import type { EntryStamp } from '@/components/pump-counters/last-entry';
 import {
     PreviousReading,
@@ -263,8 +263,7 @@ export default function PumpCountersIndex() {
             <Head title={t('pump_counters.title')} />
 
             <div className="mx-auto w-full max-w-6xl space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('pump_counters.title')}
                     description={t('pump_counters.description')}
                 />

@@ -3,9 +3,9 @@ import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
+import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
@@ -111,8 +111,7 @@ export default function SadcopIndex() {
                 <Head title={t('sadcop.title')} />
 
                 <div className="max-w-xl space-y-6">
-                    <Heading
-                        variant="small"
+                    <PageHeader
                         title={t('sadcop.title')}
                         description={t('sadcop.opening_balance_description')}
                     />
@@ -181,12 +180,10 @@ export default function SadcopIndex() {
             <Head title={t('sadcop.title')} />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        variant="small"
-                        title={t('sadcop.title')}
-                        description={t('sadcop.description')}
-                    />
+                <PageHeader
+                    title={t('sadcop.title')}
+                    description={t('sadcop.description')}
+                >
                     <div className="flex gap-2">
                         {auth.isAdmin && (
                             <Link
@@ -203,7 +200,7 @@ export default function SadcopIndex() {
                             {t('sadcop.record_delivery')}
                         </Link>
                     </div>
-                </div>
+                </PageHeader>
 
                 <div className="card-grid">
                     <Card className="border-t-4 border-t-amber-500">

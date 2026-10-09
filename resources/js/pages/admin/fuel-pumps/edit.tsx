@@ -1,7 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -43,7 +43,7 @@ export default function FuelPumpEdit() {
             <Head title={t('fuel_pumps.edit')} />
 
             <div className="max-w-md space-y-6">
-                <Heading variant="small" title={t('fuel_pumps.edit')} />
+                <PageHeader title={t('fuel_pumps.edit')} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">

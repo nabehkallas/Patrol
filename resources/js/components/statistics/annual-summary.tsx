@@ -92,8 +92,8 @@ function HighlightCard({
     detail: React.ReactNode;
 }) {
     return (
-        <Card className={cn('gap-2 border-t-4 py-4', accent)}>
-            <CardHeader className="px-4">
+        <Card className={cn('border-t-4', accent)}>
+            <CardHeader>
                 <CardDescription>{label}</CardDescription>
                 <CardTitle className="text-2xl font-bold">{value}</CardTitle>
                 <div className="text-muted-foreground text-sm">{detail}</div>
@@ -332,8 +332,8 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                 </CardContent>
             </Card>
 
-            <Card className="gap-3 py-4">
-                <CardHeader className="px-4">
+            <Card>
+                <CardHeader>
                     <CardTitle className="text-base">
                         {t('statistics.monthly_breakdown')}
                     </CardTitle>
@@ -343,7 +343,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                         </CardDescription>
                     )}
                 </CardHeader>
-                <CardContent className="px-4">
+                <CardContent>
                     <div className="overflow-x-auto rounded-xl border">
                         <table className="w-full text-sm">
                             <thead>

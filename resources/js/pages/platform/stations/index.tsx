@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { PageHeader } from '@/components/page-header';
 import { ConfirmActionDialog } from '@/components/platform/confirm-action-dialog';
 import type { PendingAction } from '@/components/platform/confirm-action-dialog';
 import { CopyButton } from '@/components/platform/copy-button';
@@ -114,8 +115,8 @@ function KpiCard({
     hint?: string;
 }) {
     return (
-        <Card className="py-5">
-            <CardContent className="flex items-center gap-4 px-5">
+        <Card>
+            <CardContent className="flex items-center gap-4">
                 <div
                     className={cn(
                         'flex size-12 shrink-0 items-center justify-center rounded-xl',
@@ -395,14 +396,10 @@ export default function StationsIndex() {
             <Head title={t('platform.title')} />
 
             <div className="space-y-10">
-                <div>
-                    <h1 className="text-2xl font-bold">
-                        {t('platform.title')}
-                    </h1>
-                    <p className="text-muted-foreground text-sm">
-                        {t('platform.description')}
-                    </p>
-                </div>
+                <PageHeader
+                    title={t('platform.title')}
+                    description={t('platform.description')}
+                />
 
                 <div className="card-grid">
                     <KpiCard
@@ -435,7 +432,7 @@ export default function StationsIndex() {
 
                 {newStationCredentials && (
                     <Card className="border-primary">
-                        <CardContent className="space-y-3 px-5">
+                        <CardContent className="space-y-3">
                             <div className="flex items-center gap-2 font-semibold">
                                 <KeyRound className="text-primary size-5" />
                                 {t(
@@ -511,7 +508,7 @@ export default function StationsIndex() {
                                         )}
                                         data-test="registration-row"
                                     >
-                                        <CardContent className="space-y-4 px-5">
+                                        <CardContent className="space-y-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div className="text-base font-semibold">
@@ -679,7 +676,7 @@ export default function StationsIndex() {
                                     )}
                                     data-test="station-card"
                                 >
-                                    <CardContent className="space-y-4 px-5">
+                                    <CardContent className="space-y-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
                                                 <div className="text-base font-semibold">

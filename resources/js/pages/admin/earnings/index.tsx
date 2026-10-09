@@ -3,8 +3,8 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -89,8 +89,7 @@ function EarningsGate({ needsSetup }: { needsSetup: boolean }) {
 
     return (
         <div className="max-w-sm space-y-6">
-            <Heading
-                variant="small"
+            <PageHeader
                 title={t('earnings.title')}
                 description={
                     needsSetup
@@ -411,8 +410,7 @@ function EarningsReport({
             <Head title={t('earnings.title')} />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
+                <PageHeader
                     title={t('earnings.title')}
                     description={t('earnings.description')}
                 />
