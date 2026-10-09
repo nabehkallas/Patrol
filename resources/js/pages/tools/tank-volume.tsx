@@ -85,7 +85,7 @@ export default function TankVolume() {
                     description={t('tank_volume.description')}
                 />
 
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid items-start gap-6 md:grid-cols-2">
                     <Card>
                         <CardHeader>
                             <CardTitle>{t('tank_volume.title')}</CardTitle>

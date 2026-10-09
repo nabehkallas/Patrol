@@ -399,6 +399,15 @@
     padding: 0.75rem;
 }
 
+/* A table that already sits inside a card is part of that card: no second frame around it. */
+[data-slot='card'] .table-stack {
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
 .table-stack tbody tr {
     border-color: var(--table-divider);
 }

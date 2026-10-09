@@ -31,7 +31,7 @@ export default function StationCreate() {
         <>
             <Head title={t('platform.create.title')} />
 
-            <div className="mx-auto max-w-xl space-y-6">
+            <div className="max-w-xl space-y-6">
                 <Link
                     href={home()}
                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"

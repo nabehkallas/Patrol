@@ -262,14 +262,14 @@ export default function PumpCountersIndex() {
         <>
             <Head title={t('pump_counters.title')} />
 
-            <div className="mx-auto w-full max-w-6xl space-y-6">
+            <div className="space-y-6">
                 <PageHeader
                     title={t('pump_counters.title')}
                     description={t('pump_counters.description')}
                 />
 
-                <Card className="py-4">
-                    <CardContent className="px-4">
+                <Card>
+                    <CardContent>
                         <form onSubmit={submitAll} className="space-y-3">
                             <div className="flex flex-wrap items-center gap-3">
                                 <Label htmlFor="date">{t('common.date')}</Label>
