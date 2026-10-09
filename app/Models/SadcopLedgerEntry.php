@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SadcopLedgerEntryType;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +56,19 @@ class SadcopLedgerEntry extends Model
     {
         $credits = static::whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])->sum('amount');
         $debits = static::where('type', SadcopLedgerEntryType::Delivery)->sum('amount');
+
+        return (float) $credits - (float) $debits;
+    }
+
+    /** The balance as it stood just before $moment: every entry earlier than it, none after. */
+    public static function balanceSypBefore(CarbonInterface $moment): float
+    {
+        $credits = static::whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])
+            ->where('occurred_at', '<', $moment)
+            ->sum('amount');
+        $debits = static::where('type', SadcopLedgerEntryType::Delivery)
+            ->where('occurred_at', '<', $moment)
+            ->sum('amount');
 
         return (float) $credits - (float) $debits;
     }

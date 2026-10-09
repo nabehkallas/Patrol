@@ -481,7 +481,7 @@
     "sadcop.type.deposit": "Veguhestin",
     "sadcop.type.delivery": "Radestkirin",
     "sadcop.cost_price_per_liter": "Bihayê lêçûnê yê Sadcop / lître",
-    "sadcop.current_balance": "Balansa niha",
+    "sadcop.current_balance": "Bilançoya niha",
     "sadcop.transfer_description": "Pere ji balansa stasyonê bo balansa Sadcop veguhezîne",
     "sadcop.delivery_description": "Radestkirineke sotemeniyê ya ku ji balansa Sadcop hatiye dayîn tomar bike",
     "sadcop.save_transfer": "Veguhestinê tomar bike",
@@ -1104,5 +1104,18 @@
     "You can't disable your own account.": "Tu nikarî hesabê xwe neçalak bikî.",
     ":name can no longer sign in.": ":name êdî nikare têkeve.",
     ":name can sign in again.": ":name dîsa dikare têkeve.",
-    "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin."
+    "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
+    "sadcop.period_starting": "Bilançoya destpêka demê",
+    "sadcop.period_activity": "Tevgera net di demê de",
+    "sadcop.period_ending": "Bilançoya dawiya demê",
+    "sadcop.all_time_activity": "Hemû tevger heta îro",
+    "sadcop.paid_in": "Hate dayîn",
+    "sadcop.deliveries_out": "Radestkirin",
+    "sadcop.balance_scope": "Hemû tomaran dihewîne; fîltreyên cure û sotemeniyê tenê lîsteya jêrîn teng dikin.",
+    "inventory.period_title": "Dema hilbijartî",
+    "inventory.period_start": "Di destpêkê de",
+    "inventory.period_in": "Ketin",
+    "inventory.period_out": "Derketin",
+    "inventory.period_end": "Di dawiyê de",
+    "inventory.current_amount": "Mîqdara niha"
 }

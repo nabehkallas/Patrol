@@ -35,8 +35,7 @@ class SadcopController extends Controller
     {
         $needsOpeningBalance = SadcopLedgerEntry::query()->doesntExist();
 
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now();
+        [$from, $to, $allTime] = $this->range($request);
 
         $query = $this->filteredEntriesQuery($request, $from, $to);
 
@@ -44,14 +43,63 @@ class SadcopController extends Controller
             'entries' => $query->paginate(25)->withQueryString(),
             'filters' => [
                 ...$request->only(['type', 'fuel_type_id']),
+                'period' => $allTime ? 'all' : null,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
             'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name']),
-            'balance' => round(SadcopLedgerEntry::currentBalanceSyp(), 0),
-            'monthPayments' => $this->sadcopPaymentsTotal(now()->startOfMonth(), now()->endOfDay()),
+            'summary' => $this->summary($from, $to, $allTime),
             'needsOpeningBalance' => $needsOpeningBalance,
         ]);
+    }
+
+    /**
+     * The ledger's date range: this month unless a range is picked. "All dates" (period=all) runs
+     * from the first entry to today (or the latest entry, if one is dated later), so the list and
+     * the exports still get real bounds.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface, 2: bool}
+     */
+    private function range(Request $request): array
+    {
+        if ($request->input('period') === 'all') {
+            $first = SadcopLedgerEntry::min('occurred_at');
+            $last = SadcopLedgerEntry::max('occurred_at');
+            $to = $last !== null && Carbon::parse($last)->isFuture() ? Carbon::parse($last) : now();
+
+            return [$first !== null ? Carbon::parse($first) : now(), $to, true];
+        }
+
+        return [$request->date('from') ?? now()->startOfMonth(), $request->date('to') ?? now(), false];
+    }
+
+    /**
+     * The account over the range: what it held when the range began, what was paid in and spent
+     * on deliveries during it, and what it held when it ended. With "All dates" the ending figure
+     * is simply the live balance. The type and fuel filters narrow the list only: a balance always
+     * covers every entry.
+     *
+     * @return array{all_time: bool, starting: float|null, paid_in: float, delivered: float, ending: float}
+     */
+    private function summary(CarbonInterface $from, CarbonInterface $to, bool $allTime): array
+    {
+        $start = $from->copy()->startOfDay();
+        $end = $to->copy()->endOfDay();
+        $total = fn (array $types) => (float) SadcopLedgerEntry::whereIn('type', $types)
+            ->when(! $allTime, fn (Builder $query) => $query->whereBetween('occurred_at', [$start, $end]))
+            ->sum('amount');
+
+        $paidIn = $total([SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit]);
+        $delivered = $total([SadcopLedgerEntryType::Delivery]);
+        $starting = $allTime ? null : SadcopLedgerEntry::balanceSypBefore($start);
+
+        return [
+            'all_time' => $allTime,
+            'starting' => $starting === null ? null : round($starting, 0),
+            'paid_in' => round($paidIn, 0),
+            'delivered' => round($delivered, 0),
+            'ending' => round($starting === null ? SadcopLedgerEntry::currentBalanceSyp() : $starting + $paidIn - $delivered, 0),
+        ];
     }
 
     /**
@@ -77,8 +125,7 @@ class SadcopController extends Controller
 
     public function exportPdf(Request $request, PdfTableExporter $exporter): HttpResponse
     {
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now();
+        [$from, $to] = $this->range($request);
         $direction = Locales::direction();
 
         $entries = $this->filteredEntriesQuery($request, $from, $to)->get();
@@ -134,8 +181,7 @@ class SadcopController extends Controller
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now();
+        [$from, $to] = $this->range($request);
 
         $fuelTypes = FuelType::orderBy('name')->get();
 
@@ -146,12 +192,7 @@ class SadcopController extends Controller
 
         $entriesByDay = $entries->groupBy(fn (SadcopLedgerEntry $entry) => $entry->occurred_at->toDateString());
 
-        $openingBalance = (float) SadcopLedgerEntry::whereIn('type', [SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit])
-            ->where('occurred_at', '<', $from->copy()->startOfDay())
-            ->sum('amount')
-            - (float) SadcopLedgerEntry::where('type', SadcopLedgerEntryType::Delivery)
-                ->where('occurred_at', '<', $from->copy()->startOfDay())
-                ->sum('amount');
+        $openingBalance = SadcopLedgerEntry::balanceSypBefore($from->copy()->startOfDay());
 
         $labels = Locales::labels([
             'title' => 'Sadcop Ledger',
@@ -267,18 +308,6 @@ class SadcopController extends Controller
      * Total cash paid into Sadcop's balance (transfers) within the given range. Station-wide,
      * same as the balance itself — not scoped to the viewing user.
      */
-    private function sadcopPaymentsTotal(CarbonInterface $from, CarbonInterface $to): float
-    {
-        return round(
-            (float) SadcopLedgerEntry::query()
-                ->where('type', SadcopLedgerEntryType::Deposit)
-                ->where('occurred_at', '>=', $from)
-                ->where('occurred_at', '<=', $to)
-                ->sum('amount'),
-            0
-        );
-    }
-
     public function storeOpeningBalance(StoreSadcopOpeningBalanceRequest $request): RedirectResponse
     {
         if (SadcopLedgerEntry::query()->exists()) {

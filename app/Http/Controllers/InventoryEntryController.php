@@ -42,11 +42,28 @@ class InventoryEntryController extends Controller
         // date-range report in the app -- this previously defaulted to today-only, which
         // made a fresh visit to Inventory look emptier than Cash Box/Sadcop/Statistics did
         // for the exact same station on the exact same day.
-        $from = $request->filled('from') ? Carbon::parse($request->input('from')) : now()->startOfMonth();
-        $to = $request->filled('to') ? Carbon::parse($request->input('to')) : now();
+        // "All dates" (period=all) runs from the tank's earliest movement to today, so the
+        // exports still get real bounds; the tank cards then show only the live level.
+        $allTime = $request->input('period') === 'all';
+
+        if ($allTime) {
+            $earliest = collect([
+                TankTopUp::min('date'),
+                TankTransfer::min('date'),
+                Transaction::whereNotNull('tank_id')->min('occurred_at'),
+            ])->filter()->map(fn (string $date) => Carbon::parse($date))->min();
+            $from = $earliest ?? now();
+            $to = now();
+        } else {
+            $from = $request->filled('from') ? Carbon::parse($request->input('from')) : now()->startOfMonth();
+            $to = $request->filled('to') ? Carbon::parse($request->input('to')) : now();
+        }
 
         return Inertia::render('inventory/index', [
-            'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
+            'tanks' => $tanks->map(fn (Tank $tank) => [
+                ...$tank->summary(),
+                'period' => $allTime ? null : $tank->periodSummary($from, $to),
+            ]),
             'entries' => InventoryEntry::with(['tank.fuelType', 'recordedBy'])
                 ->latest('date')
                 ->latest('id')
@@ -65,6 +82,7 @@ class InventoryEntryController extends Controller
                 ->get(),
             'historyFrom' => $from->toDateString(),
             'historyTo' => $to->toDateString(),
+            'allTime' => $allTime,
         ]);
     }
 

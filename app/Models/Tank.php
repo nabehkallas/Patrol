@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Enums\TransactionType;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -76,13 +78,54 @@ class Tank extends Model
 
     public function expectedLiters(): float
     {
-        $delivered = (float) $this->transactions()->where('type', TransactionType::FuelDelivery)->sum('liters');
-        $sold = (float) $this->transactions()->where('type', TransactionType::FuelSale)->sum('liters');
-        $toppedUp = (float) $this->topUps()->sum('liters');
-        $transferredIn = (float) $this->transfersIn()->sum('liters');
-        $transferredOut = (float) $this->transfersOut()->sum('liters');
+        $movement = $this->movement();
 
-        return $delivered + $toppedUp + $transferredIn - $sold - $transferredOut;
+        return $movement['in'] - $movement['out'];
+    }
+
+    /**
+     * Liters that came into the tank (deliveries, top-ups, transfers in) and went out of it
+     * (sales, transfers out) between two days, both included. A missing bound leaves that side
+     * open, so movement() with no dates covers the tank's whole history.
+     *
+     * @return array{in: float, out: float}
+     */
+    public function movement(?CarbonInterface $from = null, ?CarbonInterface $to = null): array
+    {
+        $transactions = fn (TransactionType $type) => (float) $this->transactions()
+            ->where('type', $type)
+            ->when($from, fn (Builder $query) => $query->where('occurred_at', '>=', $from->copy()->startOfDay()))
+            ->when($to, fn (Builder $query) => $query->where('occurred_at', '<=', $to->copy()->endOfDay()))
+            ->sum('liters');
+        $dated = fn (HasMany $relation) => (float) $relation
+            ->when($from, fn (Builder $query) => $query->whereDate('date', '>=', $from->toDateString()))
+            ->when($to, fn (Builder $query) => $query->whereDate('date', '<=', $to->toDateString()))
+            ->sum('liters');
+
+        return [
+            'in' => $transactions(TransactionType::FuelDelivery) + $dated($this->topUps()) + $dated($this->transfersIn()),
+            'out' => $transactions(TransactionType::FuelSale) + $dated($this->transfersOut()),
+        ];
+    }
+
+    /**
+     * The tank over a date range: liters at the start of the first day, in and out during it, and
+     * liters at the end of the last day.
+     *
+     * @return array{starting: float, in: float, out: float, ending: float}
+     */
+    public function periodSummary(CarbonInterface $from, CarbonInterface $to): array
+    {
+        $before = $this->movement(to: $from->copy()->subDay());
+        $during = $this->movement($from, $to);
+        $starting = $before['in'] - $before['out'];
+
+        return [
+            'starting' => round($starting, 3),
+            'in' => round($during['in'], 3),
+            'out' => round($during['out'], 3),
+            'ending' => round($starting + $during['in'] - $during['out'], 3),
+        ];
     }
 
     /**

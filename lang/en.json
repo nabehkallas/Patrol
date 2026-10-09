@@ -832,5 +832,18 @@
     "You can't disable your own account.": "You can't disable your own account.",
     ":name can no longer sign in.": ":name can no longer sign in.",
     ":name can sign in again.": ":name can sign in again.",
-    "Subscription date saved for :station.": "Subscription date saved for :station."
+    "Subscription date saved for :station.": "Subscription date saved for :station.",
+    "sadcop.period_starting": "Period starting balance",
+    "sadcop.period_activity": "Net activity during period",
+    "sadcop.period_ending": "Period ending balance",
+    "sadcop.all_time_activity": "All activity to date",
+    "sadcop.paid_in": "Paid in",
+    "sadcop.deliveries_out": "Deliveries",
+    "sadcop.balance_scope": "Covers every entry; the type and fuel filters only narrow the list below.",
+    "inventory.period_title": "Selected period",
+    "inventory.period_start": "At start",
+    "inventory.period_in": "In",
+    "inventory.period_out": "Out",
+    "inventory.period_end": "At end",
+    "inventory.current_amount": "Current amount"
 }

@@ -1104,5 +1104,18 @@
     "You can't disable your own account.": "Kendi hesabınızı devre dışı bırakamazsınız.",
     ":name can no longer sign in.": ":name artık giriş yapamaz.",
     ":name can sign in again.": ":name yeniden giriş yapabilir.",
-    "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi."
+    "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
+    "sadcop.period_starting": "Dönem başı bakiyesi",
+    "sadcop.period_activity": "Dönem içi net hareket",
+    "sadcop.period_ending": "Dönem sonu bakiyesi",
+    "sadcop.all_time_activity": "Bugüne kadarki tüm hareketler",
+    "sadcop.paid_in": "Yatırılan",
+    "sadcop.deliveries_out": "Teslimatlar",
+    "sadcop.balance_scope": "Tüm kayıtları kapsar; tür ve yakıt filtreleri yalnızca aşağıdaki listeyi daraltır.",
+    "inventory.period_title": "Seçilen dönem",
+    "inventory.period_start": "Başta",
+    "inventory.period_in": "Giren",
+    "inventory.period_out": "Çıkan",
+    "inventory.period_end": "Sonda",
+    "inventory.current_amount": "Güncel miktar"
 }

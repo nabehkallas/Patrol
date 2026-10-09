@@ -481,7 +481,7 @@
     "sadcop.type.deposit": "स्थानांतरण",
     "sadcop.type.delivery": "सप्लाई",
     "sadcop.cost_price_per_liter": "Sadcop लागत दाम / लीटर",
-    "sadcop.current_balance": "मौजूदा शेष",
+    "sadcop.current_balance": "वर्तमान बैलेंस",
     "sadcop.transfer_description": "स्टेशन के शेष से Sadcop शेष में पैसा स्थानांतरित करें",
     "sadcop.delivery_description": "Sadcop शेष से भुगतान की गई ईंधन सप्लाई दर्ज करें",
     "sadcop.save_transfer": "स्थानांतरण सहेजें",
@@ -1104,5 +1104,18 @@
     "You can't disable your own account.": "आप अपना खाता निष्क्रिय नहीं कर सकते।",
     ":name can no longer sign in.": ":name अब साइन इन नहीं कर सकते।",
     ":name can sign in again.": ":name फिर से साइन इन कर सकते हैं।",
-    "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।"
+    "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
+    "sadcop.period_starting": "अवधि की शुरुआत का बैलेंस",
+    "sadcop.period_activity": "अवधि के दौरान शुद्ध लेन-देन",
+    "sadcop.period_ending": "अवधि के अंत का बैलेंस",
+    "sadcop.all_time_activity": "आज तक का सारा लेन-देन",
+    "sadcop.paid_in": "जमा किया गया",
+    "sadcop.deliveries_out": "डिलीवरी",
+    "sadcop.balance_scope": "सभी प्रविष्टियाँ शामिल हैं; प्रकार और ईंधन फ़िल्टर केवल नीचे की सूची को सीमित करते हैं।",
+    "inventory.period_title": "चुनी गई अवधि",
+    "inventory.period_start": "शुरुआत में",
+    "inventory.period_in": "आवक",
+    "inventory.period_out": "जावक",
+    "inventory.period_end": "अंत में",
+    "inventory.current_amount": "वर्तमान मात्रा"
 }
