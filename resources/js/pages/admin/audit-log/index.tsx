@@ -273,9 +273,6 @@ export default function AuditLogIndex() {
                                     {t('audit.col_time')}
                                 </th>
                                 <th className="px-4 py-3">
-                                    {t('audit.col_user')}
-                                </th>
-                                <th className="px-4 py-3">
                                     {t('audit.col_action')}
                                 </th>
                                 <th className="px-4 py-3">
@@ -283,6 +280,9 @@ export default function AuditLogIndex() {
                                 </th>
                                 <th className="px-4 py-3">
                                     {t('audit.col_changes')}
+                                </th>
+                                <th className="px-4 py-3">
+                                    {t('audit.col_user')}
                                 </th>
                             </tr>
                         </thead>
@@ -304,13 +304,6 @@ export default function AuditLogIndex() {
                                             </bdi>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        {log.user_name ?? (
-                                            <span className="text-muted-foreground">
-                                                {t('audit.system')}
-                                            </span>
-                                        )}
-                                    </td>
                                     <td
                                         className={`min-w-[9rem] px-4 py-3 font-medium ${ACTION_TONE[log.action] ?? ''}`}
                                     >
@@ -327,6 +320,13 @@ export default function AuditLogIndex() {
                                     </td>
                                     <td className="w-1/2 min-w-[18rem] px-4 py-3">
                                         <Changes log={log} />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {log.user_name ?? (
+                                            <span className="text-muted-foreground">
+                                                {t('audit.system')}
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

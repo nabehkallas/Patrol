@@ -137,7 +137,7 @@ function StatCard({
     return (
         <Card className="relative overflow-hidden py-0">
             <div className={cn('absolute inset-x-0 top-0 h-1', tokens.bar)} />
-            <CardContent className="space-y-3 pt-5">
+            <CardContent className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                     <div
                         className={cn(

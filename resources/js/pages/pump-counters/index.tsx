@@ -733,10 +733,10 @@ export default function PumpCountersIndex() {
                                         {t('pump_counters.return_liters')}
                                     </th>
                                     <th className="px-4 py-3">
-                                        {t('common.recorded_by')}
+                                        {t('common.notes')}
                                     </th>
                                     <th className="px-4 py-3">
-                                        {t('common.notes')}
+                                        {t('common.recorded_by')}
                                     </th>
                                     {auth.isAdmin && (
                                         <th className="px-4 py-3"></th>
@@ -789,10 +789,10 @@ export default function PumpCountersIndex() {
                                                 : '—'}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {reading.recorded_by?.name}
+                                            {reading.notes}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {reading.notes}
+                                            {reading.recorded_by?.name}
                                         </td>
                                         {auth.isAdmin && (
                                             <td className="px-4 py-3 text-end">

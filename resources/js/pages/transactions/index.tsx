@@ -212,11 +212,6 @@ export default function TransactionsIndex() {
                                 <th className="px-4 py-3">
                                     {t('common.date')}
                                 </th>
-                                {auth.isAdmin && (
-                                    <th className="px-4 py-3">
-                                        {t('common.employee')}
-                                    </th>
-                                )}
                                 <th className="px-4 py-3">
                                     {t('common.type')}
                                 </th>
@@ -230,6 +225,11 @@ export default function TransactionsIndex() {
                                     {t('transactions.debt_label')}
                                 </th>
                                 {auth.isAdmin && (
+                                    <th className="px-4 py-3">
+                                        {t('common.employee')}
+                                    </th>
+                                )}
+                                {auth.isAdmin && (
                                     <th className="px-4 py-3"></th>
                                 )}
                             </tr>
@@ -242,11 +242,6 @@ export default function TransactionsIndex() {
                                             transaction.occurred_at,
                                         )}
                                     </td>
-                                    {auth.isAdmin && (
-                                        <td className="px-4 py-3">
-                                            {transaction.user?.name}
-                                        </td>
-                                    )}
                                     <td className="px-4 py-3">
                                         {typeLabels[transaction.type]}
                                     </td>
@@ -267,6 +262,11 @@ export default function TransactionsIndex() {
                                             </span>
                                         )}
                                     </td>
+                                    {auth.isAdmin && (
+                                        <td className="px-4 py-3">
+                                            {transaction.user?.name}
+                                        </td>
+                                    )}
                                     {auth.isAdmin && (
                                         <td className="px-4 py-3 text-end">
                                             <RowActions

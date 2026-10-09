@@ -292,31 +292,43 @@
 }
 
 /*
- * The two card grids every page uses, so cards look the same everywhere. Cards always fill the
- * full width of the page: one card takes the whole row, two take half each, and so on, up to four
- * per row on large screens (1 on a phone, 2 on a tablet, 3-4 on a laptop or monitor). A card never
- * gets narrower than its minimum; when four don't fit, the row wraps instead.
- *   card-grid:  summary and stat cards (a label and a figure)
- *   panel-grid: larger cards with content inside (tanks, shop items, stations, charts, panels)
+ * The two card grids every page uses, so cards are one family everywhere. Each card has a fixed
+ * width range (it never stretches across a wide monitor), and the rows are centred on the page:
+ * a laptop shows three or four cards per row, a large monitor more, a phone one.
+ *   card-grid:  summary and stat cards (a label and a figure), 240-270px wide
+ *   panel-grid: cards with content inside (tanks, shop items, stations, panels), 300-360px wide
+ * Cards inside either grid share the same padding, spacing and title size, whatever page they are on.
  */
 @utility card-grid {
     display: grid;
     gap: 1.5rem;
     width: 100%;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(max(min(100%, 14rem), calc((100% - 4.5rem) / 4)), 1fr)
-    );
+    justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 270px));
 }
 
 @utility panel-grid {
     display: grid;
     gap: 1.5rem;
     width: 100%;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(max(min(100%, 19rem), calc((100% - 4.5rem) / 4)), 1fr)
-    );
+    justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 360px));
+}
+
+:is(.card-grid, .panel-grid) > [data-slot='card'] {
+    gap: 0.75rem;
+    padding-block: 1.25rem;
+}
+
+:is(.card-grid, .panel-grid)
+    > [data-slot='card']
+    > :is([data-slot='card-header'], [data-slot='card-content']) {
+    padding-inline: 1.25rem;
+}
+
+:is(.card-grid, .panel-grid) > [data-slot='card'] [data-slot='card-title'] {
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 /* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */

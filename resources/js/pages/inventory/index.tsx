@@ -306,7 +306,7 @@ export default function InventoryIndex() {
                                                 </p>
                                                 <p
                                                     className={cn(
-                                                        'text-3xl font-bold',
+                                                        'text-2xl font-bold',
                                                         tank.expected_liters <
                                                             0 &&
                                                             'text-destructive',
@@ -541,12 +541,12 @@ export default function InventoryIndex() {
                                                             </th>
                                                             <th className="px-4 py-3">
                                                                 {t(
-                                                                    'common.recorded_by',
+                                                                    'common.notes',
                                                                 )}
                                                             </th>
                                                             <th className="px-4 py-3">
                                                                 {t(
-                                                                    'common.notes',
+                                                                    'common.recorded_by',
                                                                 )}
                                                             </th>
                                                             <th className="px-4 py-3"></th>
@@ -585,14 +585,14 @@ export default function InventoryIndex() {
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     {
-                                                                        topUp
-                                                                            .recorded_by
-                                                                            ?.name
+                                                                        topUp.notes
                                                                     }
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     {
-                                                                        topUp.notes
+                                                                        topUp
+                                                                            .recorded_by
+                                                                            ?.name
                                                                     }
                                                                 </td>
                                                                 <td className="px-4 py-3 text-end">
@@ -653,12 +653,12 @@ export default function InventoryIndex() {
                                                             {t('common.liters')}
                                                         </th>
                                                         <th className="px-4 py-3">
+                                                            {t('common.notes')}
+                                                        </th>
+                                                        <th className="px-4 py-3">
                                                             {t(
                                                                 'common.recorded_by',
                                                             )}
-                                                        </th>
-                                                        <th className="px-4 py-3">
-                                                            {t('common.notes')}
                                                         </th>
                                                         <th className="px-4 py-3"></th>
                                                     </tr>
@@ -713,14 +713,14 @@ export default function InventoryIndex() {
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     {
-                                                                        transfer
-                                                                            .recorded_by
-                                                                            ?.name
+                                                                        transfer.notes
                                                                     }
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     {
-                                                                        transfer.notes
+                                                                        transfer
+                                                                            .recorded_by
+                                                                            ?.name
                                                                     }
                                                                 </td>
                                                                 <td className="px-4 py-3 text-end">
@@ -968,10 +968,10 @@ export default function InventoryIndex() {
                                             {t('inventory.quantity')} (L)
                                         </th>
                                         <th className="px-4 py-3">
-                                            {t('common.recorded_by')}
+                                            {t('common.notes')}
                                         </th>
                                         <th className="px-4 py-3">
-                                            {t('common.notes')}
+                                            {t('common.recorded_by')}
                                         </th>
                                         {auth.isAdmin && (
                                             <th className="px-4 py-3"></th>
@@ -994,10 +994,10 @@ export default function InventoryIndex() {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {entry.recorded_by?.name}
+                                                {entry.notes}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {entry.notes}
+                                                {entry.recorded_by?.name}
                                             </td>
                                             {auth.isAdmin && (
                                                 <td className="px-4 py-3 text-end">
