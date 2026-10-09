@@ -15,7 +15,10 @@ export default function AppLogo() {
                     Patrol
                 </span>
                 {tenant?.name && (
-                    <span className="text-muted-foreground truncate text-xs leading-tight">
+                    <span
+                        className="text-muted-foreground truncate text-xs leading-tight"
+                        title={tenant.name}
+                    >
                         {tenant.name}
                     </span>
                 )}

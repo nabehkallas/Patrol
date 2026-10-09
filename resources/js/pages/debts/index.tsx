@@ -328,7 +328,7 @@ export default function DebtsIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="min-w-48">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -353,7 +353,7 @@ export default function DebtsIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="min-w-48">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -378,7 +378,7 @@ export default function DebtsIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="min-w-48">
                                     <SelectValue
                                         placeholder={t('common.debtor')}
                                     />

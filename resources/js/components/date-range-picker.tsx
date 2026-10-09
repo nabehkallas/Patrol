@@ -108,6 +108,10 @@ export function DateRangePicker({
         }
     }
 
+    const label = isAll
+        ? t('common.all_dates')
+        : `${formatDate(from)} – ${formatDate(to)}`;
+
     const displayed: DateRange | undefined =
         pending ??
         (isAll
@@ -120,12 +124,11 @@ export function DateRangePicker({
                 <Button
                     type="button"
                     variant="outline"
-                    className={cn('font-normal', className)}
+                    className={cn('min-w-0 max-w-full font-normal', className)}
+                    title={label}
                 >
                     <CalendarIcon />
-                    {isAll
-                        ? t('common.all_dates')
-                        : `${formatDate(from)} – ${formatDate(to)}`}
+                    <span className="min-w-0 truncate">{label}</span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

@@ -321,8 +321,10 @@ function ItemCard({ item }: { item: ShopItem }) {
             )}
         >
             <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base">
-                    <span>{item.name}</span>
+                <CardTitle className="flex items-start justify-between gap-2 text-base leading-snug">
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                        {item.name}
+                    </span>
                     <div className="flex items-center gap-1">
                         <RowActions edit={openEdit} remove={removeItem} />
                     </div>
@@ -370,12 +372,12 @@ function ItemCard({ item }: { item: ShopItem }) {
                             className="h-8 flex-1"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Input
                             type="date"
                             value={sellDate}
                             onChange={(e) => setSellDate(e.target.value)}
-                            className="h-8 min-w-0 flex-1"
+                            className="h-8 min-w-[9.5rem] flex-1"
                         />
                         <Button
                             type="submit"
@@ -808,7 +810,7 @@ export default function ShopIndex() {
                                         }
                                     >
                                         <SelectTrigger
-                                            className="w-44"
+                                            className="min-w-44"
                                             aria-label={t('shop.item')}
                                         >
                                             <SelectValue />
@@ -846,7 +848,7 @@ export default function ShopIndex() {
                                         }
                                     >
                                         <SelectTrigger
-                                            className="w-36"
+                                            className="min-w-36"
                                             aria-label={t('common.type')}
                                         >
                                             <SelectValue />

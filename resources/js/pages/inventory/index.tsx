@@ -868,7 +868,6 @@ export default function InventoryIndex() {
                                                         key={tank.id}
                                                         value={String(tank.id)}
                                                     >
-                                                        {tank.fuel_type.name} —{' '}
                                                         {tank.name}
                                                     </SelectItem>
                                                 ))}
@@ -1061,7 +1060,7 @@ export default function InventoryIndex() {
                                             key={tank.id}
                                             value={String(tank.id)}
                                         >
-                                            {tank.fuel_type.name} — {tank.name}
+                                            {tank.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -1092,7 +1091,7 @@ export default function InventoryIndex() {
                                             key={tank.id}
                                             value={String(tank.id)}
                                         >
-                                            {tank.fuel_type.name} — {tank.name}
+                                            {tank.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

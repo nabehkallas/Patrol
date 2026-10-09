@@ -303,7 +303,7 @@ function PumpReadingsSection({
                                     key={pump.id}
                                     className="flex flex-wrap items-center gap-4"
                                 >
-                                    <div className="w-40 text-sm">
+                                    <div className="min-w-40 max-w-full text-sm">
                                         {pump.name}
                                         {pump.has_reading && (
                                             <span className="ms-2">
@@ -320,7 +320,7 @@ function PumpReadingsSection({
                                             setField(pump.id, 'tank_id', value)
                                         }
                                     >
-                                        <SelectTrigger className="w-56">
+                                        <SelectTrigger className="min-w-56">
                                             <SelectValue
                                                 placeholder={t(
                                                     'wizard.tank_placeholder',
@@ -333,7 +333,6 @@ function PumpReadingsSection({
                                                     key={tank.id}
                                                     value={String(tank.id)}
                                                 >
-                                                    {tank.fuel_type_name} —{' '}
                                                     {tank.name}
                                                 </SelectItem>
                                             ))}
@@ -437,7 +436,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
                                 key={ft.id}
                                 className="flex flex-wrap items-center gap-4"
                             >
-                                <div className="w-40 text-sm">
+                                <div className="min-w-40 max-w-full text-sm">
                                     {ft.name}
                                     {ft.has_price && (
                                         <span className="ms-2">
@@ -461,7 +460,7 @@ function FuelPricesSection({ fuelTypes }: { fuelTypes: FuelTypeRow[] }) {
                                         setField(ft.id, 'currency', value)
                                     }
                                 >
-                                    <SelectTrigger className="w-28">
+                                    <SelectTrigger className="min-w-28">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -563,7 +562,10 @@ function DebtsSection({ debts: debtRows }: { debts: DebtRow[] }) {
                                 form.setData('currency', value)
                             }
                         >
-                            <SelectTrigger id="debt_currency" className="w-28">
+                            <SelectTrigger
+                                id="debt_currency"
+                                className="min-w-28"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

@@ -165,7 +165,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 )
                             }
                         >
-                            <SelectTrigger className="w-28">
+                            <SelectTrigger className="min-w-28">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

@@ -143,7 +143,7 @@ export default function TransactionsIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-44">
+                                <SelectTrigger className="min-w-44">
                                     <SelectValue
                                         placeholder={t('common.all_types')}
                                     />
@@ -177,7 +177,7 @@ export default function TransactionsIndex() {
                                         })
                                     }
                                 >
-                                    <SelectTrigger className="w-44">
+                                    <SelectTrigger className="min-w-44">
                                         <SelectValue
                                             placeholder={t(
                                                 'common.all_employees',

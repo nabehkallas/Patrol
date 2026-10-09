@@ -365,7 +365,7 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            <th className="min-w-[7rem] px-3 py-2.5 text-center align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
                                             <th className="px-3 py-2.5 text-center align-top">
@@ -442,7 +442,7 @@ export default function PumpCountersIndex() {
                                                             <div className="flex min-h-9 items-center justify-center">
                                                                 <span
                                                                     className={cn(
-                                                                        'whitespace-nowrap rounded-md px-2.5 py-1 text-base font-semibold ring-1 ring-inset',
+                                                                        'rounded-md px-2.5 py-1 text-center text-base font-semibold ring-1 ring-inset',
                                                                         fuelTypeBadge[
                                                                             rowFuelTypeId ??
                                                                                 -1
@@ -474,7 +474,7 @@ export default function PumpCountersIndex() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="mx-auto w-44 max-w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
+                                                                <SelectTrigger className="w-full min-w-[10rem] max-w-[13rem] border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -490,10 +490,6 @@ export default function PumpCountersIndex() {
                                                                                     tank.id,
                                                                                 )}
                                                                             >
-                                                                                {
-                                                                                    tank.fuel_type_name
-                                                                                }{' '}
-                                                                                —{' '}
                                                                                 {
                                                                                     tank.name
                                                                                 }
@@ -511,7 +507,7 @@ export default function PumpCountersIndex() {
                                                             />
                                                         </td>
                                                         <td className="px-3 py-2.5 align-top">
-                                                            <div className="mx-auto w-40 max-w-full">
+                                                            <div className="w-full min-w-[6rem]">
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
@@ -557,7 +553,7 @@ export default function PumpCountersIndex() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5 align-top">
-                                                            <div className="mx-auto w-28 max-w-full">
+                                                            <div className="w-full min-w-[5rem]">
                                                                 <Input
                                                                     type="number"
                                                                     step="0.001"
@@ -604,7 +600,7 @@ export default function PumpCountersIndex() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5 align-top">
-                                                            <div className="mx-auto w-28 max-w-full">
+                                                            <div className="w-full min-w-[5rem]">
                                                                 <Input
                                                                     type="number"
                                                                     step="0.001"
@@ -638,7 +634,7 @@ export default function PumpCountersIndex() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5 align-top">
-                                                            <div className="mx-auto w-36 max-w-full">
+                                                            <div className="w-full min-w-[6rem]">
                                                                 <Input
                                                                     type="text"
                                                                     className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"

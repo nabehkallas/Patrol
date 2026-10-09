@@ -336,7 +336,6 @@ export default function TransactionEdit() {
                                                 key={tank.id}
                                                 value={String(tank.id)}
                                             >
-                                                {tank.fuel_type_name} —{' '}
                                                 {tank.name}
                                             </SelectItem>
                                         ))}

@@ -5,7 +5,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit max-w-full min-w-0 whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
   {
     variants: {
       variant: {
@@ -35,17 +35,24 @@ function Badge({
   className,
   variant,
   asChild = false,
+  children,
+  title,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : "span"
+  // Plain-text badges (names) end in an ellipsis when too long, with the full text on hover.
+  const text = typeof children === "string" ? children : undefined
 
   return (
     <Comp
       data-slot="badge"
       className={cn(badgeVariants({ variant }), className)}
+      title={title ?? text}
       {...props}
-    />
+    >
+      {text !== undefined && !asChild ? <span className="min-w-0 truncate">{text}</span> : children}
+    </Comp>
   )
 }
 

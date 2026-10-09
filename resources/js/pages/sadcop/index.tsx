@@ -248,7 +248,7 @@ export default function SadcopIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="min-w-48">
                                     <SelectValue
                                         placeholder={t('common.all_types')}
                                     />
@@ -278,7 +278,7 @@ export default function SadcopIndex() {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="min-w-48">
                                     <SelectValue
                                         placeholder={t('common.fuel_types')}
                                     />

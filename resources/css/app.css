@@ -232,6 +232,8 @@
 
     body {
         @apply bg-background text-foreground;
+        /* A word too long for its box breaks onto the next line instead of running out of it. */
+        overflow-wrap: break-word;
     }
 
     /* Instrument Sans (this app's font) has no Arabic glyphs, so Arabic text falls back to
@@ -373,6 +375,36 @@
     @media (min-width: 80rem) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+}
+
+/*
+ * Long text never gets cut off mid-word:
+ * - the chosen value in a select ends in an ellipsis (its full text is the hover title) and
+ *   stops short of the chevron; options in the open list wrap onto more lines instead;
+ * - table cells wrap long names onto a second line, and header cells keep a minimum width so
+ *   a name column doesn't collapse to one word per line.
+ */
+[data-slot='select-trigger'] .select-item-text {
+    display: block;
+    /* Each name truncates in its own direction (an English name in the Arabic UI ends in …). */
+    unicode-bidi: plaintext;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-slot='select-item'] .select-item-text {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.table-stack td {
+    overflow-wrap: break-word;
+}
+
+.table-stack th {
+    min-width: 5.5rem;
 }
 
 /* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */

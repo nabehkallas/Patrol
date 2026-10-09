@@ -226,7 +226,7 @@ export default function AuditLogIndex() {
                             })
                         }
                     >
-                        <SelectTrigger className="w-56">
+                        <SelectTrigger className="min-w-56">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -248,7 +248,7 @@ export default function AuditLogIndex() {
                             })
                         }
                     >
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="min-w-48">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

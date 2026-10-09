@@ -123,7 +123,7 @@ export default function SadcopEntryEdit() {
                                             key={tank.id}
                                             value={String(tank.id)}
                                         >
-                                            {tank.fuel_type_name} — {tank.name}
+                                            {tank.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

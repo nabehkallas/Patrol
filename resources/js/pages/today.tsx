@@ -209,8 +209,9 @@ export default function Today() {
                                     {pumps.map((pump) => (
                                         <span
                                             key={pump.id}
+                                            title={pump.name}
                                             className={cn(
-                                                'rounded-full border px-2.5 py-0.5 text-xs',
+                                                'max-w-full truncate rounded-full border px-2.5 py-0.5 text-xs',
                                                 pump.recorded
                                                     ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                                                     : 'text-muted-foreground',

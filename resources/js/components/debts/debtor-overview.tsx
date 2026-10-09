@@ -82,7 +82,10 @@ export function DebtorOverview({
                                     'border-primary ring-primary/40 border-s-primary ring-2',
                             )}
                         >
-                            <div className="truncate font-medium">
+                            <div
+                                className="truncate font-medium"
+                                title={card.name}
+                            >
                                 {card.name}
                             </div>
                             <div className="mt-1 text-lg font-bold tabular-nums">
