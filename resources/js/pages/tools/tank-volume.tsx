@@ -1,16 +1,62 @@
-import { Head } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { calculateTankVolume } from '@/lib/tank-volume';
+import { store as storeReading } from '@/routes/inventory';
 import { tankVolume } from '@/routes/tools';
 
+type TankOption = {
+    id: number;
+    name: string;
+    fuel_type: string;
+    capacity_liters: number;
+};
+
+const CUSTOM = 'custom';
+
 export default function TankVolume() {
+    const { tanks } = usePage<{ tanks: TankOption[] }>().props;
     const { t } = useTranslation();
+    const defaultEntryDate = useDefaultEntryDate();
+    const [tankId, setTankId] = useState(CUSTOM);
+
+    // Picking one of the station's tanks fills in its capacity; the reading can then be saved
+    // as that tank's actual measurement for the day, straight into Inventory.
+    function pickTank(value: string) {
+        setTankId(value);
+        const tank = tanks.find((option) => String(option.id) === value);
+
+        if (tank) {
+            setCapacity(String(tank.capacity_liters));
+        }
+    }
+
+    function saveReading() {
+        if (!result || tankId === CUSTOM) {
+            return;
+        }
+
+        router.post(storeReading.url(), {
+            tank_id: Number(tankId),
+            date: defaultEntryDate,
+            quantity_liters: Math.round(result.volume),
+            notes: t('tank_volume.saved_note'),
+        });
+    }
 
     const [capacity, setCapacity] = useState('');
     const [diameter, setDiameter] = useState('');
@@ -23,14 +69,10 @@ export default function TankVolume() {
         return Number.isFinite(d) && Number.isFinite(h) && d > 0 && h > d;
     }, [diameter, height]);
 
-    const result = useMemo(
-        () =>
-            calculateTankVolume(
-                Number(capacity),
-                Number(diameter),
-                Number(height),
-            ),
-        [capacity, diameter, height],
+    const result = calculateTankVolume(
+        Number(capacity),
+        Number(diameter),
+        Number(height),
     );
 
     return (
@@ -50,6 +92,38 @@ export default function TankVolume() {
                             <CardTitle>{t('tank_volume.title')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {tanks.length > 0 && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="tank">
+                                        {t('common.tank')}
+                                    </Label>
+                                    <Select
+                                        value={tankId}
+                                        onValueChange={pickTank}
+                                    >
+                                        <SelectTrigger
+                                            id="tank"
+                                            className="w-full"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={CUSTOM}>
+                                                {t('tank_volume.other_tank')}
+                                            </SelectItem>
+                                            {tanks.map((tank) => (
+                                                <SelectItem
+                                                    key={tank.id}
+                                                    value={String(tank.id)}
+                                                >
+                                                    {tank.fuel_type} —{' '}
+                                                    {tank.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                             <div className="grid gap-2">
                                 <Label htmlFor="capacity">
                                     {t('tank_volume.capacity')}
@@ -67,7 +141,8 @@ export default function TankVolume() {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="diameter">
-                                    {t('tank_volume.diameter')}
+                                    {t('tank_volume.diameter')} (
+                                    {t('tank_volume.unit_cm')})
                                 </Label>
                                 <Input
                                     id="diameter"
@@ -82,7 +157,8 @@ export default function TankVolume() {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="height">
-                                    {t('tank_volume.height')}
+                                    {t('tank_volume.height')} (
+                                    {t('tank_volume.unit_cm')})
                                 </Label>
                                 <Input
                                     id="height"
@@ -141,6 +217,21 @@ export default function TankVolume() {
                                             {formatNumber(result.volume)} L
                                         </span>
                                     </div>
+                                    {tankId !== CUSTOM && (
+                                        <div className="space-y-1.5 pt-3">
+                                            <Button
+                                                className="w-full"
+                                                onClick={saveReading}
+                                            >
+                                                {t('tank_volume.save_reading')}
+                                            </Button>
+                                            <p className="text-muted-foreground text-xs">
+                                                {t(
+                                                    'tank_volume.save_reading_hint',
+                                                )}
+                                            </p>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <p className="text-muted-foreground">

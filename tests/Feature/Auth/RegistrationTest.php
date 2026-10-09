@@ -34,6 +34,6 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('cash-box.index', absolute: false));
+        $response->assertRedirect(route('today', absolute: false));
     }
 }

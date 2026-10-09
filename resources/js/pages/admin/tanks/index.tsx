@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { RowActions } from '@/components/row-actions';
+import { TankLevel } from '@/components/tank-level';
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,9 @@ export default function TanksIndex() {
                                     {t('tanks.capacity_liters')}
                                 </th>
                                 <th className="px-4 py-3">
+                                    {t('tanks.current_level')}
+                                </th>
+                                <th className="px-4 py-3">
                                     {t('tanks.status')}
                                 </th>
                                 <th className="px-4 py-3"></th>
@@ -83,6 +87,14 @@ export default function TanksIndex() {
                                     <td className="px-4 py-3">{tank.name}</td>
                                     <td className="px-4 py-3">
                                         {formatNumber(tank.capacity_liters)}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <TankLevel
+                                            liters={tank.expected_liters ?? 0}
+                                            capacity={Number(
+                                                tank.capacity_liters,
+                                            )}
+                                        />
                                     </td>
                                     <td className="px-4 py-3">
                                         <button

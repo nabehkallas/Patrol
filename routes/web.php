@@ -27,6 +27,7 @@ use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TankTopUpController;
 use App\Http\Controllers\TankTransferController;
 use App\Http\Controllers\TankVolumeCalculatorController;
+use App\Http\Controllers\TodayController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\ForcePasswordChange;
 use App\Http\Middleware\RequireActiveStation;
@@ -61,6 +62,7 @@ Route::middleware(['auth', 'auth.session', RequireSuperAdmin::class])->prefix('p
         Route::post('stations/{tenant}/approve', [StationController::class, 'approve'])->name('stations.approve');
         Route::delete('stations/{tenant}/reject', [StationController::class, 'reject'])->name('stations.reject');
         Route::post('stations/{tenant}/suspend', [StationController::class, 'suspend'])->name('stations.suspend');
+        Route::post('stations/{tenant}/subscription', [StationController::class, 'setSubscription'])->name('stations.subscription');
         Route::post('stations/{tenant}/reactivate', [StationController::class, 'reactivate'])->name('stations.reactivate');
         Route::post('stations/{tenant}/reset-admin-password', [StationController::class, 'resetAdminPassword'])->name('stations.reset-admin-password');
         Route::delete('stations/{tenant}', [StationController::class, 'destroy'])->name('stations.destroy');
@@ -89,6 +91,8 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
     });
 
     Route::middleware([RequireOnboarding::class])->group(function () {
+        Route::get('today', TodayController::class)->name('today');
+
         Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
         Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
         Route::get('cash-box/export-xlsx', [CashBoxController::class, 'exportXlsx'])->name('cash-box.export-xlsx');
@@ -177,6 +181,8 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
 
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class)->except('show');
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password')->middleware('throttle:10,1');
+        Route::patch('users/{user}/toggle-disabled', [UserController::class, 'toggleDisabled'])->name('users.toggle-disabled');
         Route::resource('fuel-types', FuelTypeController::class)->except('show');
         Route::resource('tanks', TankController::class)->except('show');
         Route::patch('tanks/{tank}/toggle-active', [TankController::class, 'toggleActive'])->name('tanks.toggle-active');

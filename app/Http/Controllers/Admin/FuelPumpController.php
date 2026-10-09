@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FuelPump;
 use App\Models\FuelType;
+use App\Models\Tank;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ class FuelPumpController extends Controller
 {
     public function index(): Response
     {
+        $tanks = Tank::where('is_active', true)->orderBy('name')->get(['id', 'name', 'fuel_type_id']);
+
         return Inertia::render('admin/fuel-pumps/index', [
             'pumps' => FuelPump::with('fuelTypes')->orderBy('name')->get()
                 ->map(fn (FuelPump $pump) => [
@@ -22,6 +25,8 @@ class FuelPumpController extends Controller
                     'name' => $pump->name,
                     'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
                     'fuel_type_names' => $pump->fuelTypes->pluck('name'),
+                    // The tanks it can draw from: active tanks holding one of its fuel types.
+                    'tank_names' => $tanks->whereIn('fuel_type_id', $pump->fuelTypes->pluck('id'))->pluck('name')->values(),
                 ]),
         ]);
     }

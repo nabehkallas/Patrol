@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { RowActions } from '@/components/row-actions';
+import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/fuel-pumps';
 import type { FuelPump } from '@/types';
@@ -46,6 +47,9 @@ export default function FuelPumpsIndex() {
                                 <th className="px-4 py-3">
                                     {t('common.fuel_types')}
                                 </th>
+                                <th className="px-4 py-3">
+                                    {t('fuel_pumps.tanks')}
+                                </th>
                                 <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
@@ -56,8 +60,24 @@ export default function FuelPumpsIndex() {
                                         {pump.name}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {pump.fuel_type_names.length > 0
-                                            ? pump.fuel_type_names.join(', ')
+                                        {pump.fuel_type_names.length > 0 ? (
+                                            pump.fuel_type_names.join(', ')
+                                        ) : (
+                                            <Badge
+                                                variant="outline"
+                                                className="border-amber-300 text-amber-800 dark:border-amber-700 dark:text-amber-300"
+                                                title={t(
+                                                    'fuel_pumps.needs_setup_hint',
+                                                )}
+                                            >
+                                                {t('fuel_pumps.needs_setup')}
+                                            </Badge>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {pump.tank_names &&
+                                        pump.tank_names.length > 0
+                                            ? pump.tank_names.join(', ')
                                             : '—'}
                                     </td>
                                     <td className="px-4 py-3 text-end">
@@ -71,7 +91,7 @@ export default function FuelPumpsIndex() {
                             {pumps.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={3}
+                                        colSpan={4}
                                         className="text-muted-foreground px-4 py-6 text-center"
                                     >
                                         {t('common.no_results')}

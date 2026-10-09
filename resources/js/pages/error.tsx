@@ -33,7 +33,7 @@ export default function ErrorPage() {
     const back = auth?.user
         ? auth.isSuperAdmin
             ? { href: '/platform', label: t('error.back_platform') }
-            : { href: '/cash-box', label: t('error.back_app') }
+            : { href: '/today', label: t('error.back_today') }
         : { href: '/', label: t('error.back_home') };
 
     return (

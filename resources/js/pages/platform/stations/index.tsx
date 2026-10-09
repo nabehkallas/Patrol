@@ -1,7 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    Activity,
     Building2,
+    CalendarClock,
     CalendarDays,
     CheckCircle2,
     ChevronRight,
@@ -11,10 +13,12 @@ import {
     KeyRound,
     Mail,
     MailWarning,
+    MoreHorizontal,
     PauseCircle,
     Phone,
     PlayCircle,
     Plus,
+    Search,
     Trash2,
     UserRound,
     Users,
@@ -29,7 +33,15 @@ import { StationUsersDialog } from '@/components/platform/station-users-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatDate, formatNumber } from '@/lib/format';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -40,11 +52,14 @@ import {
     reactivate,
     reject,
     resetAdminPassword,
+    subscription as setSubscription,
     suspend,
 } from '@/routes/platform/stations';
 
 type Station = {
     id: string;
+    last_activity: string | null;
+    subscription_ends_at: string | null;
     name: string;
     onboarded: boolean;
     created_at: string;
@@ -195,6 +210,76 @@ function SectionHeading({
     );
 }
 
+const STATUS_FILTERS = ['all', 'live', 'suspended', 'expiring'] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+/** A subscription ending within this many days (or already ended) is flagged. */
+const EXPIRY_WARNING_DAYS = 14;
+
+function daysUntil(date: string): number {
+    return Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
+}
+
+function isExpiring(station: { subscription_ends_at: string | null }): boolean {
+    return (
+        station.subscription_ends_at !== null &&
+        daysUntil(station.subscription_ends_at) <= EXPIRY_WARNING_DAYS
+    );
+}
+
+const STATUS_MATCHES: Record<StatusFilter, (station: Station) => boolean> = {
+    all: () => true,
+    live: (station) => !station.suspended,
+    suspended: (station) => station.suspended,
+    expiring: (station) => !station.suspended && isExpiring(station),
+};
+
+/** When the station was last used, and when its subscription runs out (flagged near the end). */
+function StationTimeline({ station }: { station: Station }) {
+    const { t } = useTranslation();
+    const ends = station.subscription_ends_at;
+    const left = ends ? daysUntil(ends) : null;
+
+    return (
+        <div className="space-y-1.5 text-xs">
+            <div className="text-muted-foreground flex items-center gap-1.5">
+                <Activity className="size-3.5 shrink-0" />
+                {station.last_activity
+                    ? t('platform.last_activity').replace(
+                          ':date',
+                          formatDateTime(station.last_activity),
+                      )
+                    : t('platform.no_activity')}
+            </div>
+            <div
+                className={cn(
+                    'flex items-center gap-1.5',
+                    left === null
+                        ? 'text-muted-foreground'
+                        : left < 0
+                          ? 'font-medium text-rose-600 dark:text-rose-400'
+                          : left <= EXPIRY_WARNING_DAYS
+                            ? 'font-medium text-amber-700 dark:text-amber-400'
+                            : 'text-muted-foreground',
+                )}
+            >
+                <CalendarClock className="size-3.5 shrink-0" />
+                {ends === null
+                    ? t('platform.subscription.none')
+                    : left !== null && left < 0
+                      ? t('platform.subscription.ended').replace(
+                            ':date',
+                            formatDate(ends),
+                        )
+                      : t('platform.subscription.ends').replace(
+                            ':date',
+                            formatDate(ends),
+                        )}
+            </div>
+        </div>
+    );
+}
+
 export default function StationsIndex() {
     const { stats, stations, registrations, newStationCredentials } =
         usePage<PageProps>().props;
@@ -204,6 +289,44 @@ export default function StationsIndex() {
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(
         null,
     );
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+    const needle = search.trim().toLowerCase();
+    const shownStations = stations.filter((station) => {
+        const matches =
+            needle === '' ||
+            [
+                station.name,
+                station.admin_name,
+                station.admin_email,
+                station.owner_phone,
+            ]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(needle));
+
+        return matches && STATUS_MATCHES[statusFilter](station);
+    });
+
+    function askSubscription(station: Station) {
+        setPendingAction({
+            title: t('platform.subscription.title').replace(
+                ':station',
+                station.name,
+            ),
+            message: t('platform.subscription.message'),
+            confirmLabel: t('platform.subscription.save'),
+            tone: 'success',
+            icon: CalendarClock,
+            url: setSubscription.url(station.id),
+            method: 'post',
+            dateField: {
+                name: 'subscription_ends_at',
+                label: t('platform.subscription.ends_on'),
+                value: station.subscription_ends_at?.slice(0, 10) ?? '',
+            },
+        });
+    }
 
     // Every station action goes through the password confirmation dialog.
     const ask = (
@@ -500,6 +623,42 @@ export default function StationsIndex() {
                         }
                     />
 
+                    {stations.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="relative w-full sm:w-72">
+                                <Search className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2" />
+                                <Input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder={t(
+                                        'platform.search_placeholder',
+                                    )}
+                                    className="ps-9"
+                                    data-test="station-search"
+                                />
+                            </div>
+                            <div className="bg-muted inline-flex rounded-lg p-1">
+                                {STATUS_FILTERS.map((value) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setStatusFilter(value)}
+                                        className={cn(
+                                            'rounded-md px-3 py-1 text-sm transition-colors',
+                                            statusFilter === value
+                                                ? 'bg-background shadow-xs font-medium'
+                                                : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        {t(
+                                            `platform.filter.${value}` as TranslationKey,
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {stations.length === 0 ? (
                         <Card className="py-10">
                             <CardContent className="text-muted-foreground flex flex-col items-center gap-2 text-sm">
@@ -509,7 +668,7 @@ export default function StationsIndex() {
                         </Card>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {stations.map((station) => (
+                            {shownStations.map((station) => (
                                 <Card
                                     key={station.id}
                                     className={cn(
@@ -569,79 +728,128 @@ export default function StationsIndex() {
                                             />
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setUsersFor(station)}
-                                            className="text-muted-foreground hover:border-primary hover:bg-primary/10 hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
-                                            data-test="station-users-button"
-                                        >
-                                            <Users className="size-4" />
-                                            {t('platform.users_count').replace(
-                                                ':count',
-                                                String(station.users),
-                                            )}
-                                            <ChevronRight className="size-3.5 opacity-60 rtl:rotate-180" />
-                                        </button>
+                                        <StationTimeline station={station} />
 
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() =>
-                                                ask('reset_password', station)
-                                            }
-                                            data-test="station-reset-admin-password"
-                                        >
-                                            <KeyRound className="size-4" />
-                                            {t('platform.reset_admin_password')}
-                                        </Button>
-
-                                        <div className="flex gap-2 border-t pt-4">
-                                            {station.suspended ? (
-                                                <Button
-                                                    size="sm"
-                                                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                                                    onClick={() =>
-                                                        ask(
-                                                            'reactivate',
-                                                            station,
-                                                        )
-                                                    }
-                                                    data-test="station-reactivate"
-                                                >
-                                                    <PlayCircle className="size-4" />
-                                                    {t('platform.reactivate')}
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="flex-1 border-amber-400 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10"
-                                                    onClick={() =>
-                                                        ask('suspend', station)
-                                                    }
-                                                    data-test="station-suspend"
-                                                >
-                                                    <PauseCircle className="size-4" />
-                                                    {t('platform.suspend')}
-                                                </Button>
-                                            )}
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="flex-1 border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
+                                        <div className="flex items-center justify-between gap-2">
+                                            <button
+                                                type="button"
                                                 onClick={() =>
-                                                    ask('delete', station)
+                                                    setUsersFor(station)
                                                 }
-                                                data-test="station-delete"
+                                                className="text-muted-foreground hover:border-primary hover:bg-primary/10 hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
+                                                data-test="station-users-button"
                                             >
-                                                <Trash2 className="size-4" />
-                                                {t('platform.delete')}
-                                            </Button>
+                                                <Users className="size-4" />
+                                                {t(
+                                                    'platform.users_count',
+                                                ).replace(
+                                                    ':count',
+                                                    String(station.users),
+                                                )}
+                                                <ChevronRight className="size-3.5 opacity-60 rtl:rotate-180" />
+                                            </button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="size-8"
+                                                        aria-label={t(
+                                                            'platform.more_actions',
+                                                        )}
+                                                        title={t(
+                                                            'platform.more_actions',
+                                                        )}
+                                                        data-test="station-actions"
+                                                    >
+                                                        <MoreHorizontal />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onSelect={() =>
+                                                            askSubscription(
+                                                                station,
+                                                            )
+                                                        }
+                                                        data-test="station-subscription"
+                                                    >
+                                                        <CalendarClock />
+                                                        {t(
+                                                            'platform.subscription.menu',
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onSelect={() =>
+                                                            ask(
+                                                                'reset_password',
+                                                                station,
+                                                            )
+                                                        }
+                                                        data-test="station-reset-admin-password"
+                                                    >
+                                                        <KeyRound />
+                                                        {t(
+                                                            'platform.reset_admin_password',
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    {station.suspended ? (
+                                                        <DropdownMenuItem
+                                                            onSelect={() =>
+                                                                ask(
+                                                                    'reactivate',
+                                                                    station,
+                                                                )
+                                                            }
+                                                            data-test="station-reactivate"
+                                                        >
+                                                            <PlayCircle />
+                                                            {t(
+                                                                'platform.reactivate',
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            onSelect={() =>
+                                                                ask(
+                                                                    'suspend',
+                                                                    station,
+                                                                )
+                                                            }
+                                                            data-test="station-suspend"
+                                                        >
+                                                            <PauseCircle />
+                                                            {t(
+                                                                'platform.suspend',
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onSelect={() =>
+                                                            ask(
+                                                                'delete',
+                                                                station,
+                                                            )
+                                                        }
+                                                        data-test="station-delete"
+                                                    >
+                                                        <Trash2 />
+                                                        {t('platform.delete')}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </CardContent>
                                 </Card>
                             ))}
+                            {shownStations.length === 0 && (
+                                <p className="text-muted-foreground col-span-full py-6 text-center text-sm">
+                                    {t('common.no_results')}
+                                </p>
+                            )}
                         </div>
                     )}
                 </section>

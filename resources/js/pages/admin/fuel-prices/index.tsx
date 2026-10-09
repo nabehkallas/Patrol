@@ -115,6 +115,12 @@ export default function FuelPricesIndex() {
         effective_at: todayInStation(),
     });
 
+    // What the picked fuel type sells for now: its newest price in the history below.
+    const currentPrice = prices.data.find(
+        (price) =>
+            String(price.fuel_type_id) === String(form.data.fuel_type_id),
+    );
+
     function submit(event: FormEvent) {
         event.preventDefault();
 
@@ -205,9 +211,26 @@ export default function FuelPricesIndex() {
                             <div className="grid gap-2">
                                 <Label htmlFor="price_per_liter">
                                     {t('transactions.price_per_liter')}
+                                    {currentPrice && (
+                                        <span className="text-muted-foreground ms-1 text-xs font-normal">
+                                            {t('common.current_value', {
+                                                value: formatCurrencyAmount(
+                                                    currentPrice.price_per_liter,
+                                                    currentPrice.currency,
+                                                ),
+                                            })}
+                                        </span>
+                                    )}
                                 </Label>
                                 <MoneyInput
                                     id="price_per_liter"
+                                    placeholder={
+                                        currentPrice
+                                            ? trimDecimal(
+                                                  currentPrice.price_per_liter,
+                                              )
+                                            : undefined
+                                    }
                                     value={form.data.price_per_liter}
                                     onChange={(value) =>
                                         form.setData('price_per_liter', value)

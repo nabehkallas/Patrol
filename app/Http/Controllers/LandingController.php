@@ -17,7 +17,7 @@ class LandingController extends Controller
     public function __invoke(Request $request): Response|RedirectResponse
     {
         if ($request->user()) {
-            return redirect(tenancy()->initialized ? '/cash-box' : '/platform');
+            return redirect(tenancy()->initialized ? '/today' : '/platform');
         }
 
         return Inertia::render('welcome', [

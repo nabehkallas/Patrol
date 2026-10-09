@@ -467,7 +467,7 @@ function DemoDashboard({ c }: { c: LandingText }) {
 
     return (
         <div className="relative">
-            <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-sky-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-sky-500/20 blur-3xl sm:-inset-6" />
             <div
                 className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0d1f35]/80 p-4 shadow-2xl shadow-sky-950/50 backdrop-blur-xl sm:p-5"
                 data-test="landing-demo"

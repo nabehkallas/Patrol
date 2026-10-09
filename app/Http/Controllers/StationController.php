@@ -31,7 +31,13 @@ class StationController extends Controller
             $people[$tenant->id] = $tenant->run(function () {
                 $admin = User::role(UserRole::Admin->value)->orderBy('id')->first(['name', 'email']);
 
-                return ['users' => User::count(), 'admin_name' => $admin?->name, 'admin_email' => $admin?->email];
+                return [
+                    'users' => User::count(),
+                    'admin_name' => $admin?->name,
+                    'admin_email' => $admin?->email,
+                    // The station's most recent sign-in, as a sign of whether it's actually in use.
+                    'last_activity' => User::max('last_login_at'),
+                ];
             });
         }
 
@@ -45,6 +51,7 @@ class StationController extends Controller
                 'created_at' => $tenant->created_at,
                 ...$people[$tenant->id],
                 'owner_phone' => $tenant->getAttribute('owner_phone'),
+                'subscription_ends_at' => $tenant->getAttribute('subscription_ends_at'),
             ])
             ->sortBy('name')
             ->values()
@@ -194,6 +201,24 @@ class StationController extends Controller
             'password' => $temporaryPassword,
             'kind' => 'reset',
         ]);
+
+        return to_route('platform.home');
+    }
+
+    /**
+     * When the station's paid period ends (a reminder for the platform admin, shown on its card
+     * and flagged as it nears; suspending stays a deliberate action). Empty clears it.
+     */
+    public function setSubscription(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->confirmPassword($request);
+        $data = $request->validateWithBag('confirm', [
+            'subscription_ends_at' => ['nullable', 'date'],
+        ]);
+
+        $tenant->update(['subscription_ends_at' => $data['subscription_ends_at'] ?? null]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Subscription date saved for :station.', ['station' => $tenant->name])]);
 
         return to_route('platform.home');
     }

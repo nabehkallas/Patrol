@@ -35,6 +35,11 @@ export default function ExchangeRatesIndex() {
         effective_at: '',
     });
 
+    // The rate in force for the picked currency: its newest entry in the history below.
+    const currentRate = rates.data.find(
+        (rate) => rate.currency === form.data.currency,
+    );
+
     function submit(event: FormEvent) {
         event.preventDefault();
         form.post(store.url(), { onSuccess: () => form.reset('rate_to_usd') });
@@ -48,7 +53,7 @@ export default function ExchangeRatesIndex() {
                 <Heading
                     variant="small"
                     title={t('exchange_rates.title')}
-                    description={t('exchange_rates.description')}
+                    description={t('exchange_rates.description_generic')}
                 />
 
                 <Card>
@@ -58,7 +63,7 @@ export default function ExchangeRatesIndex() {
                     <CardContent>
                         <form
                             onSubmit={submit}
-                            className="grid gap-4 md:grid-cols-3"
+                            className="grid items-end gap-4 md:grid-cols-[1fr_1fr_auto]"
                         >
                             <div className="grid gap-2">
                                 <Label htmlFor="currency">
@@ -88,6 +93,16 @@ export default function ExchangeRatesIndex() {
                             <div className="grid gap-2">
                                 <Label htmlFor="rate_to_usd">
                                     {t('exchange_rates.units_per_usd')}
+                                    {currentRate && (
+                                        <span className="text-muted-foreground ms-1 text-xs font-normal">
+                                            {t('common.current_value', {
+                                                value: formatNumber(
+                                                    currentRate.rate_to_usd,
+                                                    6,
+                                                ),
+                                            })}
+                                        </span>
+                                    )}
                                 </Label>
                                 <MoneyInput
                                     id="rate_to_usd"
@@ -98,11 +113,7 @@ export default function ExchangeRatesIndex() {
                                 />
                                 <InputError message={form.errors.rate_to_usd} />
                             </div>
-                            <Button
-                                type="submit"
-                                disabled={form.processing}
-                                className="self-end"
-                            >
+                            <Button type="submit" disabled={form.processing}>
                                 {t('exchange_rates.save_rate')}
                             </Button>
                         </form>

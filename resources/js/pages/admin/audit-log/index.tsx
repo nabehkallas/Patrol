@@ -70,6 +70,7 @@ const ACTION_LABELS: Record<string, TranslationKey> = {
     'station.reset': 'audit.action.station_reset',
     'backup.restored': 'audit.action.backup_restored',
     'password.admin_override': 'audit.action.password_override',
+    'password.admin_reset': 'audit.action.password_admin_reset',
 };
 
 const ACTION_TONE: Record<string, string> = {

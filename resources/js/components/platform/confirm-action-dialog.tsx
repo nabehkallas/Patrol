@@ -13,6 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,8 @@ export type PendingAction = {
     icon?: LucideIcon;
     url: string;
     method: 'post' | 'delete';
+    /** A date to send with the confirmation (e.g. a subscription's end); empty clears it. */
+    dateField?: { name: string; label: string; value: string };
 };
 
 const TONES: Record<ConfirmTone, { icon: string; button: string }> = {
@@ -76,7 +79,12 @@ function ConfirmForm({
     onClose: () => void;
 }) {
     const { t } = useTranslation();
-    const form = useForm({ current_password: '' });
+    const form = useForm<Record<string, string>>({
+        current_password: '',
+        ...(action.dateField
+            ? { [action.dateField.name]: action.dateField.value }
+            : {}),
+    });
     const tone = TONES[action.tone];
     const Icon = action.icon ?? ShieldAlert;
 
@@ -104,6 +112,23 @@ function ConfirmForm({
                 <DialogTitle>{action.title}</DialogTitle>
                 <DialogDescription>{action.message}</DialogDescription>
             </DialogHeader>
+
+            {action.dateField && (
+                <div className="grid gap-2">
+                    <Label htmlFor="confirm_date">
+                        {action.dateField.label}
+                    </Label>
+                    <Input
+                        id="confirm_date"
+                        type="date"
+                        value={form.data[action.dateField.name] ?? ''}
+                        onChange={(e) =>
+                            form.setData(action.dateField!.name, e.target.value)
+                        }
+                    />
+                    <InputError message={form.errors[action.dateField.name]} />
+                </div>
+            )}
 
             <div className="grid gap-2">
                 <Label htmlFor="confirm_current_password">

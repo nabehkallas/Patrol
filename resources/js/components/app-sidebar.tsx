@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Sun,
     ArrowLeftRight,
     CircleDollarSign,
     Container,
@@ -32,6 +33,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useTranslation } from '@/lib/i18n';
+import { today } from '@/routes';
 import { index as auditLogIndex } from '@/routes/admin/audit-log';
 import { index as earningsIndex } from '@/routes/admin/earnings';
 import { index as exchangeRatesIndex } from '@/routes/admin/exchange-rates';
@@ -57,6 +59,7 @@ export function AppSidebar() {
     const { t } = useTranslation();
 
     const operationsNavItems: NavItem[] = [
+        { title: t('nav.today'), href: today(), icon: Sun },
         { title: t('nav.cash_box'), href: cashBoxIndex(), icon: Wallet },
         {
             title: t('nav.pump_counters'),

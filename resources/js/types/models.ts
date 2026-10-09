@@ -38,6 +38,9 @@ export type ManagedUser = UserSummary & {
     email: string;
     role: UserRole | null;
     created_at?: string;
+    last_login_at?: string | null;
+    disabled?: boolean;
+    is_me?: boolean;
 };
 
 export type FuelType = {
@@ -66,6 +69,7 @@ export type Tank = {
     fuel_type_id: number;
     name: string;
     capacity_liters: string;
+    expected_liters?: number;
     is_active: boolean;
     fuel_type?: { id: number; name: string };
 };
@@ -362,6 +366,7 @@ export type FuelPump = {
     name: string;
     fuel_type_ids: number[];
     fuel_type_names: string[];
+    tank_names?: string[];
 };
 
 export type PumpSummary = {
@@ -369,6 +374,7 @@ export type PumpSummary = {
     name: string;
     fuel_type_ids: number[];
     fuel_type_names: string[];
+    tank_names?: string[];
     daily_liters_sold: number;
     latest_reading: {
         date: string;

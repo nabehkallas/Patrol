@@ -32,6 +32,7 @@ class RoleAccessTest extends TestCase
             'admin.fuel-prices.index', 'admin.fuel-prices.store',
             'admin.exchange-rates.index', 'admin.exchange-rates.store',
             'admin.users.index', 'admin.users.store', 'admin.users.destroy',
+            'admin.users.reset-password', 'admin.users.toggle-disabled',
             // Station setup
             'admin.tanks.index', 'admin.tanks.store',
             'admin.fuel-pumps.index', 'admin.fuel-pumps.store',
@@ -60,7 +61,8 @@ class RoleAccessTest extends TestCase
             'cash-box.index', 'pump-counters.index', 'inventory.index', 'shop.index', 'sadcop.index',
             'debts.index', 'debts.create', 'debts.store', 'debts.settle', 'debts.payments.store',
             'debtors.index', 'debtors.create', 'debtors.store', 'debtors.settle-all',
-            'transactions.index',
+            'transactions.index', 'transactions.export-xlsx', 'debts.export-xlsx', 'debtors.export-xlsx',
+            'today',
         ] as $name) {
             $this->assertFalse($this->isAdminOnly($name), "[{$name}] should be open to attendants");
         }

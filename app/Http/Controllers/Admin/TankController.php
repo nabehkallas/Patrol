@@ -30,6 +30,7 @@ class TankController extends Controller
                     'fuel_type_id' => $tank->fuel_type_id,
                     'name' => $tank->name,
                     'capacity_liters' => $tank->capacity_liters,
+                    'expected_liters' => round($tank->expectedLiters(), 3),
                     'is_active' => $tank->is_active,
                     'fuel_type' => $tank->fuelType->only(['id', 'name']),
                 ]),

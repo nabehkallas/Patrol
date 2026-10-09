@@ -124,7 +124,17 @@ class FortifyServiceProvider extends ServiceProvider
                 ]);
             }
 
+            // An admin switched this employee's account off (Employees page).
+            if ($tenantUser->disabled_at !== null) {
+                tenancy()->end();
+
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('This account is disabled. Ask your station admin to enable it.'),
+                ]);
+            }
+
             session(['tenant_id' => $tenant->getTenantKey()]);
+            $tenantUser->forceFill(['last_login_at' => now()])->saveQuietly();
 
             return $tenantUser;
         }

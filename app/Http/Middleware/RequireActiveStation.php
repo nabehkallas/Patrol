@@ -31,6 +31,15 @@ class RequireActiveStation
             return $next($request);
         }
 
+        // An employee disabled while signed in is signed out at their next click.
+        if ($request->user()?->disabled_at !== null) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['email' => __('This account is disabled. Ask your station admin to enable it.')]);
+        }
+
         return match (StationStatus::of($tenant)) {
             StationStatus::Active => $next($request),
             StationStatus::Suspended => self::signOutSuspended($request),
