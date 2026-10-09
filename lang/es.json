@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name ya no puede iniciar sesión.",
     ":name can sign in again.": ":name puede volver a iniciar sesión.",
     "Subscription date saved for :station.": "Fecha de suscripción guardada para :station.",
-    "inventory.tab_transfers": "Traspasos entre tanques"
+    "inventory.record_reading": "Registrar lectura",
+    "inventory.no_transfer_target": "No hay otro tanque de este combustible",
+    "inventory.movements": "Movimientos de tanques"
 }

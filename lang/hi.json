@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name अब साइन इन नहीं कर सकते।",
     ":name can sign in again.": ":name फिर से साइन इन कर सकते हैं।",
     "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
-    "inventory.tab_transfers": "टैंकों के बीच स्थानांतरण"
+    "inventory.record_reading": "रीडिंग दर्ज करें",
+    "inventory.no_transfer_target": "इस ईंधन के लिए कोई दूसरा टैंक नहीं",
+    "inventory.movements": "टैंक की आवाजाही"
 }

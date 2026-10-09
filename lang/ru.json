@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name больше не может входить.",
     ":name can sign in again.": ":name снова может входить.",
     "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
-    "inventory.tab_transfers": "Перекачки между резервуарами"
+    "inventory.record_reading": "Записать замер",
+    "inventory.no_transfer_target": "Нет другого резервуара с этим топливом",
+    "inventory.movements": "Движение по резервуарам"
 }

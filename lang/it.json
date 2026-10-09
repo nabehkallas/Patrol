@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name non può più accedere.",
     ":name can sign in again.": ":name può di nuovo accedere.",
     "Subscription date saved for :station.": "Data di abbonamento salvata per :station.",
-    "inventory.tab_transfers": "Trasferimenti tra serbatoi"
+    "inventory.record_reading": "Registra lettura",
+    "inventory.no_transfer_target": "Nessun altro serbatoio per questo carburante",
+    "inventory.movements": "Movimenti dei serbatoi"
 }

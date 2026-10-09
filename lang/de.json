@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name kann sich nicht mehr anmelden.",
     ":name can sign in again.": ":name kann sich wieder anmelden.",
     "Subscription date saved for :station.": "Abo-Datum für :station gespeichert.",
-    "inventory.tab_transfers": "Umfüllungen zwischen Tanks"
+    "inventory.record_reading": "Messung erfassen",
+    "inventory.no_transfer_target": "Kein anderer Tank für diesen Kraftstoff",
+    "inventory.movements": "Tankbewegungen"
 }

@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": "لم يعد بإمكان :name تسجيل الدخول.",
     ":name can sign in again.": "أصبح بإمكان :name تسجيل الدخول مجدداً.",
     "Subscription date saved for :station.": "حُفظ تاريخ اشتراك :station.",
-    "inventory.tab_transfers": "سجل النقل بين الخزانات"
+    "inventory.record_reading": "تسجيل قراءة",
+    "inventory.no_transfer_target": "لا يوجد خزان آخر لنفس نوع الوقود",
+    "inventory.movements": "حركة الخزانات"
 }

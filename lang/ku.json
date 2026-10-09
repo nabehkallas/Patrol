@@ -1105,5 +1105,7 @@
     ":name can no longer sign in.": ":name êdî nikare têkeve.",
     ":name can sign in again.": ":name dîsa dikare têkeve.",
     "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
-    "inventory.tab_transfers": "Veguhastinên di navbera tankan de"
+    "inventory.record_reading": "Pîvan tomar bike",
+    "inventory.no_transfer_target": "Ji bo vê sotemeniyê tankek din tune",
+    "inventory.movements": "Tevgerên tankan"
 }
