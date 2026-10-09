@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
 import { LanguageMenu } from '@/components/language-menu';
 import { MoneyInput } from '@/components/money-input';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,6 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -328,14 +328,10 @@ function PumpReadingsSection({
                                             />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableTanks.map((tank) => (
-                                                <SelectItem
-                                                    key={tank.id}
-                                                    value={String(tank.id)}
-                                                >
-                                                    {tank.name}
-                                                </SelectItem>
-                                            ))}
+                                            <TankSelectItems
+                                                tanks={availableTanks}
+                                                allTanks={tanks}
+                                            />
                                         </SelectContent>
                                     </Select>
                                     <Input

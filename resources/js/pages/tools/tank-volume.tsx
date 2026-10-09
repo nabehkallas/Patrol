@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,8 @@ import { tankVolume } from '@/routes/tools';
 type TankOption = {
     id: number;
     name: string;
-    fuel_type: string;
+    fuel_type_id: number;
+    fuel_type_name: string;
     capacity_liters: number;
 };
 
@@ -110,15 +112,7 @@ export default function TankVolume() {
                                             <SelectItem value={CUSTOM}>
                                                 {t('tank_volume.other_tank')}
                                             </SelectItem>
-                                            {tanks.map((tank) => (
-                                                <SelectItem
-                                                    key={tank.id}
-                                                    value={String(tank.id)}
-                                                >
-                                                    {tank.fuel_type} —{' '}
-                                                    {tank.name}
-                                                </SelectItem>
-                                            ))}
+                                            <TankSelectItems tanks={tanks} />
                                         </SelectContent>
                                     </Select>
                                 </div>

@@ -13,6 +13,7 @@ import {
 } from '@/components/pump-counters/last-entry';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,6 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -478,24 +478,14 @@ export default function PumpCountersIndex() {
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    {tankOptions.map(
-                                                                        (
-                                                                            tank,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    tank.id
-                                                                                }
-                                                                                value={String(
-                                                                                    tank.id,
-                                                                                )}
-                                                                            >
-                                                                                {
-                                                                                    tank.name
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
+                                                                    <TankSelectItems
+                                                                        tanks={
+                                                                            tankOptions
+                                                                        }
+                                                                        allTanks={
+                                                                            tanks
+                                                                        }
+                                                                    />
                                                                 </SelectContent>
                                                             </Select>
                                                             <InputError

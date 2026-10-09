@@ -399,6 +399,18 @@
     overflow-wrap: anywhere;
 }
 
+/* A tank option: its dot, then its name, which truncates (closed) or wraps (open) on its own. */
+[data-slot='select-trigger'] .select-tank-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    unicode-bidi: plaintext;
+}
+
+[data-slot='select-item'] .select-tank-name {
+    unicode-bidi: plaintext;
+}
+
 .table-stack td {
     overflow-wrap: break-word;
 }

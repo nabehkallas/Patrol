@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\UniqueTankName;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreTankRequest extends FormRequest
 {
@@ -19,7 +19,7 @@ class StoreTankRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('tanks')->where('fuel_type_id', $this->input('fuel_type_id')),
+                new UniqueTankName($this->input('fuel_type_id')),
             ],
             'capacity_liters' => ['required', 'numeric', 'min:0.001'],
         ];

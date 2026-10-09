@@ -16,7 +16,8 @@ class TankVolumeCalculatorController extends Controller
                 ->map(fn (Tank $tank) => [
                     'id' => $tank->id,
                     'name' => $tank->name,
-                    'fuel_type' => $tank->fuelType->name,
+                    'fuel_type_id' => $tank->fuel_type_id,
+                    'fuel_type_name' => $tank->fuelType->name,
                     'capacity_liters' => (float) $tank->capacity_liters,
                 ])
                 ->values(),

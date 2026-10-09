@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name kann sich wieder anmelden.",
     "Subscription date saved for :station.": "Abo-Datum für :station gespeichert.",
     "inventory.no_transfer_target": "Kein anderer aktiver Tank",
-    "inventory.movements": "Tankbewegungen"
+    "inventory.movements": "Tankbewegungen",
+    "tanks.name_taken": "Für diesen Kraftstoff gibt es bereits einen Tank mit diesem Namen. Wählen Sie einen anderen Namen."
 }

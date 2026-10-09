@@ -5,6 +5,7 @@ import { CurrencyOptions } from '@/components/currency-options';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -331,14 +332,10 @@ export default function TransactionCreate() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {availableTanks.map((tank) => (
-                                            <SelectItem
-                                                key={tank.id}
-                                                value={String(tank.id)}
-                                            >
-                                                {tank.name}
-                                            </SelectItem>
-                                        ))}
+                                        <TankSelectItems
+                                            tanks={availableTanks}
+                                            allTanks={tanks}
+                                        />
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.tank_id} />

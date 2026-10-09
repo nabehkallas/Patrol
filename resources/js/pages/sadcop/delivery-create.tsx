@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -148,16 +148,13 @@ export default function SadcopDeliveryCreate() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {selectableTanks(tanks, form.data.tank_id).map(
-                                    (tank) => (
-                                        <SelectItem
-                                            key={tank.id}
-                                            value={String(tank.id)}
-                                        >
-                                            {tank.name}
-                                        </SelectItem>
-                                    ),
-                                )}
+                                <TankSelectItems
+                                    tanks={selectableTanks(
+                                        tanks,
+                                        form.data.tank_id,
+                                    )}
+                                    allTanks={tanks}
+                                />
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />

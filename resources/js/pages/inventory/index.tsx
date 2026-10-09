@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,7 +25,6 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -860,17 +860,13 @@ export default function InventoryIndex() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {selectableTanks(
-                                                    tanks,
-                                                    form.data.tank_id,
-                                                ).map((tank) => (
-                                                    <SelectItem
-                                                        key={tank.id}
-                                                        value={String(tank.id)}
-                                                    >
-                                                        {tank.name}
-                                                    </SelectItem>
-                                                ))}
+                                                <TankSelectItems
+                                                    tanks={selectableTanks(
+                                                        tanks,
+                                                        form.data.tank_id,
+                                                    )}
+                                                    allTanks={tanks}
+                                                />
                                             </SelectContent>
                                         </Select>
                                         <InputError
@@ -1052,17 +1048,13 @@ export default function InventoryIndex() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {selectableTanks(
-                                        tanks,
-                                        transferForm.data.from_tank_id,
-                                    ).map((tank) => (
-                                        <SelectItem
-                                            key={tank.id}
-                                            value={String(tank.id)}
-                                        >
-                                            {tank.name}
-                                        </SelectItem>
-                                    ))}
+                                    <TankSelectItems
+                                        tanks={selectableTanks(
+                                            tanks,
+                                            transferForm.data.from_tank_id,
+                                        )}
+                                        allTanks={tanks}
+                                    />
                                 </SelectContent>
                             </Select>
                             <InputError
@@ -1086,14 +1078,10 @@ export default function InventoryIndex() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {transferDestinationOptions.map((tank) => (
-                                        <SelectItem
-                                            key={tank.id}
-                                            value={String(tank.id)}
-                                        >
-                                            {tank.name}
-                                        </SelectItem>
-                                    ))}
+                                    <TankSelectItems
+                                        tanks={transferDestinationOptions}
+                                        allTanks={tanks}
+                                    />
                                 </SelectContent>
                             </Select>
                             <InputError

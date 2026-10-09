@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name peut à nouveau se connecter.",
     "Subscription date saved for :station.": "Date d'abonnement enregistrée pour :station.",
     "inventory.no_transfer_target": "Aucune autre cuve active",
-    "inventory.movements": "Mouvements des cuves"
+    "inventory.movements": "Mouvements des cuves",
+    "tanks.name_taken": "Ce carburant a déjà une cuve portant ce nom. Choisissez un autre nom."
 }

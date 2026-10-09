@@ -1105,5 +1105,6 @@
     ":name can sign in again.": "أصبح بإمكان :name تسجيل الدخول مجدداً.",
     "Subscription date saved for :station.": "حُفظ تاريخ اشتراك :station.",
     "inventory.no_transfer_target": "لا يوجد خزان آخر فعّال",
-    "inventory.movements": "حركة الخزانات"
+    "inventory.movements": "حركة الخزانات",
+    "tanks.name_taken": "يوجد خزان بهذا الاسم لنفس نوع الوقود. اختر اسماً مختلفاً."
 }

@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name फिर से साइन इन कर सकते हैं।",
     "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
     "inventory.no_transfer_target": "कोई दूसरा सक्रिय टैंक नहीं",
-    "inventory.movements": "टैंक की आवाजाही"
+    "inventory.movements": "टैंक की आवाजाही",
+    "tanks.name_taken": "इस ईंधन के लिए इस नाम का टैंक पहले से मौजूद है। कोई दूसरा नाम चुनें।"
 }

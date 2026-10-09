@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useMemo } from 'react';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
+import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -159,14 +160,10 @@ export default function PumpCounterReadingEdit() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {availableTanks.map((tank) => (
-                                    <SelectItem
-                                        key={tank.id}
-                                        value={String(tank.id)}
-                                    >
-                                        {tank.name}
-                                    </SelectItem>
-                                ))}
+                                <TankSelectItems
+                                    tanks={availableTanks}
+                                    allTanks={tanks}
+                                />
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />

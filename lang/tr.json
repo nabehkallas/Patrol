@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name yeniden giriş yapabilir.",
     "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
     "inventory.no_transfer_target": "Başka aktif tank yok",
-    "inventory.movements": "Tank hareketleri"
+    "inventory.movements": "Tank hareketleri",
+    "tanks.name_taken": "Bu yakıt türünde bu adla bir tank zaten var. Farklı bir ad seçin."
 }

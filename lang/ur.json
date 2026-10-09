@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name دوبارہ سائن ان کر سکتے ہیں۔",
     "Subscription date saved for :station.": ":station کی رکنیت کی تاریخ محفوظ ہو گئی۔",
     "inventory.no_transfer_target": "کوئی دوسرا فعال ٹینک نہیں",
-    "inventory.movements": "ٹینکوں کی نقل و حرکت"
+    "inventory.movements": "ٹینکوں کی نقل و حرکت",
+    "tanks.name_taken": "اس ایندھن کے لیے اس نام کا ٹینک پہلے سے موجود ہے۔ کوئی دوسرا نام چنیں۔"
 }

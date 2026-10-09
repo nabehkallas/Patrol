@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name снова может входить.",
     "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
     "inventory.no_transfer_target": "Нет другого активного резервуара",
-    "inventory.movements": "Движение по резервуарам"
+    "inventory.movements": "Движение по резервуарам",
+    "tanks.name_taken": "Для этого топлива уже есть резервуар с таким названием. Выберите другое название."
 }

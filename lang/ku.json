@@ -1105,5 +1105,6 @@
     ":name can sign in again.": ":name dîsa dikare têkeve.",
     "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
     "inventory.no_transfer_target": "Tankeke din a çalak tune",
-    "inventory.movements": "Tevgerên tankan"
+    "inventory.movements": "Tevgerên tankan",
+    "tanks.name_taken": "Ji bo vê sotemeniyê tankek bi vî navî heye. Navekî din hilbijêre."
 }
