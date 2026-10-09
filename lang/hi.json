@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "आप अपना खाता निष्क्रिय नहीं कर सकते।",
     ":name can no longer sign in.": ":name अब साइन इन नहीं कर सकते।",
     ":name can sign in again.": ":name फिर से साइन इन कर सकते हैं।",
-    "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।"
+    "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
+    "inventory.tab_transfers": "टैंकों के बीच स्थानांतरण"
 }

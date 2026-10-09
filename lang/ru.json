@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "Нельзя отключить собственную учётную запись.",
     ":name can no longer sign in.": ":name больше не может входить.",
     ":name can sign in again.": ":name снова может входить.",
-    "Subscription date saved for :station.": "Дата подписки для :station сохранена."
+    "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
+    "inventory.tab_transfers": "Перекачки между резервуарами"
 }

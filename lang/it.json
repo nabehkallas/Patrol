@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "Non puoi disattivare il tuo account.",
     ":name can no longer sign in.": ":name non può più accedere.",
     ":name can sign in again.": ":name può di nuovo accedere.",
-    "Subscription date saved for :station.": "Data di abbonamento salvata per :station."
+    "Subscription date saved for :station.": "Data di abbonamento salvata per :station.",
+    "inventory.tab_transfers": "Trasferimenti tra serbatoi"
 }

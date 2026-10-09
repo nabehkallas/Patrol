@@ -45,19 +45,23 @@ class InventoryEntryController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->input('from')) : now()->startOfMonth();
         $to = $request->filled('to') ? Carbon::parse($request->input('to')) : now();
 
+        // The added-liters and transfer logs are for admins only; attendants see tank amounts
+        // and physical readings.
+        $isAdmin = $request->user()->isAdmin();
+
         return Inertia::render('inventory/index', [
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
             'entries' => InventoryEntry::with(['tank.fuelType', 'recordedBy'])
                 ->latest('date')
                 ->latest('id')
                 ->paginate(25),
-            'topUps' => TankTopUp::with(['tank.fuelType', 'recordedBy'])
+            'topUps' => ! $isAdmin ? [] : TankTopUp::with(['tank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)
                 ->latest('date')
                 ->latest('id')
                 ->get(),
-            'transfers' => TankTransfer::with(['fromTank.fuelType', 'toTank.fuelType', 'recordedBy'])
+            'transfers' => ! $isAdmin ? [] : TankTransfer::with(['fromTank.fuelType', 'toTank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)
                 ->latest('date')

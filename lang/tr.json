@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "Kendi hesabınızı devre dışı bırakamazsınız.",
     ":name can no longer sign in.": ":name artık giriş yapamaz.",
     ":name can sign in again.": ":name yeniden giriş yapabilir.",
-    "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi."
+    "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
+    "inventory.tab_transfers": "Tanklar arası aktarımlar"
 }

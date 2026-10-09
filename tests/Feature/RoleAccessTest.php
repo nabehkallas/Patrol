@@ -37,6 +37,7 @@ class RoleAccessTest extends TestCase
             'admin.tanks.index', 'admin.tanks.store',
             'admin.fuel-pumps.index', 'admin.fuel-pumps.store',
             'admin.fuel-types.index', 'admin.fuel-types.store',
+            'inventory.export-topups-pdf', 'inventory.export-tanks-xlsx',
             'tools.tank-volume',
         ];
 

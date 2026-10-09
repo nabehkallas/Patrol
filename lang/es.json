@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "No puede desactivar su propia cuenta.",
     ":name can no longer sign in.": ":name ya no puede iniciar sesión.",
     ":name can sign in again.": ":name puede volver a iniciar sesión.",
-    "Subscription date saved for :station.": "Fecha de suscripción guardada para :station."
+    "Subscription date saved for :station.": "Fecha de suscripción guardada para :station.",
+    "inventory.tab_transfers": "Traspasos entre tanques"
 }

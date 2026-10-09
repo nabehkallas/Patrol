@@ -1104,5 +1104,6 @@
     "You can't disable your own account.": "Tu nikarî hesabê xwe neçalak bikî.",
     ":name can no longer sign in.": ":name êdî nikare têkeve.",
     ":name can sign in again.": ":name dîsa dikare têkeve.",
-    "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin."
+    "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
+    "inventory.tab_transfers": "Veguhastinên di navbera tankan de"
 }

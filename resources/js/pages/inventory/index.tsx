@@ -70,7 +70,7 @@ type PageProps = {
     historyTo: string;
 };
 
-type Tab = 'amounts' | 'actual';
+type Tab = 'amounts' | 'actual' | 'topups' | 'transfers';
 
 export default function InventoryIndex() {
     const { auth, tanks, entries, topUps, transfers, historyFrom, historyTo } =
@@ -193,6 +193,12 @@ export default function InventoryIndex() {
     const tabs: { value: Tab; label: string }[] = [
         { value: 'amounts', label: t('inventory.tab_amounts') },
         { value: 'actual', label: t('inventory.tab_actual') },
+        ...(auth.isAdmin
+            ? ([
+                  { value: 'topups', label: t('inventory.top_up_history') },
+                  { value: 'transfers', label: t('inventory.tab_transfers') },
+              ] as const)
+            : []),
     ];
 
     // Sum of added liters per fuel type, over whatever date range topUps was already fetched
@@ -258,7 +264,7 @@ export default function InventoryIndex() {
                     </Button>
                 </div>
 
-                <div className="inline-flex gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
+                <div className="inline-flex flex-wrap gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
                     {tabs.map(({ value, label }) => (
                         <button
                             key={value}
@@ -363,7 +369,11 @@ export default function InventoryIndex() {
                                 </Card>
                             ))}
                         </div>
+                    </div>
+                )}
 
+                {activeTab === 'topups' && auth.isAdmin && (
+                    <div className="space-y-6">
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,300px))] gap-4">
                             {Object.values(topUpTotalsByFuelType).map(
                                 (total) => (
@@ -505,108 +515,110 @@ export default function InventoryIndex() {
                                 </table>
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        <div className="space-y-3">
-                            <SectionToolbar
-                                title={t('inventory.transfer_history')}
+                {activeTab === 'transfers' && auth.isAdmin && (
+                    <div className="space-y-3">
+                        <SectionToolbar title={t('inventory.transfer_history')}>
+                            <DateRangePicker
+                                from={historyFrom}
+                                to={historyTo}
+                                onChange={handleHistoryRangeChange}
                             />
-                            <div className="table-stack overflow-x-auto rounded-xl border">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-muted/50 text-start">
-                                            <th className="px-4 py-3">
-                                                {t('common.date')}
-                                            </th>
-                                            <th className="px-4 py-3">
-                                                {t('inventory.from_tank')}
-                                            </th>
-                                            <th className="px-4 py-3">
-                                                {t('inventory.to_tank')}
-                                            </th>
-                                            <th className="px-4 py-3">
-                                                {t('common.liters')}
-                                            </th>
-                                            <th className="px-4 py-3">
-                                                {t('common.recorded_by')}
-                                            </th>
-                                            <th className="px-4 py-3">
-                                                {t('common.notes')}
-                                            </th>
+                        </SectionToolbar>
+                        <div className="table-stack overflow-x-auto rounded-xl border">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 text-start">
+                                        <th className="px-4 py-3">
+                                            {t('common.date')}
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            {t('inventory.from_tank')}
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            {t('inventory.to_tank')}
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            {t('common.liters')}
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            {t('common.recorded_by')}
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            {t('common.notes')}
+                                        </th>
+                                        {auth.isAdmin && (
+                                            <th className="px-4 py-3"></th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transfers.map((transfer) => (
+                                        <tr
+                                            key={transfer.id}
+                                            className="border-t"
+                                        >
+                                            <td className="whitespace-nowrap px-4 py-3">
+                                                {formatDateTime(
+                                                    transfer.created_at,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {
+                                                    transfer.from_tank
+                                                        ?.fuel_type?.name
+                                                }{' '}
+                                                — {transfer.from_tank?.name}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {
+                                                    transfer.to_tank?.fuel_type
+                                                        ?.name
+                                                }{' '}
+                                                — {transfer.to_tank?.name}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {formatNumber(transfer.liters)}{' '}
+                                                L
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {transfer.recorded_by?.name}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {transfer.notes}
+                                            </td>
                                             {auth.isAdmin && (
-                                                <th className="px-4 py-3"></th>
+                                                <td className="px-4 py-3 text-end">
+                                                    <RowActions
+                                                        edit={
+                                                            editTransfer(
+                                                                transfer.id,
+                                                            ).url
+                                                        }
+                                                        remove={() =>
+                                                            removeTransfer(
+                                                                transfer,
+                                                            )
+                                                        }
+                                                    />
+                                                </td>
                                             )}
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {transfers.map((transfer) => (
-                                            <tr
-                                                key={transfer.id}
-                                                className="border-t"
+                                    ))}
+                                    {transfers.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={auth.isAdmin ? 7 : 6}
+                                                className="text-muted-foreground px-4 py-6 text-center"
                                             >
-                                                <td className="whitespace-nowrap px-4 py-3">
-                                                    {formatDateTime(
-                                                        transfer.created_at,
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {
-                                                        transfer.from_tank
-                                                            ?.fuel_type?.name
-                                                    }{' '}
-                                                    — {transfer.from_tank?.name}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {
-                                                        transfer.to_tank
-                                                            ?.fuel_type?.name
-                                                    }{' '}
-                                                    — {transfer.to_tank?.name}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {formatNumber(
-                                                        transfer.liters,
-                                                    )}{' '}
-                                                    L
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {transfer.recorded_by?.name}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {transfer.notes}
-                                                </td>
-                                                {auth.isAdmin && (
-                                                    <td className="px-4 py-3 text-end">
-                                                        <RowActions
-                                                            edit={
-                                                                editTransfer(
-                                                                    transfer.id,
-                                                                ).url
-                                                            }
-                                                            remove={() =>
-                                                                removeTransfer(
-                                                                    transfer,
-                                                                )
-                                                            }
-                                                        />
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                        {transfers.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={
-                                                        auth.isAdmin ? 7 : 6
-                                                    }
-                                                    className="text-muted-foreground px-4 py-6 text-center"
-                                                >
-                                                    {t('common.no_results')}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                {t('common.no_results')}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}

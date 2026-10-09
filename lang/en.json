@@ -832,5 +832,6 @@
     "You can't disable your own account.": "You can't disable your own account.",
     ":name can no longer sign in.": ":name can no longer sign in.",
     ":name can sign in again.": ":name can sign in again.",
-    "Subscription date saved for :station.": "Subscription date saved for :station."
+    "Subscription date saved for :station.": "Subscription date saved for :station.",
+    "inventory.tab_transfers": "Transfers between tanks"
 }
