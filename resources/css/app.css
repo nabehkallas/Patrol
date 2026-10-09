@@ -38,6 +38,10 @@
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
 
+    --color-highlight: var(--highlight);
+    --color-highlight-foreground: var(--highlight-foreground);
+    --color-row-hover: var(--row-hover);
+
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
     --color-destructive-soft: var(--destructive-soft);
@@ -114,6 +118,10 @@
     --muted-foreground: #64748b;
     --accent: #e6edf5;
     --accent-foreground: var(--brand-navy);
+    /* Hovered or keyboard-selected item in dropdowns, select lists and pickers. */
+    --highlight: #dbeafe;
+    --highlight-foreground: #1e3a8a;
+    --row-hover: #f1f5f9;
     --destructive: var(--brand-red);
     --destructive-foreground: #ffffff;
     --destructive-soft: var(--brand-red-light);
@@ -166,8 +174,12 @@
     --secondary-foreground: #f1f5f9;
     --muted: #0b1b2e;
     --muted-foreground: #94a3b8;
-    --accent: #142b43;
+    /* Must differ from --popover and --card, or hovering inside them shows nothing. */
+    --accent: #1f3d5c;
     --accent-foreground: #f1f5f9;
+    --highlight: #2563eb;
+    --highlight-foreground: #ffffff;
+    --row-hover: #16304b;
     --destructive: var(--brand-red);
     --destructive-foreground: #ffffff;
     --destructive-soft: color-mix(in oklab, var(--brand-red) 20%, transparent);
@@ -268,8 +280,19 @@
     }
 }
 
+/* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */
+@layer components {
+    table:not([data-slot='calendar'] table) > tbody > tr {
+        transition: background-color 120ms;
+    }
+
+    table:not([data-slot='calendar'] table) > tbody > tr:hover {
+        background-color: var(--row-hover);
+    }
+}
+
 /*
- * Tables on phones: instead of scrolling sideways (which hid the amount column off-screen), each
+ * Tables on phones:instead of scrolling sideways (which hid the amount column off-screen), each
  * row becomes a small card of "label  value" lines. The labels are the column headers, copied
  * onto every cell by useStackedTables(). Wider screens keep the normal table.
  */

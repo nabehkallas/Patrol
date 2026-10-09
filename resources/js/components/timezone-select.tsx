@@ -100,7 +100,7 @@ export function TimezoneSelect({
                             type="button"
                             onClick={() => choose(option.value)}
                             className={cn(
-                                'hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm',
+                                'hover:bg-highlight hover:text-highlight-foreground focus-visible:bg-highlight focus-visible:text-highlight-foreground group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none',
                                 option.value === value && 'bg-accent/60',
                             )}
                         >
@@ -120,7 +120,7 @@ export function TimezoneSelect({
                             </bdi>
                             <bdi
                                 dir="ltr"
-                                className="text-muted-foreground text-xs tabular-nums"
+                                className="text-muted-foreground group-hover:text-highlight-foreground group-focus-visible:text-highlight-foreground text-xs tabular-nums"
                             >
                                 {option.offset}
                             </bdi>

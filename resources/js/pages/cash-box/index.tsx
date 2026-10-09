@@ -463,10 +463,7 @@ function CashBoxHistory({
                             const isPositive = entry.type === 'income';
 
                             return (
-                                <tr
-                                    key={entry.id}
-                                    className="hover:bg-muted/50 border-t transition-colors"
-                                >
+                                <tr key={entry.id} className="border-t">
                                     <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
                                         {formatDateTime(entry.date)}
                                     </td>

@@ -431,7 +431,7 @@ export default function PumpCountersIndex() {
                                                     <tr
                                                         key={pump.id}
                                                         className={cn(
-                                                            'hover:bg-muted/40 border-s-4 border-t transition-colors',
+                                                            'border-s-4 border-t transition-colors',
                                                             fuelTypeRowBorder[
                                                                 rowFuelTypeId ??
                                                                     -1
