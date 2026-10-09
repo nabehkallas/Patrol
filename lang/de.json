@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Hinzugefügte Liter gesamt",
     "inventory.export_tanks_ledger": "Tankbuch (Excel)",
     "inventory.transfer_fuel": "Kraftstoff zwischen Tanks umfüllen",
-    "inventory.transfer_description": "Kraftstoff von einem Tank in einen anderen Tank derselben Sorte umfüllen",
+    "inventory.transfer_description": "Kraftstoff von einem Tank in einen anderen umfüllen",
     "inventory.from_tank": "Von Tank",
     "inventory.to_tank": "In Tank",
     "inventory.transfer": "Umfüllen",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Ausgabe (USD)",
     "Free Liters": "Kostenlose Liter",
     "Fuel Type": "Kraftstoffsorte",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Kraftstoff kann nur zwischen Tanks derselben Sorte umgefüllt werden.",
     "Fuel deliveries": "Kraftstofflieferungen",
     "Fuel price deleted.": "Kraftstoffpreis gelöscht.",
     "Fuel price updated.": "Kraftstoffpreis aktualisiert.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name kann sich nicht mehr anmelden.",
     ":name can sign in again.": ":name kann sich wieder anmelden.",
     "Subscription date saved for :station.": "Abo-Datum für :station gespeichert.",
-    "inventory.no_transfer_target": "Kein anderer Tank für diesen Kraftstoff",
+    "inventory.no_transfer_target": "Kein anderer aktiver Tank",
     "inventory.movements": "Tankbewegungen"
 }

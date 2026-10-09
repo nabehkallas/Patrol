@@ -33,12 +33,6 @@ class StoreTankTransferRequest extends FormRequest
                 return;
             }
 
-            if ($fromTank->fuel_type_id !== $toTank->fuel_type_id) {
-                $validator->errors()->add('to_tank_id', __('Fuel can only be transferred between tanks of the same fuel type.'));
-
-                return;
-            }
-
             $liters = (float) $this->input('liters');
 
             if ($liters <= 0) {

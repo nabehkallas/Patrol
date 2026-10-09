@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "مجموع اللترات المضافة",
     "inventory.export_tanks_ledger": "دفتر الخزانات (إكسل)",
     "inventory.transfer_fuel": "نقل وقود بين الخزانات",
-    "inventory.transfer_description": "نقل وقود من خزان إلى خزان آخر من نفس نوع الوقود",
+    "inventory.transfer_description": "نقل الوقود من خزان إلى خزان آخر",
     "inventory.from_tank": "من خزان",
     "inventory.to_tank": "إلى خزان",
     "inventory.transfer": "نقل",
@@ -768,7 +768,6 @@
     "Expense (USD)": "مصروف دولار",
     "Free Liters": "اللترات المجانية",
     "Fuel Type": "نوع الوقود",
-    "Fuel can only be transferred between tanks of the same fuel type.": "لا يمكن نقل الوقود إلا بين خزانات من نفس نوع الوقود.",
     "Fuel deliveries": "توريدات الوقود",
     "Fuel price deleted.": "تم حذف سعر الوقود.",
     "Fuel price updated.": "تم تحديث سعر الوقود.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": "لم يعد بإمكان :name تسجيل الدخول.",
     ":name can sign in again.": "أصبح بإمكان :name تسجيل الدخول مجدداً.",
     "Subscription date saved for :station.": "حُفظ تاريخ اشتراك :station.",
-    "inventory.no_transfer_target": "لا يوجد خزان آخر لنفس نوع الوقود",
+    "inventory.no_transfer_target": "لا يوجد خزان آخر فعّال",
     "inventory.movements": "حركة الخزانات"
 }

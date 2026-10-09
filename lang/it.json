@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Totale litri aggiunti",
     "inventory.export_tanks_ledger": "Registro serbatoi (Excel)",
     "inventory.transfer_fuel": "Travasa carburante tra serbatoi",
-    "inventory.transfer_description": "Sposta carburante da un serbatoio a un altro dello stesso tipo di carburante",
+    "inventory.transfer_description": "Spostare carburante da un serbatoio a un altro",
     "inventory.from_tank": "Dal serbatoio",
     "inventory.to_tank": "Al serbatoio",
     "inventory.transfer": "Travasa",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Uscita (USD)",
     "Free Liters": "Litri gratuiti",
     "Fuel Type": "Tipo di carburante",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Il carburante si può travasare solo tra serbatoi dello stesso tipo di carburante.",
     "Fuel deliveries": "Consegne di carburante",
     "Fuel price deleted.": "Prezzo del carburante eliminato.",
     "Fuel price updated.": "Prezzo del carburante aggiornato.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name non può più accedere.",
     ":name can sign in again.": ":name può di nuovo accedere.",
     "Subscription date saved for :station.": "Data di abbonamento salvata per :station.",
-    "inventory.no_transfer_target": "Nessun altro serbatoio per questo carburante",
+    "inventory.no_transfer_target": "Nessun altro serbatoio attivo",
     "inventory.movements": "Movimenti dei serbatoi"
 }

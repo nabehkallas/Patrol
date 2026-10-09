@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Total des litres ajoutés",
     "inventory.export_tanks_ledger": "Registre des cuves (Excel)",
     "inventory.transfer_fuel": "Transférer du carburant entre cuves",
-    "inventory.transfer_description": "Déplacer du carburant d'une cuve vers une autre cuve du même type de carburant",
+    "inventory.transfer_description": "Transférer du carburant d'une cuve à une autre",
     "inventory.from_tank": "Cuve d'origine",
     "inventory.to_tank": "Cuve de destination",
     "inventory.transfer": "Transférer",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Dépense (USD)",
     "Free Liters": "Litres gratuits",
     "Fuel Type": "Type de carburant",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Le carburant ne peut être transféré qu'entre cuves du même type de carburant.",
     "Fuel deliveries": "Livraisons de carburant",
     "Fuel price deleted.": "Prix du carburant supprimé.",
     "Fuel price updated.": "Prix du carburant mis à jour.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name ne peut plus se connecter.",
     ":name can sign in again.": ":name peut à nouveau se connecter.",
     "Subscription date saved for :station.": "Date d'abonnement enregistrée pour :station.",
-    "inventory.no_transfer_target": "Aucune autre cuve pour ce carburant",
+    "inventory.no_transfer_target": "Aucune autre cuve active",
     "inventory.movements": "Mouvements des cuves"
 }

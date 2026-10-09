@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Всего добавлено литров",
     "inventory.export_tanks_ledger": "Журнал резервуаров (Excel)",
     "inventory.transfer_fuel": "Перекачка топлива между резервуарами",
-    "inventory.transfer_description": "Перекачать топливо из одного резервуара в другой с тем же видом топлива",
+    "inventory.transfer_description": "Перекачать топливо из одного резервуара в другой",
     "inventory.from_tank": "Из резервуара",
     "inventory.to_tank": "В резервуар",
     "inventory.transfer": "Перекачать",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Расход (USD)",
     "Free Liters": "Бесплатные литры",
     "Fuel Type": "Вид топлива",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Топливо можно перекачивать только между резервуарами с одинаковым видом топлива.",
     "Fuel deliveries": "Поставки топлива",
     "Fuel price deleted.": "Цена на топливо удалена.",
     "Fuel price updated.": "Цена на топливо обновлена.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name больше не может входить.",
     ":name can sign in again.": ":name снова может входить.",
     "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
-    "inventory.no_transfer_target": "Нет другого резервуара с этим топливом",
+    "inventory.no_transfer_target": "Нет другого активного резервуара",
     "inventory.movements": "Движение по резервуарам"
 }

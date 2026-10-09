@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Toplam eklenen litre",
     "inventory.export_tanks_ledger": "Tank defteri (Excel)",
     "inventory.transfer_fuel": "Tanklar arasında yakıt aktar",
-    "inventory.transfer_description": "Yakıtı bir tanktan aynı yakıt türündeki başka bir tanka aktarın",
+    "inventory.transfer_description": "Yakıtı bir tanktan diğerine aktar",
     "inventory.from_tank": "Kaynak tank",
     "inventory.to_tank": "Hedef tank",
     "inventory.transfer": "Aktar",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Gider (USD)",
     "Free Liters": "Ücretsiz litre",
     "Fuel Type": "Yakıt türü",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Yakıt yalnızca aynı yakıt türündeki tanklar arasında aktarılabilir.",
     "Fuel deliveries": "Yakıt ikmalleri",
     "Fuel price deleted.": "Yakıt fiyatı silindi.",
     "Fuel price updated.": "Yakıt fiyatı güncellendi.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name artık giriş yapamaz.",
     ":name can sign in again.": ":name yeniden giriş yapabilir.",
     "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
-    "inventory.no_transfer_target": "Bu yakıt türü için başka tank yok",
+    "inventory.no_transfer_target": "Başka aktif tank yok",
     "inventory.movements": "Tank hareketleri"
 }

@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Total de litros añadidos",
     "inventory.export_tanks_ledger": "Libro de tanques (Excel)",
     "inventory.transfer_fuel": "Traspasar combustible entre tanques",
-    "inventory.transfer_description": "Mueve combustible de un tanque a otro del mismo tipo de combustible",
+    "inventory.transfer_description": "Mover combustible de un tanque a otro",
     "inventory.from_tank": "Tanque de origen",
     "inventory.to_tank": "Tanque de destino",
     "inventory.transfer": "Traspasar",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Gasto (USD)",
     "Free Liters": "Litros sin coste",
     "Fuel Type": "Tipo de combustible",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Solo se puede traspasar combustible entre tanques del mismo tipo de combustible.",
     "Fuel deliveries": "Entregas de combustible",
     "Fuel price deleted.": "Precio de combustible eliminado.",
     "Fuel price updated.": "Precio de combustible actualizado.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name ya no puede iniciar sesión.",
     ":name can sign in again.": ":name puede volver a iniciar sesión.",
     "Subscription date saved for :station.": "Fecha de suscripción guardada para :station.",
-    "inventory.no_transfer_target": "No hay otro tanque de este combustible",
+    "inventory.no_transfer_target": "No hay otro tanque activo",
     "inventory.movements": "Movimientos de tanques"
 }

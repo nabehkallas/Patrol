@@ -51,6 +51,10 @@ class InventoryEntryController extends Controller
 
         return Inertia::render('inventory/index', [
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
+            'entries' => InventoryEntry::with(['tank.fuelType', 'recordedBy'])
+                ->latest('date')
+                ->latest('id')
+                ->paginate(25),
             'topUps' => ! $isAdmin ? [] : TankTopUp::with(['tank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)

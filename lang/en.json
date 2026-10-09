@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Total Added Liters",
     "inventory.export_tanks_ledger": "Tanks Ledger (Excel)",
     "inventory.transfer_fuel": "Transfer fuel between tanks",
-    "inventory.transfer_description": "Move fuel from one tank to another tank of the same fuel type",
+    "inventory.transfer_description": "Move fuel from one tank to another",
     "inventory.from_tank": "From tank",
     "inventory.to_tank": "To tank",
     "inventory.transfer": "Transfer",
@@ -833,6 +833,6 @@
     ":name can no longer sign in.": ":name can no longer sign in.",
     ":name can sign in again.": ":name can sign in again.",
     "Subscription date saved for :station.": "Subscription date saved for :station.",
-    "inventory.no_transfer_target": "No other tank holds this fuel type",
+    "inventory.no_transfer_target": "There is no other active tank",
     "inventory.movements": "Tank movements"
 }

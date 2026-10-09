@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "कुल जोड़े गए लीटर",
     "inventory.export_tanks_ledger": "टैंक लेजर (Excel)",
     "inventory.transfer_fuel": "टैंकों के बीच ईंधन स्थानांतरित करें",
-    "inventory.transfer_description": "एक टैंक से उसी ईंधन प्रकार के दूसरे टैंक में ईंधन ले जाएँ",
+    "inventory.transfer_description": "ईंधन को एक टैंक से दूसरे टैंक में ले जाएँ",
     "inventory.from_tank": "किस टैंक से",
     "inventory.to_tank": "किस टैंक में",
     "inventory.transfer": "स्थानांतरित करें",
@@ -768,7 +768,6 @@
     "Expense (USD)": "ख़र्च (USD)",
     "Free Liters": "मुफ़्त लीटर",
     "Fuel Type": "ईंधन का प्रकार",
-    "Fuel can only be transferred between tanks of the same fuel type.": "ईंधन सिर्फ़ एक ही ईंधन प्रकार वाले टैंकों के बीच स्थानांतरित हो सकता है।",
     "Fuel deliveries": "ईंधन सप्लाई",
     "Fuel price deleted.": "ईंधन का दाम हटाया गया।",
     "Fuel price updated.": "ईंधन का दाम अपडेट हुआ।",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name अब साइन इन नहीं कर सकते।",
     ":name can sign in again.": ":name फिर से साइन इन कर सकते हैं।",
     "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
-    "inventory.no_transfer_target": "इस ईंधन के लिए कोई दूसरा टैंक नहीं",
+    "inventory.no_transfer_target": "कोई दूसरा सक्रिय टैंक नहीं",
     "inventory.movements": "टैंक की आवाजाही"
 }

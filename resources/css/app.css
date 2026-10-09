@@ -122,6 +122,12 @@
     --highlight: #dbeafe;
     --highlight-foreground: #1e3a8a;
     --row-hover: #f1f5f9;
+    /* Table panels: frame, header row and row dividers. */
+    --table-border: #d5dfea;
+    --table-head: #eef3f8;
+    --table-divider: #e6edf5;
+    --table-shadow:
+        0 1px 2px rgb(15 23 42 / 0.05), 0 6px 16px -8px rgb(15 23 42 / 0.12);
     --destructive: var(--brand-red);
     --destructive-foreground: #ffffff;
     --destructive-soft: var(--brand-red-light);
@@ -180,6 +186,11 @@
     --highlight: #2563eb;
     --highlight-foreground: #ffffff;
     --row-hover: #16304b;
+    --table-border: #2c4a6b;
+    --table-head: #173350;
+    --table-divider: rgb(51 79 110 / 0.55);
+    --table-shadow:
+        0 1px 2px rgb(0 0 0 / 0.3), 0 10px 24px -10px rgb(0 0 0 / 0.55);
     --destructive: var(--brand-red);
     --destructive-foreground: #ffffff;
     --destructive-soft: color-mix(in oklab, var(--brand-red) 20%, transparent);
@@ -281,23 +292,31 @@
 }
 
 /*
- * The two card grids every page uses, so cards are the same size everywhere. Columns are added as
- * the screen widens (one on a phone, more on a laptop, more again on a large monitor) and never
- * stretch: a card is always between its minimum width and one column's share, so two cards on a
- * wide screen keep their size instead of spreading across it.
+ * The two card grids every page uses, so cards look the same everywhere. Cards always fill the
+ * full width of the page: one card takes the whole row, two take half each, and so on, up to four
+ * per row on large screens (1 on a phone, 2 on a tablet, 3-4 on a laptop or monitor). A card never
+ * gets narrower than its minimum; when four don't fit, the row wraps instead.
  *   card-grid:  summary and stat cards (a label and a figure)
  *   panel-grid: larger cards with content inside (tanks, shop items, stations, charts, panels)
  */
 @utility card-grid {
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(max(min(100%, 14rem), calc((100% - 4.5rem) / 4)), 1fr)
+    );
 }
 
 @utility panel-grid {
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(max(min(100%, 19rem), calc((100% - 4.5rem) / 4)), 1fr)
+    );
 }
 
 /* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */
@@ -312,7 +331,57 @@
 }
 
 /*
- * Tables on phones:instead of scrolling sideways (which hid the amount column off-screen), each
+ * Every data table sits in the same raised panel: a card background, a clear frame and shadow,
+ * inner padding, a tinted header row with rounded ends, and a divider between rows. Unlayered so
+ * it applies over the utility classes the table wrappers already carry.
+ */
+.table-stack {
+    background-color: var(--card);
+    border: 1px solid var(--table-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--table-shadow);
+    padding: 0.75rem;
+}
+
+.table-stack tbody tr {
+    border-color: var(--table-divider);
+}
+
+@media (min-width: 768px) {
+    .table-stack table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table-stack thead tr {
+        background-color: transparent;
+    }
+
+    .table-stack thead th {
+        background-color: var(--table-head);
+        color: var(--foreground);
+        font-weight: 600;
+        border-bottom: 1px solid var(--table-border);
+    }
+
+    .table-stack thead th:first-child {
+        border-start-start-radius: 0.5rem;
+        border-end-start-radius: 0.5rem;
+    }
+
+    .table-stack thead th:last-child {
+        border-start-end-radius: 0.5rem;
+        border-end-end-radius: 0.5rem;
+    }
+
+    /* With separate borders a row's own border doesn't draw, so the cells carry the divider. */
+    .table-stack tbody tr + tr > td {
+        border-top: 1px solid var(--table-divider);
+    }
+}
+
+/*
+ * Tables on phones: instead of scrolling sideways (which hid the amount column off-screen), each
  * row becomes a small card of "label  value" lines. The labels are the column headers, copied
  * onto every cell by useStackedTables(). Wider screens keep the normal table.
  */

@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "Hemû lîtreyên zêdekirî",
     "inventory.export_tanks_ledger": "Deftera tankan (Excel)",
     "inventory.transfer_fuel": "Sotemeniyê di navbera tankan de veguhezîne",
-    "inventory.transfer_description": "Sotemeniyê ji tankekê bo tankeke din a heman cureyê sotemeniyê veguhezîne",
+    "inventory.transfer_description": "Sotemeniyê ji tankekê bo tankeke din veguhêze",
     "inventory.from_tank": "Ji tankê",
     "inventory.to_tank": "Bo tankê",
     "inventory.transfer": "Veguhezîne",
@@ -768,7 +768,6 @@
     "Expense (USD)": "Mesref (USD)",
     "Free Liters": "Lîtreyên belaş",
     "Fuel Type": "Cureyê sotemeniyê",
-    "Fuel can only be transferred between tanks of the same fuel type.": "Sotemenî tenê dikare di navbera tankên heman cureyê sotemeniyê de were veguhestin.",
     "Fuel deliveries": "Radestkirinên sotemeniyê",
     "Fuel price deleted.": "Bihayê sotemeniyê hate jêbirin.",
     "Fuel price updated.": "Bihayê sotemeniyê hate nûkirin.",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name êdî nikare têkeve.",
     ":name can sign in again.": ":name dîsa dikare têkeve.",
     "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
-    "inventory.no_transfer_target": "Ji bo vê sotemeniyê tankek din tune",
+    "inventory.no_transfer_target": "Tankeke din a çalak tune",
     "inventory.movements": "Tevgerên tankan"
 }

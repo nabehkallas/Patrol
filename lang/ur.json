@@ -402,7 +402,7 @@
     "inventory.total_added_liters": "کل شامل کیے گئے لیٹر",
     "inventory.export_tanks_ledger": "ٹینک لیجر (Excel)",
     "inventory.transfer_fuel": "ٹینکوں کے درمیان ایندھن منتقل کریں",
-    "inventory.transfer_description": "ایک ٹینک سے اسی قسم کے ایندھن والے دوسرے ٹینک میں ایندھن منتقل کریں",
+    "inventory.transfer_description": "ایندھن ایک ٹینک سے دوسرے ٹینک میں منتقل کریں",
     "inventory.from_tank": "ٹینک سے",
     "inventory.to_tank": "ٹینک میں",
     "inventory.transfer": "منتقل کریں",
@@ -768,7 +768,6 @@
     "Expense (USD)": "خرچ (USD)",
     "Free Liters": "مفت لیٹر",
     "Fuel Type": "ایندھن کی قسم",
-    "Fuel can only be transferred between tanks of the same fuel type.": "ایندھن صرف ایک ہی قسم کے ایندھن والے ٹینکوں کے درمیان منتقل ہو سکتا ہے۔",
     "Fuel deliveries": "ایندھن کی سپلائیاں",
     "Fuel price deleted.": "ایندھن کی قیمت حذف ہو گئی۔",
     "Fuel price updated.": "ایندھن کی قیمت اپ ڈیٹ ہو گئی۔",
@@ -1105,6 +1104,6 @@
     ":name can no longer sign in.": ":name اب سائن ان نہیں کر سکتے۔",
     ":name can sign in again.": ":name دوبارہ سائن ان کر سکتے ہیں۔",
     "Subscription date saved for :station.": ":station کی رکنیت کی تاریخ محفوظ ہو گئی۔",
-    "inventory.no_transfer_target": "اس ایندھن کے لیے کوئی دوسرا ٹینک نہیں",
+    "inventory.no_transfer_target": "کوئی دوسرا فعال ٹینک نہیں",
     "inventory.movements": "ٹینکوں کی نقل و حرکت"
 }
