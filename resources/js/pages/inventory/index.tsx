@@ -1,6 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -62,84 +62,19 @@ import type {
 
 type PageProps = {
     auth: Auth;
-    tanks: (TankSummary & { period: TankPeriod | null })[];
+    tanks: TankSummary[];
     entries: Paginated<InventoryEntry>;
     topUps: TankTopUp[];
     transfers: TankTransfer[];
     historyFrom: string;
     historyTo: string;
-    allTime: boolean;
 };
-
-type TankPeriod = { starting: number; in: number; out: number; ending: number };
 
 type Tab = 'amounts' | 'actual';
 
-/** One tank over the date range picked for the history below: liters at its start, in, out, and at its end. */
-function TankPeriodSummary({
-    period,
-    from,
-    to,
-}: {
-    period: TankPeriod;
-    from: string;
-    to: string;
-}) {
-    const { t } = useTranslation();
-    const liters = (value: number) => (
-        <bdi dir="ltr">{formatNumber(value)} L</bdi>
-    );
-    const row = (label: string, value: ReactNode, className?: string) => (
-        <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">{label}</span>
-            <span className={cn('font-medium tabular-nums', className)}>
-                {value}
-            </span>
-        </div>
-    );
-
-    return (
-        <div
-            className="bg-muted/40 space-y-1 rounded-md border px-3 py-2 text-xs"
-            data-test="tank-period"
-        >
-            <p className="font-semibold">
-                {t('inventory.period_title')}{' '}
-                <span className="text-muted-foreground font-normal">
-                    {formatDate(from)} – {formatDate(to)}
-                </span>
-            </p>
-            {row(t('inventory.period_start'), liters(period.starting))}
-            {row(
-                t('inventory.period_in'),
-                <>+{liters(period.in)}</>,
-                'text-emerald-600 dark:text-emerald-400',
-            )}
-            {row(
-                t('inventory.period_out'),
-                <>−{liters(period.out)}</>,
-                'text-rose-600 dark:text-rose-400',
-            )}
-            {row(
-                t('inventory.period_end'),
-                liters(period.ending),
-                cn('font-bold', period.ending < 0 && 'text-destructive'),
-            )}
-        </div>
-    );
-}
-
 export default function InventoryIndex() {
-    const {
-        auth,
-        tanks,
-        entries,
-        topUps,
-        transfers,
-        historyFrom,
-        historyTo,
-        allTime,
-    } = usePage<PageProps>().props;
+    const { auth, tanks, entries, topUps, transfers, historyFrom, historyTo } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
     const [activeTab, setActiveTab] = useState<Tab>('amounts');
@@ -247,11 +182,12 @@ export default function InventoryIndex() {
         router.delete(destroyTransfer.url(transfer.id));
     }
 
-    function handleHistoryRangeChange(range: { from: string; to: string }) {
-        router.get(index(), range.from === '' ? { period: 'all' } : range, {
-            preserveScroll: true,
-            preserveState: true,
-        });
+    function handleHistoryRangeChange(updates: { from?: string; to?: string }) {
+        router.get(
+            index(),
+            { from: historyFrom, to: historyTo, ...updates },
+            { preserveScroll: true, preserveState: true },
+        );
     }
 
     const tabs: { value: Tab; label: string }[] = [
@@ -363,11 +299,7 @@ export default function InventoryIndex() {
                                     <CardContent className="space-y-3 px-4 text-sm">
                                         <div>
                                             <p className="text-muted-foreground text-xs">
-                                                {t(
-                                                    tank.period
-                                                        ? 'inventory.current_amount'
-                                                        : 'inventory.amount',
-                                                )}
+                                                {t('inventory.amount')}
                                             </p>
                                             <p
                                                 className={cn(
@@ -389,14 +321,6 @@ export default function InventoryIndex() {
                                                 </p>
                                             )}
                                         </div>
-
-                                        {tank.period && (
-                                            <TankPeriodSummary
-                                                period={tank.period}
-                                                from={historyFrom}
-                                                to={historyTo}
-                                            />
-                                        )}
 
                                         <form
                                             onSubmit={(event) =>
@@ -491,9 +415,8 @@ export default function InventoryIndex() {
                                 }
                             >
                                 <DateRangePicker
-                                    clearable
-                                    from={allTime ? '' : historyFrom}
-                                    to={allTime ? '' : historyTo}
+                                    from={historyFrom}
+                                    to={historyTo}
                                     onChange={handleHistoryRangeChange}
                                 />
                             </SectionToolbar>

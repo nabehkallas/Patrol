@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -21,14 +21,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    formatDate,
     formatDateTime,
     formatNumber,
     formatSyp,
     todayInStation,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
 import { exportPdf, exportXlsx, index } from '@/routes/sadcop';
 import { create as createDelivery } from '@/routes/sadcop/deliveries';
 import { create as createDeposit } from '@/routes/sadcop/deposits';
@@ -53,150 +51,23 @@ type PageProps = {
         to: string;
     };
     fuelTypes: FuelType[];
-    summary: Summary;
+    balance: number;
+    monthPayments: number;
     needsOpeningBalance: boolean;
 };
 
-type Summary = {
-    all_time: boolean;
-    starting: number | null;
-    paid_in: number;
-    delivered: number;
-    ending: number;
-};
-
-function SummaryCard({
-    title,
-    caption,
-    accent,
-    children,
-}: {
-    title: string;
-    caption?: string;
-    accent: string;
-    children: ReactNode;
-}) {
-    return (
-        <Card className={cn('min-w-[14rem] flex-1 gap-2 border-t-4', accent)}>
-            <CardHeader>
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                {caption && (
-                    <p className="text-muted-foreground text-xs">{caption}</p>
-                )}
-            </CardHeader>
-            <CardContent className="space-y-1">{children}</CardContent>
-        </Card>
-    );
-}
-
-/**
- * The account over the date range picked below: the balance when it began, what moved during it,
- * and the balance when it ended. "All dates" shows the live balance and all activity instead.
- */
-function SadcopSummary({
-    summary,
-    from,
-    to,
-}: {
-    summary: Summary;
-    from: string;
-    to: string;
-}) {
-    const { t } = useTranslation();
-    const net = summary.paid_in - summary.delivered;
-    const range = `${formatDate(from)} – ${formatDate(to)}`;
-
-    const activity = (
-        <>
-            <p
-                className={cn(
-                    'text-2xl font-bold',
-                    net < 0
-                        ? 'text-rose-600 dark:text-rose-400'
-                        : 'text-emerald-600 dark:text-emerald-400',
-                )}
-            >
-                <bdi dir="ltr">
-                    {net > 0 ? '+' : ''}
-                    {formatSyp(net)}
-                </bdi>
-            </p>
-            <div className="text-muted-foreground flex flex-wrap justify-between gap-x-4 text-xs">
-                <span>
-                    {t('sadcop.paid_in')}:{' '}
-                    <bdi dir="ltr">+{formatSyp(summary.paid_in)}</bdi>
-                </span>
-                <span>
-                    {t('sadcop.deliveries_out')}:{' '}
-                    <bdi dir="ltr">−{formatSyp(summary.delivered)}</bdi>
-                </span>
-            </div>
-        </>
-    );
-
-    return (
-        <div className="space-y-2" data-test="sadcop-summary">
-            <div className="flex flex-wrap gap-4">
-                {summary.all_time ? (
-                    <>
-                        <SummaryCard
-                            title={t('sadcop.current_balance')}
-                            accent="border-t-amber-500"
-                        >
-                            <p className="text-2xl font-bold">
-                                {formatSyp(summary.ending)}
-                            </p>
-                        </SummaryCard>
-                        <SummaryCard
-                            title={t('sadcop.all_time_activity')}
-                            caption={t('common.all_dates')}
-                            accent="border-t-sky-500"
-                        >
-                            {activity}
-                        </SummaryCard>
-                    </>
-                ) : (
-                    <>
-                        <SummaryCard
-                            title={t('sadcop.period_starting')}
-                            caption={formatDate(from)}
-                            accent="border-t-slate-400"
-                        >
-                            <p className="text-2xl font-bold">
-                                {formatSyp(summary.starting ?? 0)}
-                            </p>
-                        </SummaryCard>
-                        <SummaryCard
-                            title={t('sadcop.period_activity')}
-                            caption={range}
-                            accent="border-t-sky-500"
-                        >
-                            {activity}
-                        </SummaryCard>
-                        <SummaryCard
-                            title={t('sadcop.period_ending')}
-                            caption={formatDate(to)}
-                            accent="border-t-amber-500"
-                        >
-                            <p className="text-2xl font-bold">
-                                {formatSyp(summary.ending)}
-                            </p>
-                        </SummaryCard>
-                    </>
-                )}
-            </div>
-            <p className="text-muted-foreground text-xs">
-                {t('sadcop.balance_scope')}
-            </p>
-        </div>
-    );
-}
-
 export default function SadcopIndex() {
-    const { auth, entries, filters, fuelTypes, summary, needsOpeningBalance } =
-        usePage<PageProps>().props;
+    const {
+        auth,
+        entries,
+        filters,
+        fuelTypes,
+        balance,
+        monthPayments,
+        needsOpeningBalance,
+    } = usePage<PageProps>().props;
     const { t } = useTranslation();
-    const allTime = summary.all_time;
+    const allTime = filters.period === 'all';
 
     const typeLabels: Record<SadcopLedgerEntryType, string> = {
         opening: t('sadcop.type.opening'),
@@ -334,11 +205,28 @@ export default function SadcopIndex() {
                     </div>
                 </div>
 
-                <SadcopSummary
-                    summary={summary}
-                    from={filters.from}
-                    to={filters.to}
-                />
+                <div className="flex flex-wrap gap-4">
+                    <Card className="min-w-[12rem] max-w-xs flex-1 border-t-4 border-t-amber-500">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-medium">
+                                {t('sadcop.balance')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-2xl font-bold">
+                            {formatSyp(balance)}
+                        </CardContent>
+                    </Card>
+                    <Card className="min-w-[12rem] max-w-xs flex-1 border-t-4 border-t-red-500">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-medium">
+                                {t('sadcop.payments_this_month')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-2xl font-bold">
+                            {formatSyp(monthPayments)}
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <SectionToolbar
                     title={t('sadcop.ledger')}

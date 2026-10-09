@@ -481,7 +481,7 @@
     "sadcop.type.deposit": "Перевод",
     "sadcop.type.delivery": "Поставка",
     "sadcop.cost_price_per_liter": "Себестоимость Sadcop / литр",
-    "sadcop.current_balance": "Текущий остаток",
+    "sadcop.current_balance": "Текущий баланс",
     "sadcop.transfer_description": "Перевести деньги с баланса АЗС на баланс Sadcop",
     "sadcop.delivery_description": "Внести поставку топлива, оплаченную с баланса Sadcop",
     "sadcop.save_transfer": "Сохранить перевод",
@@ -1104,18 +1104,5 @@
     "You can't disable your own account.": "Нельзя отключить собственную учётную запись.",
     ":name can no longer sign in.": ":name больше не может входить.",
     ":name can sign in again.": ":name снова может входить.",
-    "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
-    "sadcop.period_starting": "Остаток на начало периода",
-    "sadcop.period_activity": "Чистое движение за период",
-    "sadcop.period_ending": "Остаток на конец периода",
-    "sadcop.all_time_activity": "Всё движение на сегодня",
-    "sadcop.paid_in": "Внесено",
-    "sadcop.deliveries_out": "Поставки",
-    "sadcop.balance_scope": "Учитываются все записи; фильтры по типу и топливу сужают только список ниже.",
-    "inventory.period_title": "Выбранный период",
-    "inventory.period_start": "На начало",
-    "inventory.period_in": "Приход",
-    "inventory.period_out": "Расход",
-    "inventory.period_end": "На конец",
-    "inventory.current_amount": "Текущий объём"
+    "Subscription date saved for :station.": "Дата подписки для :station сохранена."
 }

@@ -1104,18 +1104,5 @@
     "You can't disable your own account.": "آپ اپنا اکاؤنٹ غیر فعال نہیں کر سکتے۔",
     ":name can no longer sign in.": ":name اب سائن ان نہیں کر سکتے۔",
     ":name can sign in again.": ":name دوبارہ سائن ان کر سکتے ہیں۔",
-    "Subscription date saved for :station.": ":station کی رکنیت کی تاریخ محفوظ ہو گئی۔",
-    "sadcop.period_starting": "مدت کے آغاز کا بیلنس",
-    "sadcop.period_activity": "مدت کے دوران خالص لین دین",
-    "sadcop.period_ending": "مدت کے اختتام کا بیلنس",
-    "sadcop.all_time_activity": "آج تک کا تمام لین دین",
-    "sadcop.paid_in": "جمع کرایا گیا",
-    "sadcop.deliveries_out": "ترسیلات",
-    "sadcop.balance_scope": "تمام اندراجات شامل ہیں؛ قسم اور ایندھن کے فلٹر صرف نیچے کی فہرست کو محدود کرتے ہیں۔",
-    "inventory.period_title": "منتخب مدت",
-    "inventory.period_start": "آغاز میں",
-    "inventory.period_in": "آمد",
-    "inventory.period_out": "اخراج",
-    "inventory.period_end": "اختتام پر",
-    "inventory.current_amount": "موجودہ مقدار"
+    "Subscription date saved for :station.": ":station کی رکنیت کی تاریخ محفوظ ہو گئی۔"
 }

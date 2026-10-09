@@ -481,7 +481,7 @@
     "sadcop.type.deposit": "Überweisung",
     "sadcop.type.delivery": "Lieferung",
     "sadcop.cost_price_per_liter": "Sadcop-Einstandspreis / Liter",
-    "sadcop.current_balance": "Aktueller Saldo",
+    "sadcop.current_balance": "Aktuelles Guthaben",
     "sadcop.transfer_description": "Geld vom Stationsbestand auf das Sadcop-Guthaben überweisen",
     "sadcop.delivery_description": "Eine aus dem Sadcop-Guthaben bezahlte Kraftstofflieferung erfassen",
     "sadcop.save_transfer": "Überweisung speichern",
@@ -1104,18 +1104,5 @@
     "You can't disable your own account.": "Sie können Ihr eigenes Konto nicht deaktivieren.",
     ":name can no longer sign in.": ":name kann sich nicht mehr anmelden.",
     ":name can sign in again.": ":name kann sich wieder anmelden.",
-    "Subscription date saved for :station.": "Abo-Datum für :station gespeichert.",
-    "sadcop.period_starting": "Saldo zu Beginn des Zeitraums",
-    "sadcop.period_activity": "Nettobewegung im Zeitraum",
-    "sadcop.period_ending": "Saldo am Ende des Zeitraums",
-    "sadcop.all_time_activity": "Alle Bewegungen bis heute",
-    "sadcop.paid_in": "Eingezahlt",
-    "sadcop.deliveries_out": "Lieferungen",
-    "sadcop.balance_scope": "Umfasst alle Buchungen; die Typ- und Kraftstofffilter grenzen nur die Liste unten ein.",
-    "inventory.period_title": "Gewählter Zeitraum",
-    "inventory.period_start": "Zu Beginn",
-    "inventory.period_in": "Zugang",
-    "inventory.period_out": "Abgang",
-    "inventory.period_end": "Am Ende",
-    "inventory.current_amount": "Aktuelle Menge"
+    "Subscription date saved for :station.": "Abo-Datum für :station gespeichert."
 }

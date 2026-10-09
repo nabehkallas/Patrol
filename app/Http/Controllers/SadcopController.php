@@ -48,7 +48,8 @@ class SadcopController extends Controller
                 'to' => $to->toDateString(),
             ],
             'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name']),
-            'summary' => $this->summary($from, $to, $allTime),
+            'balance' => $this->balanceAt($to, $allTime),
+            'monthPayments' => $this->sadcopPaymentsTotal(now()->startOfMonth(), now()->endOfDay()),
             'needsOpeningBalance' => $needsOpeningBalance,
         ]);
     }
@@ -74,32 +75,26 @@ class SadcopController extends Controller
     }
 
     /**
-     * The account over the range: what it held when the range began, what was paid in and spent
-     * on deliveries during it, and what it held when it ended. With "All dates" the ending figure
-     * is simply the live balance. The type and fuel filters narrow the list only: a balance always
-     * covers every entry.
-     *
-     * @return array{all_time: bool, starting: float|null, paid_in: float, delivered: float, ending: float}
+     * The Sadcop balance at the end of the picked range (everything up to and including its last
+     * day), or the live balance with "All dates".
      */
-    private function summary(CarbonInterface $from, CarbonInterface $to, bool $allTime): array
+    private function balanceAt(CarbonInterface $to, bool $allTime): float
     {
-        $start = $from->copy()->startOfDay();
-        $end = $to->copy()->endOfDay();
-        $total = fn (array $types) => (float) SadcopLedgerEntry::whereIn('type', $types)
-            ->when(! $allTime, fn (Builder $query) => $query->whereBetween('occurred_at', [$start, $end]))
-            ->sum('amount');
+        return round($allTime
+            ? SadcopLedgerEntry::currentBalanceSyp()
+            : SadcopLedgerEntry::balanceSypBefore($to->copy()->addDay()->startOfDay()), 0);
+    }
 
-        $paidIn = $total([SadcopLedgerEntryType::Opening, SadcopLedgerEntryType::Deposit]);
-        $delivered = $total([SadcopLedgerEntryType::Delivery]);
-        $starting = $allTime ? null : SadcopLedgerEntry::balanceSypBefore($start);
-
-        return [
-            'all_time' => $allTime,
-            'starting' => $starting === null ? null : round($starting, 0),
-            'paid_in' => round($paidIn, 0),
-            'delivered' => round($delivered, 0),
-            'ending' => round($starting === null ? SadcopLedgerEntry::currentBalanceSyp() : $starting + $paidIn - $delivered, 0),
-        ];
+    private function sadcopPaymentsTotal(CarbonInterface $from, CarbonInterface $to): float
+    {
+        return round(
+            (float) SadcopLedgerEntry::query()
+                ->where('type', SadcopLedgerEntryType::Deposit)
+                ->where('occurred_at', '>=', $from)
+                ->where('occurred_at', '<=', $to)
+                ->sum('amount'),
+            0
+        );
     }
 
     /**

@@ -1104,18 +1104,5 @@
     "You can't disable your own account.": "Non puoi disattivare il tuo account.",
     ":name can no longer sign in.": ":name non può più accedere.",
     ":name can sign in again.": ":name può di nuovo accedere.",
-    "Subscription date saved for :station.": "Data di abbonamento salvata per :station.",
-    "sadcop.period_starting": "Saldo a inizio periodo",
-    "sadcop.period_activity": "Movimento netto nel periodo",
-    "sadcop.period_ending": "Saldo a fine periodo",
-    "sadcop.all_time_activity": "Tutti i movimenti a oggi",
-    "sadcop.paid_in": "Versato",
-    "sadcop.deliveries_out": "Consegne",
-    "sadcop.balance_scope": "Include tutte le registrazioni; i filtri per tipo e carburante restringono solo l'elenco sotto.",
-    "inventory.period_title": "Periodo selezionato",
-    "inventory.period_start": "All'inizio",
-    "inventory.period_in": "Entrate",
-    "inventory.period_out": "Uscite",
-    "inventory.period_end": "Alla fine",
-    "inventory.current_amount": "Quantità attuale"
+    "Subscription date saved for :station.": "Data di abbonamento salvata per :station."
 }
