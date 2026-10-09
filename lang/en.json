@@ -835,5 +835,16 @@
     "Subscription date saved for :station.": "Subscription date saved for :station.",
     "inventory.no_transfer_target": "There is no other active tank",
     "inventory.movements": "Tank movements",
-    "tanks.name_taken": "This fuel type already has a tank with this name. Choose a different name."
+    "tanks.name_taken": "This fuel type already has a tank with this name. Choose a different name.",
+    "fuel_types.color": "Colour",
+    "fuel_types.color_hint": "Used for this fuel type everywhere: dots in tank lists, card edges, badges and charts.",
+    "fuel_types.color_taken": "already used by another fuel type",
+    "fuel_types.color_amber": "Orange",
+    "fuel_types.color_blue": "Blue",
+    "fuel_types.color_emerald": "Green",
+    "fuel_types.color_violet": "Purple",
+    "fuel_types.color_rose": "Red",
+    "fuel_types.color_cyan": "Turquoise",
+    "fuel_types.color_lime": "Lime",
+    "fuel_types.color_fuchsia": "Pink"
 }

@@ -1,6 +1,8 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
+import { FuelTypeDot } from '@/components/tank-select-items';
+import { fuelColorStyle } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { create, destroy, edit, index } from '@/routes/admin/fuel-types';
 import type { FuelType } from '@/types';
@@ -51,7 +53,16 @@ export default function FuelTypesIndex() {
                             {fuelTypes.map((fuelType) => (
                                 <tr key={fuelType.id} className="border-t">
                                     <td className="px-4 py-3">
-                                        {fuelType.name}
+                                        <span className="inline-flex items-center">
+                                            <FuelTypeDot
+                                                className={
+                                                    fuelColorStyle(
+                                                        fuelType.color,
+                                                    ).dot
+                                                }
+                                            />
+                                            {fuelType.name}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-3">
                                         {fuelType.slug}

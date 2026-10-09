@@ -120,7 +120,6 @@ export default function SadcopEntryEdit() {
                                             tanks,
                                             form.data.tank_id,
                                         )}
-                                        allTanks={tanks}
                                     />
                                 </SelectContent>
                             </Select>

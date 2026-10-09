@@ -334,7 +334,6 @@ export default function TransactionEdit() {
                                     <SelectContent>
                                         <TankSelectItems
                                             tanks={availableTanks}
-                                            allTanks={tanks}
                                         />
                                     </SelectContent>
                                 </Select>

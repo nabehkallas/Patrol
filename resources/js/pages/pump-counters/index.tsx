@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDateTime, formatNumber } from '@/lib/format';
+import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
@@ -148,10 +149,8 @@ export default function PumpCountersIndex() {
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
 
-    // Colored accent per fuel type, keyed by order of first appearance among the pumps -- the
-    // first fuel type (typically petrol) gets amber, the second (typically diesel) gets blue,
-    // matching the same convention used on the Inventory page's tank cards. Used for the entry
-    // table's row edge and pump-name badge, and the sales badges in the header.
+    // Fuel types in order of first appearance among the pumps (then tanks), to keep each fuel
+    // type's pumps together in the entry table.
     const fuelTypeOrder: number[] = [];
     pumps.forEach((pump) => {
         const fuelTypeId = pump.fuel_type_ids[0];
@@ -166,17 +165,14 @@ export default function PumpCountersIndex() {
         }
     });
 
-    const BADGE_ACCENTS = [
-        'bg-amber-50 text-amber-900 ring-amber-300 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-500/40',
-        'bg-blue-50 text-blue-900 ring-blue-300 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-500/40',
-    ];
-    const ROW_ACCENT_BORDERS = ['border-s-amber-500', 'border-s-blue-500'];
+    // Each fuel type's own colour: the entry table's row edge and pump-name badge, and the
+    // sales badges in the header.
+    const fuelColors = useFuelColors();
     const fuelTypeBadge: Record<number, string> = {};
     const fuelTypeRowBorder: Record<number, string> = {};
-    fuelTypeOrder.forEach((fuelTypeId, i) => {
-        fuelTypeBadge[fuelTypeId] = BADGE_ACCENTS[i] ?? NEUTRAL_BADGE;
-        fuelTypeRowBorder[fuelTypeId] =
-            ROW_ACCENT_BORDERS[i] ?? 'border-s-border';
+    fuelTypeOrder.forEach((fuelTypeId) => {
+        fuelTypeBadge[fuelTypeId] = fuelColors.byId(fuelTypeId).badge;
+        fuelTypeRowBorder[fuelTypeId] = fuelColors.byId(fuelTypeId).borderStart;
     });
 
     // Pumps grouped by fuel type (stable sort keeps each fuel type's own pumps in their
@@ -303,9 +299,9 @@ export default function PumpCountersIndex() {
                                                 key={total.fuel_type_id}
                                                 className={cn(
                                                     TOTAL_BADGE,
-                                                    fuelTypeBadge[
-                                                        total.fuel_type_id
-                                                    ] ?? NEUTRAL_BADGE,
+                                                    fuelColors.byId(
+                                                        total.fuel_type_id,
+                                                    ).badge,
                                                 )}
                                             >
                                                 <bdi>
@@ -481,9 +477,6 @@ export default function PumpCountersIndex() {
                                                                     <TankSelectItems
                                                                         tanks={
                                                                             tankOptions
-                                                                        }
-                                                                        allTanks={
-                                                                            tanks
                                                                         }
                                                                     />
                                                                 </SelectContent>

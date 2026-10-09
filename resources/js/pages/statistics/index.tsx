@@ -26,6 +26,7 @@ import {
     getPrimaryCurrency,
     todayInStation,
 } from '@/lib/format';
+import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { exportPdf, exportXlsx, index } from '@/routes/statistics';
@@ -76,14 +77,6 @@ type PageProps = {
     to: string;
     byUser?: ByUserRow[];
 };
-
-// Fuel types are colored by their position in the chart's (name-sorted) fuel type list, the
-// same order the sales chart assigns its line colors -- so petrol is amber and diesel blue in
-// both the chart and the breakdown cards.
-const FUEL_TEXT = [
-    'text-amber-600 dark:text-amber-400',
-    'text-blue-600 dark:text-blue-400',
-];
 
 // Store sales use teal so they never read as a fuel type (amber/blue).
 const STORE_TEXT = 'text-teal-600 dark:text-teal-400';
@@ -303,8 +296,9 @@ function Overview() {
         show({ from: today, to: today });
     }
 
-    const fuelText = (name: string) =>
-        FUEL_TEXT[salesChart.fuelTypes.indexOf(name)] ?? 'text-foreground';
+    // Each fuel type's own colour, the same as in the sales chart and everywhere else.
+    const fuelColors = useFuelColors();
+    const fuelText = (name: string) => fuelColors.byName(name).text;
 
     const employees = [...(byUser ?? [])].sort(
         (a, b) => b.totals.income_syp - a.totals.income_syp,

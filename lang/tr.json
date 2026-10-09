@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
     "inventory.no_transfer_target": "Başka aktif tank yok",
     "inventory.movements": "Tank hareketleri",
-    "tanks.name_taken": "Bu yakıt türünde bu adla bir tank zaten var. Farklı bir ad seçin."
+    "tanks.name_taken": "Bu yakıt türünde bu adla bir tank zaten var. Farklı bir ad seçin.",
+    "fuel_types.color": "Renk",
+    "fuel_types.color_hint": "Bu yakıt türü için her yerde kullanılır: tank listelerindeki noktalar, kart kenarları, rozetler ve grafikler.",
+    "fuel_types.color_taken": "başka bir yakıt türü kullanıyor",
+    "fuel_types.color_amber": "Turuncu",
+    "fuel_types.color_blue": "Mavi",
+    "fuel_types.color_emerald": "Yeşil",
+    "fuel_types.color_violet": "Mor",
+    "fuel_types.color_rose": "Kırmızı",
+    "fuel_types.color_cyan": "Turkuaz",
+    "fuel_types.color_lime": "Limon yeşili",
+    "fuel_types.color_fuchsia": "Pembe"
 }

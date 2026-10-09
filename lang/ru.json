@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Дата подписки для :station сохранена.",
     "inventory.no_transfer_target": "Нет другого активного резервуара",
     "inventory.movements": "Движение по резервуарам",
-    "tanks.name_taken": "Для этого топлива уже есть резервуар с таким названием. Выберите другое название."
+    "tanks.name_taken": "Для этого топлива уже есть резервуар с таким названием. Выберите другое название.",
+    "fuel_types.color": "Цвет",
+    "fuel_types.color_hint": "Используется для этого топлива везде: точки в списках резервуаров, края карточек, значки и графики.",
+    "fuel_types.color_taken": "уже используется другим топливом",
+    "fuel_types.color_amber": "Оранжевый",
+    "fuel_types.color_blue": "Синий",
+    "fuel_types.color_emerald": "Зелёный",
+    "fuel_types.color_violet": "Фиолетовый",
+    "fuel_types.color_rose": "Красный",
+    "fuel_types.color_cyan": "Бирюзовый",
+    "fuel_types.color_lime": "Лаймовый",
+    "fuel_types.color_fuchsia": "Розовый"
 }

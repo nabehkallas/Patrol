@@ -28,6 +28,7 @@ import {
 import type { Locale } from '@/hooks/use-locale';
 import { LOCALES, useLocale } from '@/hooks/use-locale';
 import { formatNumber, formatPrimary } from '@/lib/format';
+import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index } from '@/routes/statistics';
@@ -57,12 +58,6 @@ export type AnnualSummaryData = {
 
 const REVENUE_COLOR = '#10b981'; // emerald-500
 const EXPENSE_COLOR = '#f43f5e'; // rose-500
-
-// Same position-based fuel colors as the overview: petrol amber, diesel blue.
-const FUEL_TEXT = [
-    'text-amber-600 dark:text-amber-400',
-    'text-blue-600 dark:text-blue-400',
-];
 
 /** Month names in the UI language; ar-SY gives the Levantine names (كانون الثاني, شباط...). */
 function monthName(month: number, locale: Locale, style: 'long' | 'short') {
@@ -104,6 +99,7 @@ function HighlightCard({
 
 export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
     const { t, locale } = useTranslation();
+    const fuelColors = useFuelColors();
     const { direction } = useLocale();
 
     const chartData = data.months.map((row) => ({
@@ -241,12 +237,12 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                     detail={
                         data.liters_by_fuel_type.length > 0 ? (
                             <span className="flex flex-wrap gap-x-4 gap-y-1">
-                                {data.liters_by_fuel_type.map((fuel, i) => (
+                                {data.liters_by_fuel_type.map((fuel) => (
                                     <span
                                         key={fuel.name}
                                         className={cn(
                                             'font-medium',
-                                            FUEL_TEXT[i] ?? 'text-foreground',
+                                            fuelColors.byName(fuel.name).text,
                                         )}
                                     >
                                         <bdi>{fuel.name}</bdi>{' '}

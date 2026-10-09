@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Dîroka abonetiyê ji bo :station hat tomarkirin.",
     "inventory.no_transfer_target": "Tankeke din a çalak tune",
     "inventory.movements": "Tevgerên tankan",
-    "tanks.name_taken": "Ji bo vê sotemeniyê tankek bi vî navî heye. Navekî din hilbijêre."
+    "tanks.name_taken": "Ji bo vê sotemeniyê tankek bi vî navî heye. Navekî din hilbijêre.",
+    "fuel_types.color": "Reng",
+    "fuel_types.color_hint": "Ji bo vê sotemeniyê li her derê tê bikaranîn: xalên lîsteyên tankan, kêlekên kartan, nîşan û grafîk.",
+    "fuel_types.color_taken": "sotemeniyek din jixwe bi kar tîne",
+    "fuel_types.color_amber": "Porteqalî",
+    "fuel_types.color_blue": "Şîn",
+    "fuel_types.color_emerald": "Kesk",
+    "fuel_types.color_violet": "Mor",
+    "fuel_types.color_rose": "Sor",
+    "fuel_types.color_cyan": "Fîrozeyî",
+    "fuel_types.color_lime": "Kesktirş",
+    "fuel_types.color_fuchsia": "Pembe"
 }

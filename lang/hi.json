@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": ":station की सदस्यता तिथि सहेजी गई।",
     "inventory.no_transfer_target": "कोई दूसरा सक्रिय टैंक नहीं",
     "inventory.movements": "टैंक की आवाजाही",
-    "tanks.name_taken": "इस ईंधन के लिए इस नाम का टैंक पहले से मौजूद है। कोई दूसरा नाम चुनें।"
+    "tanks.name_taken": "इस ईंधन के लिए इस नाम का टैंक पहले से मौजूद है। कोई दूसरा नाम चुनें।",
+    "fuel_types.color": "रंग",
+    "fuel_types.color_hint": "इस ईंधन के लिए हर जगह इस्तेमाल होता है: टैंक सूचियों के बिंदु, कार्ड के किनारे, बैज और चार्ट।",
+    "fuel_types.color_taken": "पहले से किसी दूसरे ईंधन में इस्तेमाल",
+    "fuel_types.color_amber": "नारंगी",
+    "fuel_types.color_blue": "नीला",
+    "fuel_types.color_emerald": "हरा",
+    "fuel_types.color_violet": "बैंगनी",
+    "fuel_types.color_rose": "लाल",
+    "fuel_types.color_cyan": "फ़िरोज़ी",
+    "fuel_types.color_lime": "नींबू हरा",
+    "fuel_types.color_fuchsia": "गुलाबी"
 }

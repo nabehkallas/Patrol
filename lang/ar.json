@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "حُفظ تاريخ اشتراك :station.",
     "inventory.no_transfer_target": "لا يوجد خزان آخر فعّال",
     "inventory.movements": "حركة الخزانات",
-    "tanks.name_taken": "يوجد خزان بهذا الاسم لنفس نوع الوقود. اختر اسماً مختلفاً."
+    "tanks.name_taken": "يوجد خزان بهذا الاسم لنفس نوع الوقود. اختر اسماً مختلفاً.",
+    "fuel_types.color": "اللون",
+    "fuel_types.color_hint": "يُستخدم لهذا النوع في كل مكان: نقاط قوائم الخزانات، حواف البطاقات، الشارات والرسوم البيانية.",
+    "fuel_types.color_taken": "مستخدم لنوع وقود آخر",
+    "fuel_types.color_amber": "برتقالي",
+    "fuel_types.color_blue": "أزرق",
+    "fuel_types.color_emerald": "أخضر",
+    "fuel_types.color_violet": "بنفسجي",
+    "fuel_types.color_rose": "أحمر",
+    "fuel_types.color_cyan": "فيروزي",
+    "fuel_types.color_lime": "ليموني",
+    "fuel_types.color_fuchsia": "وردي"
 }

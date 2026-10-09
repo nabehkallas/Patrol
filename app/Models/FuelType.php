@@ -4,16 +4,25 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
+use App\Support\FuelColors;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'profit_margin_percent'])]
+#[Fillable(['name', 'slug', 'color', 'profit_margin_percent'])]
 class FuelType extends Model
 {
     use Auditable;
     use SerializesDatesInAppTimezone;
+
+    /** A new fuel type gets the next colour nobody uses yet, unless one was chosen. */
+    protected static function booted(): void
+    {
+        static::creating(function (FuelType $fuelType) {
+            $fuelType->color ??= FuelColors::nextFree();
+        });
+    }
 
     protected function casts(): array
     {

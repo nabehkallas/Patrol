@@ -81,7 +81,6 @@ export default function InventoryEntryEdit() {
                                         tanks,
                                         form.data.tank_id,
                                     )}
-                                    allTanks={tanks}
                                 />
                             </SelectContent>
                         </Select>

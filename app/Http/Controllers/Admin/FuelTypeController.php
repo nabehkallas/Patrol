@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFuelTypeRequest;
 use App\Http\Requests\Admin\UpdateFuelTypeRequest;
 use App\Models\FuelType;
+use App\Support\FuelColors;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,7 +18,7 @@ class FuelTypeController extends Controller
         $this->authorize('viewAny', FuelType::class);
 
         return Inertia::render('admin/fuel-types/index', [
-            'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name', 'slug']),
+            'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name', 'slug', 'color']),
         ]);
     }
 
@@ -25,7 +26,9 @@ class FuelTypeController extends Controller
     {
         $this->authorize('create', FuelType::class);
 
-        return Inertia::render('admin/fuel-types/create');
+        return Inertia::render('admin/fuel-types/create', [
+            'suggestedColor' => FuelColors::nextFree(),
+        ]);
     }
 
     public function store(StoreFuelTypeRequest $request): RedirectResponse
@@ -44,7 +47,7 @@ class FuelTypeController extends Controller
         $this->authorize('update', $fuelType);
 
         return Inertia::render('admin/fuel-types/edit', [
-            'fuelType' => $fuelType->only(['id', 'name', 'slug']),
+            'fuelType' => $fuelType->only(['id', 'name', 'slug', 'color']),
         ]);
     }
 

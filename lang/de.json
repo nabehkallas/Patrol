@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Abo-Datum für :station gespeichert.",
     "inventory.no_transfer_target": "Kein anderer aktiver Tank",
     "inventory.movements": "Tankbewegungen",
-    "tanks.name_taken": "Für diesen Kraftstoff gibt es bereits einen Tank mit diesem Namen. Wählen Sie einen anderen Namen."
+    "tanks.name_taken": "Für diesen Kraftstoff gibt es bereits einen Tank mit diesem Namen. Wählen Sie einen anderen Namen.",
+    "fuel_types.color": "Farbe",
+    "fuel_types.color_hint": "Wird überall für diesen Kraftstoff verwendet: Punkte in Tanklisten, Kartenränder, Abzeichen und Diagramme.",
+    "fuel_types.color_taken": "bereits von einem anderen Kraftstoff verwendet",
+    "fuel_types.color_amber": "Orange",
+    "fuel_types.color_blue": "Blau",
+    "fuel_types.color_emerald": "Grün",
+    "fuel_types.color_violet": "Violett",
+    "fuel_types.color_rose": "Rot",
+    "fuel_types.color_cyan": "Türkis",
+    "fuel_types.color_lime": "Limette",
+    "fuel_types.color_fuchsia": "Pink"
 }

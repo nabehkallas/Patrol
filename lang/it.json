@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Data di abbonamento salvata per :station.",
     "inventory.no_transfer_target": "Nessun altro serbatoio attivo",
     "inventory.movements": "Movimenti dei serbatoi",
-    "tanks.name_taken": "Questo carburante ha già un serbatoio con questo nome. Scegli un altro nome."
+    "tanks.name_taken": "Questo carburante ha già un serbatoio con questo nome. Scegli un altro nome.",
+    "fuel_types.color": "Colore",
+    "fuel_types.color_hint": "Usato ovunque per questo carburante: pallini negli elenchi dei serbatoi, bordi delle schede, etichette e grafici.",
+    "fuel_types.color_taken": "già usato da un altro carburante",
+    "fuel_types.color_amber": "Arancione",
+    "fuel_types.color_blue": "Blu",
+    "fuel_types.color_emerald": "Verde",
+    "fuel_types.color_violet": "Viola",
+    "fuel_types.color_rose": "Rosso",
+    "fuel_types.color_cyan": "Turchese",
+    "fuel_types.color_lime": "Lime",
+    "fuel_types.color_fuchsia": "Rosa"
 }

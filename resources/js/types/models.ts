@@ -47,6 +47,7 @@ export type FuelType = {
     id: number;
     name: string;
     slug: string;
+    color?: string | null;
     profit_margin_percent: string | null;
 };
 

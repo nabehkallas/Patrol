@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\FuelColors;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ class StoreFuelTypeRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'color' => ['nullable', Rule::in(FuelColors::PALETTE)],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('fuel_types', 'slug')],
         ];
     }

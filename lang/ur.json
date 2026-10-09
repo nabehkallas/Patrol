@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": ":station کی رکنیت کی تاریخ محفوظ ہو گئی۔",
     "inventory.no_transfer_target": "کوئی دوسرا فعال ٹینک نہیں",
     "inventory.movements": "ٹینکوں کی نقل و حرکت",
-    "tanks.name_taken": "اس ایندھن کے لیے اس نام کا ٹینک پہلے سے موجود ہے۔ کوئی دوسرا نام چنیں۔"
+    "tanks.name_taken": "اس ایندھن کے لیے اس نام کا ٹینک پہلے سے موجود ہے۔ کوئی دوسرا نام چنیں۔",
+    "fuel_types.color": "رنگ",
+    "fuel_types.color_hint": "اس ایندھن کے لیے ہر جگہ استعمال ہوتا ہے: ٹینک فہرستوں کے نقطے، کارڈ کے کنارے، بیج اور چارٹ۔",
+    "fuel_types.color_taken": "دوسرا ایندھن پہلے ہی استعمال کر رہا ہے",
+    "fuel_types.color_amber": "نارنجی",
+    "fuel_types.color_blue": "نیلا",
+    "fuel_types.color_emerald": "سبز",
+    "fuel_types.color_violet": "جامنی",
+    "fuel_types.color_rose": "سرخ",
+    "fuel_types.color_cyan": "فیروزی",
+    "fuel_types.color_lime": "لیمونی",
+    "fuel_types.color_fuchsia": "گلابی"
 }

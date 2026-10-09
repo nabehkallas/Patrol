@@ -31,6 +31,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
+import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
@@ -224,19 +225,8 @@ export default function InventoryIndex() {
             };
         });
 
-    // Colored top border per tank card, keyed by each fuel type's order of first appearance --
-    // the first fuel type (typically petrol) gets amber, the second (typically diesel) gets
-    // blue, matching the Cash Box page's colored-accent style. Any further fuel type falls back
-    // to a neutral border since the station's own fuel type names aren't a fixed enum.
-    const TANK_ACCENT_BORDERS = ['border-t-amber-500', 'border-t-blue-500'];
-    const fuelTypeAccentBorder: Record<number, string> = {};
-    tanks.forEach((tank) => {
-        if (!(tank.fuel_type.id in fuelTypeAccentBorder)) {
-            fuelTypeAccentBorder[tank.fuel_type.id] =
-                TANK_ACCENT_BORDERS[Object.keys(fuelTypeAccentBorder).length] ??
-                'border-t-border';
-        }
-    });
+    // Each tank card's top edge is its fuel type's own colour.
+    const fuelColors = useFuelColors();
 
     return (
         <>
@@ -280,9 +270,8 @@ export default function InventoryIndex() {
                                         data-test="tank-card"
                                         className={cn(
                                             'border-t-4',
-                                            fuelTypeAccentBorder[
-                                                tank.fuel_type.id
-                                            ],
+                                            fuelColors.byId(tank.fuel_type.id)
+                                                .borderTop,
                                         )}
                                     >
                                         <CardHeader>
@@ -865,7 +854,6 @@ export default function InventoryIndex() {
                                                         tanks,
                                                         form.data.tank_id,
                                                     )}
-                                                    allTanks={tanks}
                                                 />
                                             </SelectContent>
                                         </Select>
@@ -1053,7 +1041,6 @@ export default function InventoryIndex() {
                                             tanks,
                                             transferForm.data.from_tank_id,
                                         )}
-                                        allTanks={tanks}
                                     />
                                 </SelectContent>
                             </Select>
@@ -1080,7 +1067,6 @@ export default function InventoryIndex() {
                                 <SelectContent>
                                     <TankSelectItems
                                         tanks={transferDestinationOptions}
-                                        allTanks={tanks}
                                     />
                                 </SelectContent>
                             </Select>

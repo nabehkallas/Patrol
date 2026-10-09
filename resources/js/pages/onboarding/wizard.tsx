@@ -330,7 +330,6 @@ function PumpReadingsSection({
                                         <SelectContent>
                                             <TankSelectItems
                                                 tanks={availableTanks}
-                                                allTanks={tanks}
                                             />
                                         </SelectContent>
                                     </Select>

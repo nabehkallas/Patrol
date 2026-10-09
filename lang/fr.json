@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Date d'abonnement enregistrée pour :station.",
     "inventory.no_transfer_target": "Aucune autre cuve active",
     "inventory.movements": "Mouvements des cuves",
-    "tanks.name_taken": "Ce carburant a déjà une cuve portant ce nom. Choisissez un autre nom."
+    "tanks.name_taken": "Ce carburant a déjà une cuve portant ce nom. Choisissez un autre nom.",
+    "fuel_types.color": "Couleur",
+    "fuel_types.color_hint": "Utilisée partout pour ce carburant : pastilles des listes de cuves, bords des cartes, badges et graphiques.",
+    "fuel_types.color_taken": "déjà utilisée par un autre carburant",
+    "fuel_types.color_amber": "Orange",
+    "fuel_types.color_blue": "Bleu",
+    "fuel_types.color_emerald": "Vert",
+    "fuel_types.color_violet": "Violet",
+    "fuel_types.color_rose": "Rouge",
+    "fuel_types.color_cyan": "Turquoise",
+    "fuel_types.color_lime": "Citron vert",
+    "fuel_types.color_fuchsia": "Rose"
 }

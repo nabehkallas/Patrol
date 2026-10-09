@@ -1,5 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { FuelColorPicker } from '@/components/fuel-color-picker';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,14 @@ import { index, store } from '@/routes/admin/fuel-types';
 
 export default function FuelTypeCreate() {
     const { t } = useTranslation();
-    const form = useForm({ name: '', slug: '' });
+    const { suggestedColor, fuelTypeColors } = usePage<{
+        suggestedColor: string;
+        fuelTypeColors: { id: number; color: string | null }[];
+    }>().props;
+    const form = useForm({ name: '', slug: '', color: suggestedColor });
+    const usedByOthers = fuelTypeColors
+        .map((fuelType) => fuelType.color)
+        .filter((color): color is string => color !== null);
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -49,6 +57,19 @@ export default function FuelTypeCreate() {
                             placeholder={t('fuel_types.slug_hint')}
                         />
                         <InputError message={form.errors.slug} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>{t('fuel_types.color')}</Label>
+                        <FuelColorPicker
+                            value={form.data.color}
+                            onChange={(color) => form.setData('color', color)}
+                            usedByOthers={usedByOthers}
+                        />
+                        <p className="text-muted-foreground text-xs">
+                            {t('fuel_types.color_hint')}
+                        </p>
+                        <InputError message={form.errors.color} />
                     </div>
 
                     <Button type="submit" disabled={form.processing}>

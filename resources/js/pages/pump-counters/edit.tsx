@@ -160,10 +160,7 @@ export default function PumpCounterReadingEdit() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <TankSelectItems
-                                    tanks={availableTanks}
-                                    allTanks={tanks}
-                                />
+                                <TankSelectItems tanks={availableTanks} />
                             </SelectContent>
                         </Select>
                         <InputError message={form.errors.tank_id} />

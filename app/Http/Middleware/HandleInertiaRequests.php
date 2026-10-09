@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\FuelType;
 use App\Support\Currency;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -56,6 +57,10 @@ class HandleInertiaRequests extends Middleware
             // The station's currencies and its primary (reporting) currency, for pickers and formatting.
             'currencies' => tenancy()->initialized ? Currency::forFrontend() : [],
             'primaryCurrency' => tenancy()->initialized ? Currency::primary() : Currency::SYP,
+            // Each fuel type's own colour (dots, card edges, badges, chart lines all use it).
+            'fuelTypeColors' => fn () => tenancy()->initialized && $request->user()
+                ? FuelType::orderBy('id')->get(['id', 'name', 'color'])
+                : [],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

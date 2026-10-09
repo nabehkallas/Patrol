@@ -1106,5 +1106,16 @@
     "Subscription date saved for :station.": "Fecha de suscripción guardada para :station.",
     "inventory.no_transfer_target": "No hay otro tanque activo",
     "inventory.movements": "Movimientos de tanques",
-    "tanks.name_taken": "Este combustible ya tiene un tanque con este nombre. Elija otro nombre."
+    "tanks.name_taken": "Este combustible ya tiene un tanque con este nombre. Elija otro nombre.",
+    "fuel_types.color": "Color",
+    "fuel_types.color_hint": "Se usa para este combustible en todas partes: puntos en las listas de tanques, bordes de tarjetas, etiquetas y gráficos.",
+    "fuel_types.color_taken": "ya la usa otro combustible",
+    "fuel_types.color_amber": "Naranja",
+    "fuel_types.color_blue": "Azul",
+    "fuel_types.color_emerald": "Verde",
+    "fuel_types.color_violet": "Morado",
+    "fuel_types.color_rose": "Rojo",
+    "fuel_types.color_cyan": "Turquesa",
+    "fuel_types.color_lime": "Lima",
+    "fuel_types.color_fuchsia": "Rosa"
 }

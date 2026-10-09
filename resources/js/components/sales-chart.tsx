@@ -11,20 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatNumber, formatShortDate } from '@/lib/format';
+import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import type { SalesChartData } from '@/types';
-
-// CSS custom properties, not literal hex values, so each line automatically follows the
-// active theme's chart palette (and switches instantly on light/dark toggle) via normal CSS
-// inheritance -- SVG presentation attributes like `stroke` resolve var() the same as any
-// other CSS <color> value.
-const COLORS = [
-    'var(--chart-1)',
-    'var(--chart-2)',
-    'var(--chart-3)',
-    'var(--chart-4)',
-    'var(--chart-5)',
-];
 
 type Range = '7' | '30';
 
@@ -34,6 +23,7 @@ function formatChartDate(value: string): string {
 
 export function SalesChart({ chart }: { chart: SalesChartData }) {
     const { t } = useTranslation();
+    const fuelColors = useFuelColors();
     const [range, setRange] = useState<Range>('7');
 
     const data = useMemo(() => {
@@ -102,13 +92,13 @@ export function SalesChart({ chart }: { chart: SalesChartData }) {
                                     name,
                                 ]}
                             />
-                            {chart.fuelTypes.map((fuelType, index) => (
+                            {chart.fuelTypes.map((fuelType) => (
                                 <Line
                                     key={fuelType}
                                     type="monotone"
                                     dataKey={fuelType}
                                     name={fuelType}
-                                    stroke={COLORS[index % COLORS.length]}
+                                    stroke={fuelColors.byName(fuelType).chart}
                                     strokeWidth={2}
                                     dot={false}
                                 />
