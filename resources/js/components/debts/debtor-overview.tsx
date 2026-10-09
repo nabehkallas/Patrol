@@ -63,7 +63,7 @@ export function DebtorOverview({
                 )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="card-grid">
                 {visible.map((card) => {
                     const selected = String(card.id) === selectedId;
 

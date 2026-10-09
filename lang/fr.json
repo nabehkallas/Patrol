@@ -1105,7 +1105,6 @@
     ":name can no longer sign in.": ":name ne peut plus se connecter.",
     ":name can sign in again.": ":name peut à nouveau se connecter.",
     "Subscription date saved for :station.": "Date d'abonnement enregistrée pour :station.",
-    "inventory.record_reading": "Saisir un relevé",
     "inventory.no_transfer_target": "Aucune autre cuve pour ce carburant",
     "inventory.movements": "Mouvements des cuves"
 }

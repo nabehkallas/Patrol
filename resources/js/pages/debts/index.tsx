@@ -256,7 +256,7 @@ export default function DebtsIndex() {
                     </Link>
                 </div>
 
-                <div className="flex flex-wrap gap-4 [&>*]:min-w-[12rem] [&>*]:max-w-xs [&>*]:flex-1">
+                <div className="card-grid">
                     <CurrencyCard
                         label={t('debts.total_unpaid')}
                         breakdown={totals.outstanding}

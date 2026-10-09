@@ -440,8 +440,8 @@ function EarningsReport({
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-wrap gap-4">
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
+                <div className="card-grid">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('earnings.total_earnings')}
@@ -451,7 +451,7 @@ function EarningsReport({
                             <Syp value={total_earnings_syp} />
                         </CardContent>
                     </Card>
-                    <Card className="min-w-[12rem] max-w-xs flex-1">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
                                 {t('cash_box.other_expenses')}
@@ -463,7 +463,7 @@ function EarningsReport({
                     </Card>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="panel-grid">
                     {breakdown.map((row) => (
                         <DetailCard key={row.fuel_type.id} row={row} t={t} />
                     ))}

@@ -720,7 +720,7 @@ export default function ShopIndex() {
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(max(min(100%,300px),calc((100%_-_3rem)/5)),1fr))] gap-3">
+                <div className="panel-grid">
                     {items.map((item) => (
                         <ItemCard key={item.id} item={item} />
                     ))}
@@ -747,7 +747,7 @@ export default function ShopIndex() {
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
+                        <div className="card-grid">
                             {itemTotals.map((row) => (
                                 <div
                                     key={row.id}

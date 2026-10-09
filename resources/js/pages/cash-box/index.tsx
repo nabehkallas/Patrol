@@ -353,7 +353,7 @@ function OtherCurrencyBoxes({
     }
 
     return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="card-grid">
             {currencies.map((currency) => (
                 <Card key={currency}>
                     <CardContent className="space-y-2 text-sm">
@@ -657,7 +657,7 @@ export default function CashBoxIndex() {
                     </SectionToolbar>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="card-grid">
                     <StatCard
                         accent="blue"
                         icon={<Wallet className="size-5" />}

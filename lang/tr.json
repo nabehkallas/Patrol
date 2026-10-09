@@ -1105,7 +1105,6 @@
     ":name can no longer sign in.": ":name artık giriş yapamaz.",
     ":name can sign in again.": ":name yeniden giriş yapabilir.",
     "Subscription date saved for :station.": ":station için abonelik tarihi kaydedildi.",
-    "inventory.record_reading": "Ölçüm kaydet",
     "inventory.no_transfer_target": "Bu yakıt türü için başka tank yok",
     "inventory.movements": "Tank hareketleri"
 }

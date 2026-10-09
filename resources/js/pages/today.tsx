@@ -179,7 +179,7 @@ export default function Today() {
                     </div>
                 )}
 
-                <div className="flex flex-wrap gap-4 *:min-w-0 *:flex-[1_1_20rem]">
+                <div className="panel-grid">
                     <Panel
                         title={t('nav.pump_counters')}
                         icon={Gauge}

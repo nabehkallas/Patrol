@@ -51,10 +51,6 @@ class InventoryEntryController extends Controller
 
         return Inertia::render('inventory/index', [
             'tanks' => $tanks->map(fn (Tank $tank) => $tank->summary()),
-            'entries' => InventoryEntry::with(['tank.fuelType', 'recordedBy'])
-                ->latest('date')
-                ->latest('id')
-                ->paginate(25),
             'topUps' => ! $isAdmin ? [] : TankTopUp::with(['tank.fuelType', 'recordedBy'])
                 ->whereDate('date', '>=', $from)
                 ->whereDate('date', '<=', $to)
@@ -158,10 +154,8 @@ class InventoryEntryController extends Controller
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
 
-        // tank_id narrows the sheet to one tank (the Excel button on that tank's card).
         $tanks = Tank::with('fuelType')
             ->where('is_active', true)
-            ->when($request->filled('tank_id'), fn ($query) => $query->whereKey($request->integer('tank_id')))
             ->orderBy('fuel_type_id')
             ->orderBy('name')
             ->get();

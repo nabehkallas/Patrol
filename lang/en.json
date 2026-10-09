@@ -833,7 +833,6 @@
     ":name can no longer sign in.": ":name can no longer sign in.",
     ":name can sign in again.": ":name can sign in again.",
     "Subscription date saved for :station.": "Subscription date saved for :station.",
-    "inventory.record_reading": "Record reading",
     "inventory.no_transfer_target": "No other tank holds this fuel type",
     "inventory.movements": "Tank movements"
 }

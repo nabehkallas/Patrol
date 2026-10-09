@@ -343,7 +343,7 @@ function Overview() {
                     }
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="card-grid">
                     <KpiCard
                         label={t('dashboard.income')}
                         value={formatPrimary(totals.income_syp)}
@@ -374,7 +374,7 @@ function Overview() {
                 <SalesChart chart={salesChart} />
 
                 {/* Cards wrap and stretch to fill each row, so no row ends in an empty slot. */}
-                <div className="flex flex-wrap gap-4 *:min-w-0 *:flex-[1_1_18rem]">
+                <div className="panel-grid">
                     <BreakdownCard title={t('statistics.fuel_sales_by_type')}>
                         {byFuelType.map((row) => (
                             <BreakdownRow

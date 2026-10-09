@@ -280,6 +280,26 @@
     }
 }
 
+/*
+ * The two card grids every page uses, so cards are the same size everywhere. Columns are added as
+ * the screen widens (one on a phone, more on a laptop, more again on a large monitor) and never
+ * stretch: a card is always between its minimum width and one column's share, so two cards on a
+ * wide screen keep their size instead of spreading across it.
+ *   card-grid:  summary and stat cards (a label and a figure)
+ *   panel-grid: larger cards with content inside (tanks, shop items, stations, charts, panels)
+ */
+@utility card-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+}
+
+@utility panel-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+}
+
 /* Every data table highlights the row under the pointer (the calendar's day grid is a table too). */
 @layer components {
     table:not([data-slot='calendar'] table) > tbody > tr {

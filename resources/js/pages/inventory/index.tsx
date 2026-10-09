@@ -1,5 +1,5 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, FileSpreadsheet, Plus, Ruler } from 'lucide-react';
+import { ArrowLeftRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
@@ -7,9 +7,7 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
-import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -28,20 +26,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
-import {
-    exportEntriesPdf,
-    exportTanksXlsx,
-    exportTopupsPdf,
-    index,
-    store,
-} from '@/routes/inventory';
-import { destroy, edit } from '@/routes/inventory/entries';
+import { exportTanksXlsx, exportTopupsPdf, index } from '@/routes/inventory';
 import {
     destroy as destroyTopUp,
     edit as editTopUp,
@@ -52,19 +42,11 @@ import {
     edit as editTransfer,
     store as storeTransfer,
 } from '@/routes/tank-transfers';
-import type {
-    Auth,
-    InventoryEntry,
-    Paginated,
-    TankSummary,
-    TankTopUp,
-    TankTransfer,
-} from '@/types';
+import type { Auth, TankSummary, TankTopUp, TankTransfer } from '@/types';
 
 type PageProps = {
     auth: Auth;
     tanks: TankSummary[];
-    entries: Paginated<InventoryEntry>;
     topUps: TankTopUp[];
     transfers: TankTransfer[];
     historyFrom: string;
@@ -74,7 +56,7 @@ type PageProps = {
 type LogTab = 'topups' | 'transfers';
 
 export default function InventoryIndex() {
-    const { auth, tanks, entries, topUps, transfers, historyFrom, historyTo } =
+    const { auth, tanks, topUps, transfers, historyFrom, historyTo } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
@@ -82,13 +64,6 @@ export default function InventoryIndex() {
     const [topUpLiters, setTopUpLiters] = useState<Record<number, string>>({});
     const [topUpErrors, setTopUpErrors] = useState<Record<number, string>>({});
     const [showTransferForm, setShowTransferForm] = useState(false);
-
-    const form = useForm({
-        tank_id: String(selectableTanks(tanks)[0]?.id ?? ''),
-        date: defaultEntryDate,
-        quantity_liters: '',
-        notes: '',
-    });
 
     const transferForm = useForm({
         from_tank_id: String(selectableTanks(tanks)[0]?.id ?? ''),
@@ -132,16 +107,6 @@ export default function InventoryIndex() {
         setShowTransferForm(true);
     }
 
-    function startReading(tankId: number) {
-        form.setData('tank_id', String(tankId));
-        document
-            .getElementById('record-reading')
-            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        document
-            .getElementById('quantity_liters')
-            ?.focus({ preventScroll: true });
-    }
-
     function submitTransfer(event: FormEvent) {
         event.preventDefault();
         transferForm.post(storeTransfer.url(), {
@@ -150,13 +115,6 @@ export default function InventoryIndex() {
                 transferForm.reset('liters', 'notes');
                 setShowTransferForm(false);
             },
-        });
-    }
-
-    function submit(event: FormEvent) {
-        event.preventDefault();
-        form.post(store.url(), {
-            onSuccess: () => form.reset('quantity_liters', 'notes'),
         });
     }
 
@@ -184,10 +142,6 @@ export default function InventoryIndex() {
                     })),
             },
         );
-    }
-
-    function removeEntry(entry: InventoryEntry) {
-        router.delete(destroy.url(entry.id));
     }
 
     function removeTopUp(topUp: TankTopUp) {
@@ -261,419 +215,125 @@ export default function InventoryIndex() {
                     description={t('inventory.description')}
                 />
 
-                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-                        {tanks.map((tank) => {
-                            const hasVariance =
-                                tank.variance_liters !== null &&
-                                Math.abs(tank.variance_liters) > 0.01;
-                            const canTransfer = tanks.some(
-                                (other) =>
-                                    other.id !== tank.id &&
-                                    other.is_active &&
-                                    other.fuel_type.id === tank.fuel_type.id,
-                            );
+                <div className="panel-grid">
+                    {tanks.map((tank) => {
+                        const canTransfer = tanks.some(
+                            (other) =>
+                                other.id !== tank.id &&
+                                other.is_active &&
+                                other.fuel_type.id === tank.fuel_type.id,
+                        );
 
-                            return (
-                                <Card
-                                    key={tank.id}
-                                    data-test="tank-card"
-                                    className={cn(
-                                        'gap-4 border-t-4 py-5',
-                                        fuelTypeAccentBorder[tank.fuel_type.id],
-                                    )}
-                                >
-                                    <CardHeader className="px-5">
-                                        <CardTitle className="text-lg font-semibold">
-                                            {tank.fuel_type.name} — {tank.name}
-                                        </CardTitle>
-                                        <span className="text-muted-foreground text-xs">
-                                            {t('inventory.capacity')}:{' '}
-                                            {formatNumber(tank.capacity_liters)}{' '}
-                                            L
-                                        </span>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-1 flex-col gap-4 px-5 text-sm">
-                                        <div>
-                                            <p className="text-muted-foreground text-xs">
-                                                {t('inventory.amount')}
-                                            </p>
-                                            <p
-                                                className={cn(
-                                                    'text-3xl font-bold',
-                                                    tank.expected_liters < 0 &&
-                                                        'text-destructive',
-                                                )}
-                                            >
-                                                <bdi dir="ltr">
-                                                    {formatNumber(
-                                                        tank.expected_liters,
-                                                    )}{' '}
-                                                    L
-                                                </bdi>
-                                            </p>
-                                            {tank.expected_liters < 0 && (
-                                                <p className="text-destructive bg-destructive/10 mt-2 rounded-md px-2 py-1.5 text-xs font-medium">
-                                                    {t('inventory.below_zero')}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="bg-muted/40 space-y-1.5 rounded-lg border px-3 py-2.5 text-xs">
-                                            <div className="flex justify-between gap-3">
-                                                <span className="text-muted-foreground">
-                                                    {t('dashboard.actual')}
-                                                </span>
-                                                <span className="font-medium">
-                                                    {tank.latest_reading ? (
-                                                        <>
-                                                            <bdi dir="ltr">
-                                                                {formatNumber(
-                                                                    tank
-                                                                        .latest_reading
-                                                                        .quantity_liters,
-                                                                )}{' '}
-                                                                L
-                                                            </bdi>
-                                                            <span className="text-muted-foreground font-normal">
-                                                                {' · '}
-                                                                {formatDate(
-                                                                    tank
-                                                                        .latest_reading
-                                                                        .date,
-                                                                )}
-                                                            </span>
-                                                        </>
-                                                    ) : (
-                                                        t(
-                                                            'inventory.no_reading',
-                                                        )
-                                                    )}
-                                                </span>
-                                            </div>
-                                            {tank.variance_liters !== null && (
-                                                <div className="flex justify-between gap-3">
-                                                    <span className="text-muted-foreground">
-                                                        {t(
-                                                            'dashboard.variance',
-                                                        )}
-                                                    </span>
-                                                    <bdi
-                                                        dir="ltr"
-                                                        className={cn(
-                                                            'font-medium',
-                                                            hasVariance &&
-                                                                'text-destructive',
-                                                        )}
-                                                    >
-                                                        {tank.variance_liters >
-                                                        0
-                                                            ? '+'
-                                                            : ''}
-                                                        {formatNumber(
-                                                            tank.variance_liters,
-                                                        )}{' '}
-                                                        L
-                                                    </bdi>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="mt-auto space-y-3 border-t pt-4">
-                                            <form
-                                                onSubmit={(event) =>
-                                                    submitTopUp(event, tank.id)
-                                                }
-                                                className="flex items-center gap-2"
-                                            >
-                                                <Input
-                                                    type="number"
-                                                    step="0.001"
-                                                    min="0"
-                                                    className="h-9"
-                                                    placeholder={t(
-                                                        'inventory.add_liters_placeholder',
-                                                    )}
-                                                    value={
-                                                        topUpLiters[tank.id] ??
-                                                        ''
-                                                    }
-                                                    onChange={(e) =>
-                                                        setTopUpLiters(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                [tank.id]:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                />
-                                                <Button
-                                                    type="submit"
-                                                    size="sm"
-                                                    className="shrink-0"
-                                                >
-                                                    <Plus />
-                                                    {t('inventory.add_liters')}
-                                                </Button>
-                                            </form>
-                                            <InputError
-                                                message={topUpErrors[tank.id]}
-                                            />
-
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={!canTransfer}
-                                                    title={
-                                                        canTransfer
-                                                            ? undefined
-                                                            : t(
-                                                                  'inventory.no_transfer_target',
-                                                              )
-                                                    }
-                                                    onClick={() =>
-                                                        openTransfer(tank.id)
-                                                    }
-                                                >
-                                                    <ArrowLeftRight />
-                                                    {t('inventory.transfer')}
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        startReading(tank.id)
-                                                    }
-                                                >
-                                                    <Ruler />
-                                                    {t(
-                                                        'inventory.record_reading',
-                                                    )}
-                                                </Button>
-                                                {auth.isAdmin && (
-                                                    <Button
-                                                        asChild
-                                                        size="sm"
-                                                        variant="outline"
-                                                    >
-                                                        <a
-                                                            href={exportTanksXlsx.url(
-                                                                {
-                                                                    query: {
-                                                                        from: historyFrom,
-                                                                        to: historyTo,
-                                                                        tank_id:
-                                                                            tank.id,
-                                                                    },
-                                                                },
-                                                            )}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            <FileSpreadsheet />
-                                                            Excel
-                                                        </a>
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
-                    </div>
-
-                    <Card
-                        id="record-reading"
-                        className="scroll-mt-6 lg:sticky lg:top-6"
-                    >
-                        <CardHeader>
-                            <CardTitle>{t('inventory.record_today')}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={submit} className="grid gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="tank_id">
-                                        {t('common.tank')}
-                                    </Label>
-                                    <Select
-                                        value={form.data.tank_id}
-                                        onValueChange={(value) =>
-                                            form.setData('tank_id', value)
-                                        }
-                                    >
-                                        <SelectTrigger
-                                            id="tank_id"
-                                            className="w-full"
-                                        >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {selectableTanks(
-                                                tanks,
-                                                form.data.tank_id,
-                                            ).map((tank) => (
-                                                <SelectItem
-                                                    key={tank.id}
-                                                    value={String(tank.id)}
-                                                >
-                                                    {tank.fuel_type.name} —{' '}
-                                                    {tank.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={form.errors.tank_id} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="date">
-                                        {t('common.date')}
-                                    </Label>
-                                    <Input
-                                        id="date"
-                                        type="date"
-                                        value={form.data.date}
-                                        onChange={(e) =>
-                                            form.setData('date', e.target.value)
-                                        }
-                                    />
-                                    <InputError message={form.errors.date} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="quantity_liters">
-                                        {t('inventory.quantity')}
-                                    </Label>
-                                    <Input
-                                        id="quantity_liters"
-                                        type="number"
-                                        step="0.001"
-                                        min="0"
-                                        value={form.data.quantity_liters}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'quantity_liters',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={form.errors.quantity_liters}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="notes">
-                                        {t('common.notes')}
-                                    </Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={form.data.notes}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'notes',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    disabled={form.processing}
-                                    className="w-full"
-                                >
-                                    {t('inventory.save_entry')}
-                                </Button>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="space-y-3">
-                    <SectionToolbar
-                        title={t('inventory.history')}
-                        actions={
-                            <GeneratePdfButton href={exportEntriesPdf.url()} />
-                        }
-                    />
-
-                    <div className="table-stack overflow-x-auto rounded-xl border">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-3">
-                                        {t('common.date')}
-                                    </th>
-                                    <th className="px-4 py-3">
-                                        {t('common.tank')}
-                                    </th>
-                                    <th className="px-4 py-3">
-                                        {t('inventory.quantity')} (L)
-                                    </th>
-                                    <th className="px-4 py-3">
-                                        {t('common.recorded_by')}
-                                    </th>
-                                    <th className="px-4 py-3">
-                                        {t('common.notes')}
-                                    </th>
-                                    {auth.isAdmin && (
-                                        <th className="px-4 py-3"></th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {entries.data.map((entry) => (
-                                    <tr key={entry.id} className="border-t">
-                                        <td className="px-4 py-3">
-                                            {formatDate(entry.date)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {entry.tank?.fuel_type?.name} —{' '}
-                                            {entry.tank?.name}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {formatNumber(
-                                                entry.quantity_liters,
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {entry.recorded_by?.name}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {entry.notes}
-                                        </td>
-                                        {auth.isAdmin && (
-                                            <td className="px-4 py-3 text-end">
-                                                <RowActions
-                                                    edit={edit(entry.id).url}
-                                                    remove={() =>
-                                                        removeEntry(entry)
-                                                    }
-                                                />
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                                {entries.data.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={auth.isAdmin ? 6 : 5}
-                                            className="text-muted-foreground px-4 py-6 text-center"
-                                        >
-                                            {t('common.no_results')}
-                                        </td>
-                                    </tr>
+                        return (
+                            <Card
+                                key={tank.id}
+                                data-test="tank-card"
+                                className={cn(
+                                    'gap-4 border-t-4 py-5',
+                                    fuelTypeAccentBorder[tank.fuel_type.id],
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
+                            >
+                                <CardHeader className="px-5">
+                                    <CardTitle className="text-lg font-semibold">
+                                        {tank.fuel_type.name} — {tank.name}
+                                    </CardTitle>
+                                    <span className="text-muted-foreground text-xs">
+                                        {t('inventory.capacity')}:{' '}
+                                        {formatNumber(tank.capacity_liters)} L
+                                    </span>
+                                </CardHeader>
+                                <CardContent className="flex flex-1 flex-col gap-4 px-5 text-sm">
+                                    <div>
+                                        <p className="text-muted-foreground text-xs">
+                                            {t('inventory.amount')}
+                                        </p>
+                                        <p
+                                            className={cn(
+                                                'text-3xl font-bold',
+                                                tank.expected_liters < 0 &&
+                                                    'text-destructive',
+                                            )}
+                                        >
+                                            <bdi dir="ltr">
+                                                {formatNumber(
+                                                    tank.expected_liters,
+                                                )}{' '}
+                                                L
+                                            </bdi>
+                                        </p>
+                                        {tank.expected_liters < 0 && (
+                                            <p className="text-destructive bg-destructive/10 mt-2 rounded-md px-2 py-1.5 text-xs font-medium">
+                                                {t('inventory.below_zero')}
+                                            </p>
+                                        )}
+                                    </div>
 
-                    <PaginationLinks links={entries.links} />
+                                    <div className="mt-auto space-y-3 border-t pt-4">
+                                        <form
+                                            onSubmit={(event) =>
+                                                submitTopUp(event, tank.id)
+                                            }
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Input
+                                                type="number"
+                                                step="0.001"
+                                                min="0"
+                                                className="h-9"
+                                                placeholder={t(
+                                                    'inventory.add_liters_placeholder',
+                                                )}
+                                                value={
+                                                    topUpLiters[tank.id] ?? ''
+                                                }
+                                                onChange={(e) =>
+                                                    setTopUpLiters((prev) => ({
+                                                        ...prev,
+                                                        [tank.id]:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                            />
+                                            <Button
+                                                type="submit"
+                                                size="sm"
+                                                className="shrink-0"
+                                            >
+                                                <Plus />
+                                                {t('inventory.add_liters')}
+                                            </Button>
+                                        </form>
+                                        <InputError
+                                            message={topUpErrors[tank.id]}
+                                        />
+
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={!canTransfer}
+                                                title={
+                                                    canTransfer
+                                                        ? undefined
+                                                        : t(
+                                                              'inventory.no_transfer_target',
+                                                          )
+                                                }
+                                                onClick={() =>
+                                                    openTransfer(tank.id)
+                                                }
+                                            >
+                                                <ArrowLeftRight />
+                                                {t('inventory.transfer')}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
-
                 {auth.isAdmin && (
                     <Card
                         className="gap-5 py-5"
@@ -754,13 +414,13 @@ export default function InventoryIndex() {
                         <CardContent className="space-y-4 px-5">
                             {logTab === 'topups' && (
                                 <>
-                                    <div className="flex flex-wrap gap-3">
+                                    <div className="card-grid">
                                         {Object.values(
                                             topUpTotalsByFuelType,
                                         ).map((total) => (
                                             <div
                                                 key={total.name}
-                                                className="min-w-[12rem] flex-1 rounded-lg border border-s-4 border-s-green-500 px-4 py-3"
+                                                className="rounded-lg border border-s-4 border-s-green-500 px-4 py-3"
                                             >
                                                 <p className="text-muted-foreground text-xs">
                                                     {t(

@@ -187,7 +187,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                 </CardContent>
             </Card>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="card-grid">
                 <HighlightCard
                     label={t('statistics.peak_revenue_month')}
                     accent="border-t-emerald-500"
