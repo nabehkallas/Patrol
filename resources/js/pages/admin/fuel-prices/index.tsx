@@ -7,6 +7,7 @@ import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -319,6 +320,8 @@ export default function FuelPricesIndex() {
                         ))}
                     </CardContent>
                 </Card>
+
+                <SectionToolbar title={t('fuel_prices.history')} />
 
                 <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

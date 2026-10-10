@@ -846,5 +846,7 @@
     "fuel_types.color_rose": "Red",
     "fuel_types.color_cyan": "Turquoise",
     "fuel_types.color_lime": "Lime",
-    "fuel_types.color_fuchsia": "Pink"
+    "fuel_types.color_fuchsia": "Pink",
+    "fuel_prices.history": "Price history",
+    "exchange_rates.history": "Rate history"
 }

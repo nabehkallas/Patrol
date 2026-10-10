@@ -94,7 +94,7 @@ export function SystemLastEntry({
     return (
         <span
             className={cn(
-                'select-none rounded-full border border-slate-300/80 bg-transparent px-2.5 py-0.5 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-400',
+                'inline-block max-w-full select-none truncate rounded-full border border-slate-300/80 bg-transparent px-2.5 py-0.5 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-400',
                 className,
             )}
             data-test="system-last-entry"

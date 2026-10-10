@@ -5,6 +5,7 @@ import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
+import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -118,6 +119,8 @@ export default function ExchangeRatesIndex() {
                         </form>
                     </CardContent>
                 </Card>
+
+                <SectionToolbar title={t('exchange_rates.history')} />
 
                 <div className="table-stack overflow-x-auto rounded-xl border">
                     <table className="w-full text-sm">

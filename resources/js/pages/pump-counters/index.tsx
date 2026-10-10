@@ -111,7 +111,7 @@ function tanksFor(
 
 // Sales total badges in the entry header, and the tinted pump-name badges in the table.
 const TOTAL_BADGE =
-    'inline-flex items-baseline gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium ring-1 ring-inset';
+    'inline-flex max-w-full items-baseline gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium ring-1 ring-inset';
 const NEUTRAL_BADGE =
     'bg-muted text-foreground ring-border dark:bg-slate-800 dark:ring-slate-700';
 
@@ -361,7 +361,7 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="min-w-[7rem] px-3 py-2.5 text-center align-top">
+                                            <th className="w-px whitespace-nowrap px-3 py-2.5 text-center align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
                                             <th className="px-3 py-2.5 text-center align-top">
@@ -438,15 +438,18 @@ export default function PumpCountersIndex() {
                                                             <div className="flex min-h-9 items-center justify-center">
                                                                 <span
                                                                     className={cn(
-                                                                        'rounded-md px-2.5 py-1 text-center text-base font-semibold ring-1 ring-inset',
+                                                                        'inline-block max-w-[10rem] truncate rounded-md px-2.5 py-1 text-center text-base font-semibold ring-1 ring-inset [unicode-bidi:plaintext]',
                                                                         fuelTypeBadge[
                                                                             rowFuelTypeId ??
                                                                                 -1
                                                                         ] ??
                                                                             NEUTRAL_BADGE,
                                                                     )}
-                                                                    title={pump.fuel_type_names.join(
-                                                                        ', ',
+                                                                    title={[
+                                                                        pump.name,
+                                                                        ...pump.fuel_type_names,
+                                                                    ].join(
+                                                                        ' — ',
                                                                     )}
                                                                 >
                                                                     {pump.name}

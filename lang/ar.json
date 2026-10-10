@@ -1117,5 +1117,7 @@
     "fuel_types.color_rose": "أحمر",
     "fuel_types.color_cyan": "فيروزي",
     "fuel_types.color_lime": "ليموني",
-    "fuel_types.color_fuchsia": "وردي"
+    "fuel_types.color_fuchsia": "وردي",
+    "fuel_prices.history": "سجل الأسعار",
+    "exchange_rates.history": "سجل أسعار الصرف"
 }
