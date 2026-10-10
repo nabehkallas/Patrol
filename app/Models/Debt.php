@@ -131,9 +131,19 @@ class Debt extends Model
         return $this->convertToUsd((float) $this->amount);
     }
 
-    public function amountInSyp(float $sypRate): float
+    /**
+     * The amount in $target (SYP unless told otherwise), where $rate is $target's current rate to
+     * the dollar. An amount already in $target is returned as it is: going out to dollars at the
+     * rate stored on the record and back at today's rate would multiply it by the rate change
+     * (an SYP amount saved before any SYP rate existed, at rate 1, came back 138 times larger).
+     */
+    public function amountInSyp(float $rate, string $target = Currency::SYP): float
     {
-        return $this->amountInUsd() * $sypRate;
+        if ($this->currency === $target) {
+            return (float) $this->amount;
+        }
+
+        return $this->amountInUsd() * $rate;
     }
 
     public function remainingAmountInUsd(): float

@@ -68,7 +68,7 @@ class CashBoxController extends Controller
         // carried into it (income - expenses + exchanged - sadcop, summed since the beginning),
         // which is mathematically the same figure as chaining "yesterday's opening + yesterday's
         // net" one day at a time, just computed in one pass instead of recursively.
-        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), true, $user->id, $sypRate)['net'];
+        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->startOfDay()->subSecond(), true, $user->id, $sypRate)['net'];
 
         $cashBox = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
         $primary = Currency::primary();
@@ -468,9 +468,9 @@ class CashBoxController extends Controller
         $primaryDecimals = Currency::decimals($primary);
 
         $incomeBySourceSyp = [
-            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate)), $primaryDecimals),
+            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate, $primary)), $primaryDecimals),
             'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions, $primaryRate),
-            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate)), $primaryDecimals),
+            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate, $primary)), $primaryDecimals),
             'debt_collections' => round($receivablePayments->sum(fn ($p) => ExchangeRate::convert((float) $p->amount, $p->currency, $primary)), $primaryDecimals),
         ];
 

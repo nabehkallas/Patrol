@@ -80,20 +80,20 @@ class AnnualFinancialSummary
                         $litersByFuelType[$name] = ($litersByFuelType[$name] ?? 0.0) + (float) $t->liters;
                     }
                     if (! $pending) {
-                        $row['fuel_revenue'] += $t->amountInSyp($sypRate);
+                        $row['fuel_revenue'] += $t->amountInSyp($sypRate, Currency::primary());
                     }
                     break;
 
                 case TransactionType::OtherIncome:
                     if (! $pending) {
-                        $row[$t->shop_item_id ? 'store_revenue' : 'other_revenue'] += $t->amountInSyp($sypRate);
+                        $row[$t->shop_item_id ? 'store_revenue' : 'other_revenue'] += $t->amountInSyp($sypRate, Currency::primary());
                     }
                     break;
 
                 case TransactionType::Expense:
                 case TransactionType::Purchase:
                     if (! $pending) {
-                        $row[$t->sadcopLedgerEntry !== null ? 'sadcop' : 'expenses'] += $t->amountInSyp($sypRate);
+                        $row[$t->sadcopLedgerEntry !== null ? 'sadcop' : 'expenses'] += $t->amountInSyp($sypRate, Currency::primary());
                     }
                     break;
 
