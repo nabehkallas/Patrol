@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { LockIcon } from 'lucide-react';
+import { useState } from 'react';
 import {
     Bar,
     BarChart,
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import type { Locale } from '@/hooks/use-locale';
 import { LOCALES, useLocale } from '@/hooks/use-locale';
-import { formatNumber, formatPrimary } from '@/lib/format';
+import { formatCurrencyAmount, formatNumber } from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -45,15 +46,21 @@ export type AnnualMonth = {
     sadcop: number;
 };
 
-export type AnnualSummaryData = {
-    year: number;
-    years: number[];
+/** One currency's year: every amount in that currency only (nothing is converted). */
+export type AnnualCurrencyData = {
     months: AnnualMonth[];
     totals: AnnualMonth;
     peak_revenue: { month: number; value: number } | null;
     peak_expense: { month: number; value: number } | null;
-    liters_by_fuel_type: { name: string; liters: number; percent: number }[];
     has_other_revenue: boolean;
+};
+
+export type AnnualSummaryData = {
+    year: number;
+    years: number[];
+    /** The primary currency first, then any other currency the year has money in. */
+    currencies: Record<string, AnnualCurrencyData>;
+    liters_by_fuel_type: { name: string; liters: number; percent: number }[];
 };
 
 const REVENUE_COLOR = '#10b981'; // emerald-500
@@ -101,14 +108,20 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
     const { t, locale } = useTranslation();
     const fuelColors = useFuelColors();
     const { direction } = useLocale();
+    const codes = Object.keys(data.currencies);
+    const [picked, setPicked] = useState(codes[0]);
+    // The chosen currency, or the primary one if the newly picked year doesn't have it.
+    const currency = picked in data.currencies ? picked : codes[0];
+    const view = data.currencies[currency];
+    const money = (value: number) => formatCurrencyAmount(value, currency);
 
-    const chartData = data.months.map((row) => ({
+    const chartData = view.months.map((row) => ({
         name: monthName(row.month, locale, 'short'),
         revenue: row.revenue,
         expenses: row.expenses,
     }));
 
-    const hasData = data.months.some(
+    const hasData = view.months.some(
         (row) =>
             row.revenue > 0 ||
             row.expenses > 0 ||
@@ -121,7 +134,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
             { key: 'liters', label: t('statistics.col_liters'), liters: true },
             { key: 'fuel_revenue', label: t('statistics.col_fuel_revenue') },
             { key: 'store_revenue', label: t('statistics.col_store_revenue') },
-            ...(data.has_other_revenue
+            ...(view.has_other_revenue
                 ? [
                       {
                           key: 'other_revenue' as const,
@@ -137,9 +150,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
         ];
 
     const cell = (row: AnnualMonth, key: keyof AnnualMonth, liters?: true) =>
-        liters
-            ? `${formatNumber(row[key])} L`
-            : formatPrimary(row[key] as number);
+        liters ? `${formatNumber(row[key])} L` : money(row[key] as number);
 
     return (
         <div className="space-y-6">
@@ -172,6 +183,31 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 ))}
                             </SelectContent>
                         </Select>
+                        {codes.length > 1 && (
+                            <div
+                                className="bg-muted inline-flex gap-1 rounded-lg p-1"
+                                role="tablist"
+                                aria-label={t('common.currency')}
+                            >
+                                {codes.map((code) => (
+                                    <button
+                                        key={code}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={code === currency}
+                                        onClick={() => setPicked(code)}
+                                        className={cn(
+                                            'rounded-md px-3 py-1 text-sm transition-colors',
+                                            code === currency
+                                                ? 'bg-background shadow-xs font-medium'
+                                                : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        {code}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <Button
                         variant="outline"
@@ -188,15 +224,13 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                     label={t('statistics.peak_revenue_month')}
                     accent="border-t-emerald-500"
                     value={
-                        data.peak_revenue
-                            ? formatPrimary(data.peak_revenue.value)
-                            : '—'
+                        view.peak_revenue ? money(view.peak_revenue.value) : '—'
                     }
                     detail={
-                        data.peak_revenue ? (
+                        view.peak_revenue ? (
                             <span className="font-medium text-emerald-600 dark:text-emerald-400">
                                 {monthName(
-                                    data.peak_revenue.month,
+                                    view.peak_revenue.month,
                                     locale,
                                     'long',
                                 )}{' '}
@@ -211,15 +245,13 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                     label={t('statistics.peak_expense_month')}
                     accent="border-t-rose-500"
                     value={
-                        data.peak_expense
-                            ? formatPrimary(data.peak_expense.value)
-                            : '—'
+                        view.peak_expense ? money(view.peak_expense.value) : '—'
                     }
                     detail={
-                        data.peak_expense ? (
+                        view.peak_expense ? (
                             <span className="font-medium text-rose-600 dark:text-rose-400">
                                 {monthName(
-                                    data.peak_expense.month,
+                                    view.peak_expense.month,
                                     locale,
                                     'long',
                                 )}{' '}
@@ -233,7 +265,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                 <HighlightCard
                     label={t('statistics.annual_liters_sold')}
                     accent="border-t-slate-500"
-                    value={`${formatNumber(data.totals.liters)} L`}
+                    value={`${formatNumber(view.totals.liters)} L`}
                     detail={
                         data.liters_by_fuel_type.length > 0 ? (
                             <span className="flex flex-wrap gap-x-4 gap-y-1">
@@ -299,9 +331,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 />
                                 <Tooltip
                                     cursor={{ fillOpacity: 0.08 }}
-                                    formatter={(value) =>
-                                        formatPrimary(Number(value))
-                                    }
+                                    formatter={(value) => money(Number(value))}
                                     contentStyle={{
                                         background: 'var(--popover)',
                                         borderColor: 'var(--border)',
@@ -358,7 +388,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.months.map((row) => (
+                                {view.months.map((row) => (
                                     <tr key={row.month} className="border-t">
                                         <td className="px-4 py-2.5 text-start font-medium">
                                             {monthName(
@@ -397,7 +427,7 @@ export function AnnualSummary({ data }: { data: AnnualSummaryData }) {
                                             className="px-4 py-3 text-end tabular-nums"
                                         >
                                             {cell(
-                                                data.totals,
+                                                view.totals,
                                                 column.key,
                                                 column.liters,
                                             )}

@@ -56,15 +56,7 @@ type PageProps = {
     };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
-    converted: ConvertedTotals;
     history: CashBoxHistoryEntry[];
-};
-
-type ConvertedTotals = {
-    currency: string;
-    opening: number;
-    net: number;
-    balance: number;
 };
 
 /** Every currency besides the primary one that has activity anywhere in this summary (SYP
@@ -273,70 +265,6 @@ function CategorySection({
     );
 }
 
-/**
- * Every currency's balance converted into the primary one at today's rates and added up, so a
- * station holding several currencies sees one overall figure. Shown only when the cash box
- * holds more than the primary currency.
- */
-function ConvertedTotalCard({
-    converted,
-    t,
-}: {
-    converted: ConvertedTotals;
-    t: (key: TranslationKey) => string;
-}) {
-    const amount = (value: number) =>
-        formatCurrencyAmount(value, converted.currency);
-
-    return (
-        <Card
-            className="border-sky-500/30 bg-sky-500/5"
-            data-test="cash-box-converted"
-        >
-            <CardContent className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="flex items-center gap-2 font-semibold">
-                        <Coins className="size-4 text-sky-500" />
-                        {t('cash_box.converted_title').replace(
-                            ':currency',
-                            converted.currency,
-                        )}
-                    </p>
-                    <span className="text-muted-foreground text-xs">
-                        {t('cash_box.converted_note')}
-                    </span>
-                </div>
-                <div className="grid gap-3 text-sm sm:grid-cols-3">
-                    <div>
-                        <div className="text-muted-foreground text-xs">
-                            {t('cash_box.opening_balance')}
-                        </div>
-                        <div className="font-semibold">
-                            {amount(converted.opening)}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-muted-foreground text-xs">
-                            {t('dashboard.net')}
-                        </div>
-                        <div className="font-semibold">
-                            {amount(converted.net)}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-muted-foreground text-xs">
-                            {t('cash_box.current_balance')}
-                        </div>
-                        <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
-                            {amount(converted.balance)}
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
 function OtherCurrencyBoxes({
     totals,
     openingBalance,
@@ -517,7 +445,6 @@ export default function CashBoxIndex() {
         filters,
         cashBox: totals,
         openingBalance,
-        converted,
         history,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
@@ -676,22 +603,26 @@ export default function CashBoxIndex() {
                                     icon={<Fuel className="size-4" />}
                                     label={t('cash_box.total_fuel_sales')}
                                     total={formatPrimary(
-                                        totals.income_by_source_syp.fuel_sales,
+                                        totals.income_by_source.fuel_sales[
+                                            primary
+                                        ] ?? 0,
                                     )}
                                 >
-                                    {totals.income_by_source_syp.fuel_sales_by_type.map(
-                                        (row) => (
+                                    {totals.income_by_source.fuel_sales_by_type
+                                        .filter(
+                                            (row) => row.currency === primary,
+                                        )
+                                        .map((row) => (
                                             <ItemRow
-                                                key={row.name}
+                                                key={`${row.name}-${row.currency}`}
                                                 tone="income"
                                                 label={row.name}
                                                 value={formatPrimary(
-                                                    row.revenue_syp,
+                                                    row.revenue,
                                                 )}
-                                                subLine={`${formatNumber(row.liters)} L × ${formatPrimary(row.unit_price_syp)}`}
+                                                subLine={`${formatNumber(row.liters)} L × ${formatPrimary(row.unit_price)}`}
                                             />
-                                        ),
-                                    )}
+                                        ))}
                                 </CategorySection>
 
                                 <CategorySection
@@ -702,8 +633,8 @@ export default function CashBoxIndex() {
                                         tone="income"
                                         label={t('cash_box.store_income')}
                                         value={formatPrimary(
-                                            totals.income_by_source_syp
-                                                .store_income,
+                                            totals.income_by_source
+                                                .store_income[primary] ?? 0,
                                         )}
                                     />
                                 </CategorySection>
@@ -716,8 +647,8 @@ export default function CashBoxIndex() {
                                         tone="income"
                                         label={t('cash_box.debt_collections')}
                                         value={formatPrimary(
-                                            totals.income_by_source_syp
-                                                .debt_collections,
+                                            totals.income_by_source
+                                                .debt_collections[primary] ?? 0,
                                         )}
                                     />
                                 </CategorySection>
@@ -819,10 +750,6 @@ export default function CashBoxIndex() {
                     openingBalance={openingBalance}
                     t={t}
                 />
-
-                {otherCurrencies(totals, openingBalance).length > 0 && (
-                    <ConvertedTotalCard converted={converted} t={t} />
-                )}
 
                 <div className="flex items-center gap-3 rounded-xl border p-3">
                     <Button

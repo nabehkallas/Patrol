@@ -8,7 +8,6 @@ use App\Http\Requests\StoreSadcopDeliveryRequest;
 use App\Http\Requests\StoreSadcopDepositRequest;
 use App\Http\Requests\StoreSadcopOpeningBalanceRequest;
 use App\Http\Requests\UpdateSadcopEntryRequest;
-use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
@@ -337,16 +336,14 @@ class SadcopController extends Controller
             ? Carbon::parse($data['occurred_at'])->setTimeFrom(now())
             : now();
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-
-        DB::transaction(function () use ($request, $data, $sypRate) {
+        DB::transaction(function () use ($request, $data) {
             $transaction = Transaction::create([
                 'user_id' => $request->user()->id,
                 'type' => TransactionType::Purchase,
                 'description' => 'Sadcop balance transfer',
                 'amount' => $data['amount'],
                 'currency' => Currency::SYP,
-                'exchange_rate_to_usd' => $sypRate,
+                'exchange_rate_to_usd' => null,
                 'occurred_at' => $data['occurred_at'],
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -381,15 +378,21 @@ class SadcopController extends Controller
 
     /**
      * Sadcop's cost price for a liter of fuel: the current selling price minus the
-     * configured profit margin — mirrors the calculation in Admin\EarningsController.
+     * configured profit margin — mirrors the calculation in Admin\EarningsController. Sadcop
+     * bills in SYP, so this is only suggested when the fuel's price is in SYP too; otherwise
+     * there's nothing to suggest (no exchange rate is used to make one up).
      */
-    private function defaultCostPricePerLiter(Tank $tank, float $sypRate): float
+    private function defaultCostPricePerLiter(Tank $tank): ?float
     {
         $currentPrice = $tank->fuelType->currentPrice();
-        $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
+
+        if (! $currentPrice || $currentPrice->currency !== Currency::SYP) {
+            return null;
+        }
+
         $marginPercent = (float) ($tank->fuelType->profit_margin_percent ?? 0);
 
-        return round($priceSyp * (1 - $marginPercent / 100), 3);
+        return round((float) $currentPrice->price_per_liter * (1 - $marginPercent / 100), 3);
     }
 
     public function storeDelivery(StoreSadcopDeliveryRequest $request): RedirectResponse
@@ -405,9 +408,7 @@ class SadcopController extends Controller
             return back()->withErrors(['amount' => __('This exceeds the current Sadcop balance.')])->withInput();
         }
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-
-        DB::transaction(function () use ($request, $data, $sypRate) {
+        DB::transaction(function () use ($request, $data) {
             $transaction = Transaction::create([
                 'user_id' => $request->user()->id,
                 'type' => TransactionType::FuelDelivery,
@@ -417,7 +418,7 @@ class SadcopController extends Controller
                 'price_per_liter' => $data['price_per_liter'],
                 'amount' => $data['amount'],
                 'currency' => Currency::SYP,
-                'exchange_rate_to_usd' => $sypRate,
+                'exchange_rate_to_usd' => null,
                 'occurred_at' => $data['occurred_at'],
                 'notes' => $data['notes'] ?? null,
                 'paid_by_sadcop' => true,
@@ -552,8 +553,6 @@ class SadcopController extends Controller
      */
     private function tankOptions(): array
     {
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-
         return Tank::with('fuelType')
             ->orderBy('fuel_type_id')
             ->orderBy('name')
@@ -565,7 +564,7 @@ class SadcopController extends Controller
                 'fuel_type_name' => $tank->fuelType->name,
                 'is_active' => $tank->is_active,
                 'remaining_liters' => round($tank->remainingCapacity(), 3),
-                'default_cost_price_per_liter' => $this->defaultCostPricePerLiter($tank, $sypRate),
+                'default_cost_price_per_liter' => $this->defaultCostPricePerLiter($tank),
             ])
             ->all();
     }

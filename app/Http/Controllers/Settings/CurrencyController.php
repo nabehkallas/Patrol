@@ -40,8 +40,9 @@ class CurrencyController extends Controller
             'name' => ['required', 'string', 'max:60'],
             'symbol' => ['nullable', 'string', 'max:8'],
             'decimals' => ['required', 'integer', 'min:0', 'max:4'],
-            // Units of this currency per 1 USD; USD itself is the pivot and needs none.
-            'rate_to_usd' => [Rule::requiredIf($request->input('code') !== Currency::USD), 'nullable', 'numeric', 'gt:0'],
+            // Optional: units of this currency per 1 USD, the starting rate for currency exchanges
+            // (the only place a rate is used). It can be set later under Exchange Rates.
+            'rate_to_usd' => ['nullable', 'numeric', 'gt:0'],
         ]);
 
         DB::transaction(function () use ($data, $request) {
@@ -54,7 +55,7 @@ class CurrencyController extends Controller
                 'is_primary' => false,
             ]);
 
-            if ($data['code'] !== Currency::USD) {
+            if ($data['code'] !== Currency::USD && ! empty($data['rate_to_usd'])) {
                 ExchangeRate::create([
                     'currency' => $data['code'],
                     'rate_to_usd' => $data['rate_to_usd'],
@@ -97,10 +98,6 @@ class CurrencyController extends Controller
     public function makePrimary(string $code): RedirectResponse
     {
         $currency = StationCurrency::findOrFail($code);
-
-        if ($code !== Currency::USD && ! ExchangeRate::where('currency', $code)->exists()) {
-            return back()->withErrors(['primary' => __('Set an exchange rate for :code before making it the primary currency.', ['code' => $code])]);
-        }
 
         DB::transaction(function () use ($currency) {
             StationCurrency::query()->update(['is_primary' => false]);

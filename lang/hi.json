@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "नींबू हरा",
     "fuel_types.color_fuchsia": "गुलाबी",
     "fuel_prices.history": "मूल्य इतिहास",
-    "exchange_rates.history": "विनिमय दर इतिहास"
+    "exchange_rates.history": "विनिमय दर इतिहास",
+    "transactions.exchange_rate_pair": "विनिमय दर"
 }

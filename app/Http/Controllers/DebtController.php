@@ -12,7 +12,6 @@ use App\Http\Requests\TransferDebtRequest;
 use App\Http\Requests\UpdateDebtRequest;
 use App\Models\Debt;
 use App\Models\Debtor;
-use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
@@ -76,7 +75,6 @@ class DebtController extends Controller
             ->get();
 
         $cards = [];
-        $sortKeys = [];
 
         foreach ($debts->groupBy('debtor_id') as $debtorDebts) {
             /** @var Debt $first */
@@ -93,10 +91,13 @@ class DebtController extends Controller
                 'outstanding' => $outstanding,
                 'count' => $debtorDebts->count(),
             ];
-            $sortKeys[] = ExchangeRate::convertBreakdown($outstanding, Currency::primary());
         }
 
-        array_multisort($sortKeys, SORT_DESC, SORT_NUMERIC, $cards);
+        // Largest first by what's owed in the primary currency, then by other currencies -- each
+        // compared in its own currency, never converted.
+        $primary = Currency::primary();
+        usort($cards, fn (array $a, array $b) => [$b['outstanding'][$primary] ?? 0, array_sum($b['outstanding'])]
+            <=> [$a['outstanding'][$primary] ?? 0, array_sum($a['outstanding'])]);
 
         return $cards;
     }
@@ -291,9 +292,6 @@ class DebtController extends Controller
         return Inertia::render('debts/create', [
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'fuelTypes' => $this->fuelTypeOptions(),
-            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
-                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
-            ),
         ]);
     }
 
@@ -315,9 +313,8 @@ class DebtController extends Controller
         $data['recorded_by_id'] = $request->user()->id;
         $data['status'] = DebtStatus::Outstanding->value;
 
-        if (empty($data['exchange_rate_to_usd'])) {
-            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor((string) $data['currency']);
-        }
+        // A debt stays in its own currency; no exchange rate is stored with it.
+        $data['exchange_rate_to_usd'] = null;
 
         $affectCashBoxNow = $data['affect_cash_box'] ?? false;
         unset($data['affect_cash_box']);
@@ -368,9 +365,6 @@ class DebtController extends Controller
             ]),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'fuelTypes' => $this->fuelTypeOptions(),
-            'exchangeRates' => collect(Currency::codes())->mapWithKeys(
-                fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
-            ),
         ]);
     }
 

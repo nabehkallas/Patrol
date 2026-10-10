@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "Limon yeşili",
     "fuel_types.color_fuchsia": "Pembe",
     "fuel_prices.history": "Fiyat geçmişi",
-    "exchange_rates.history": "Kur geçmişi"
+    "exchange_rates.history": "Kur geçmişi",
+    "transactions.exchange_rate_pair": "Döviz kuru"
 }

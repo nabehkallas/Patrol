@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TransactionType;
-use App\Models\ExchangeRate;
 use App\Models\ShopItem;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
@@ -558,7 +557,7 @@ class ShopController extends Controller
             'description' => $item->name.' × '.$data['quantity'],
             'amount' => $data['amount'],
             'currency' => $data['currency'],
-            'exchange_rate_to_usd' => ExchangeRate::currentRateFor((string) $data['currency']),
+            'exchange_rate_to_usd' => null,
             'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
             'notes' => $data['notes'] ?? null,
         ]);
@@ -599,7 +598,7 @@ class ShopController extends Controller
             'description' => $item->name.' × '.$data['quantity'],
             'amount' => $data['amount'],
             'currency' => $currency,
-            'exchange_rate_to_usd' => ExchangeRate::currentRateFor($currency),
+            'exchange_rate_to_usd' => null,
             'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
             'notes' => $data['notes'] ?? null,
         ]);

@@ -6,7 +6,6 @@ use App\Enums\DebtStatus;
 use App\Enums\SadcopLedgerEntryType;
 use App\Models\Debt;
 use App\Models\Debtor;
-use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelPump;
 use App\Models\FuelType;
@@ -178,7 +177,7 @@ class OnboardingController extends Controller
             'debtor_id' => $debtor->id,
             'amount' => $data['amount'],
             'currency' => $currency,
-            'exchange_rate_to_usd' => ExchangeRate::currentRateFor($currency),
+            'exchange_rate_to_usd' => null,
             'date' => now()->toDateString(),
             'details' => $data['details'] ?? null,
             'status' => DebtStatus::Outstanding,

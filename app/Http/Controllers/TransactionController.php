@@ -160,8 +160,10 @@ class TransactionController extends Controller
             $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
         }
 
-        if (empty($data['exchange_rate_to_usd'])) {
-            $data['exchange_rate_to_usd'] = ExchangeRate::currentRateFor((string) $data['currency']);
+        // Only a currency exchange carries a rate -- the one entered for that exchange. No other
+        // record uses or stores one (amounts always stay in their own currency).
+        if ($data['type'] !== TransactionType::CurrencyExchange->value) {
+            $data['exchange_rate_to_usd'] = null;
         }
 
         $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;
@@ -240,6 +242,12 @@ class TransactionController extends Controller
 
         if (! empty($data['tank_id'])) {
             $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
+        }
+
+        // Only a currency exchange carries a rate -- the one entered for that exchange. No other
+        // record uses or stores one (amounts always stay in their own currency).
+        if ($data['type'] !== TransactionType::CurrencyExchange->value) {
+            $data['exchange_rate_to_usd'] = null;
         }
 
         $markAsDebt = ($data['mark_as_debt'] ?? false) && $data['type'] !== TransactionType::CurrencyExchange->value;

@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Enums\TransactionType;
-use App\Models\ExchangeRate;
 use App\Models\FuelCostAllocation;
 use App\Models\FuelCostLayer;
 use App\Models\FuelPrice;
@@ -12,7 +11,6 @@ use App\Models\Tank;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Services\FuelCostAllocationService;
-use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -65,13 +63,12 @@ class BackfillFuelCostLayers extends Command
 
         $this->info(($dryRun ? '[DRY RUN] ' : '').'Backfilling fuel cost layers for tenant '.$tenant->id.' from '.$from->toDateString());
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
         $summary = [];
 
         try {
-            DB::transaction(function () use ($from, $sypRate, &$summary) {
+            DB::transaction(function () use ($from, &$summary) {
                 foreach (FuelType::with('prices')->orderBy('name')->get() as $fuelType) {
-                    $summary[$fuelType->name] = $this->backfillFuelType($fuelType, $from, $sypRate);
+                    $summary[$fuelType->name] = $this->backfillFuelType($fuelType, $from);
                 }
 
                 if ($this->option('dry-run')) {
@@ -106,7 +103,7 @@ class BackfillFuelCostLayers extends Command
     /**
      * @return array{layers_created: int, allocations_reassigned: int, layers: array<int, array<string, mixed>>}
      */
-    private function backfillFuelType(FuelType $fuelType, CarbonInterface $from, float $sypRate): array
+    private function backfillFuelType(FuelType $fuelType, CarbonInterface $from): array
     {
         $priceChanges = FuelPrice::where('fuel_type_id', $fuelType->id)
             ->where('effective_at', '>=', $from)
@@ -139,7 +136,7 @@ class BackfillFuelCostLayers extends Command
 
         foreach ($timeline as $event) {
             if ($event['model'] instanceof FuelPrice) {
-                $layer = $this->createHistoricalLayerIfApplicable($fuelType, $event['model'], $sypRate);
+                $layer = $this->createHistoricalLayerIfApplicable($fuelType, $event['model']);
 
                 if ($layer) {
                     $layersCreated[] = [
@@ -183,11 +180,11 @@ class BackfillFuelCostLayers extends Command
 
             if ($priceAtSale) {
                 $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
-                $correctedCostSyp = $priceAtSale->amountInSyp($sypRate) * (1 - $marginPercent / 100);
+                $correctedCost = (float) $priceAtSale->price_per_liter * (1 - $marginPercent / 100);
 
                 FuelCostAllocation::where('transaction_id', $sale->id)
                     ->whereNull('fuel_cost_layer_id')
-                    ->update(['cost_per_liter_syp' => round($correctedCostSyp, 4)]);
+                    ->update(['cost_per_liter_syp' => round($correctedCost, 4), 'currency' => $priceAtSale->currency]);
             }
 
             $allocationsReassigned++;
@@ -205,7 +202,7 @@ class BackfillFuelCostLayers extends Command
      * replaced throughout by $fuelPrice->effective_at (the historical moment being replayed),
      * and tank inventory is reconstructed as of that moment instead of read live.
      */
-    private function createHistoricalLayerIfApplicable(FuelType $fuelType, FuelPrice $fuelPrice, float $sypRate): ?FuelCostLayer
+    private function createHistoricalLayerIfApplicable(FuelType $fuelType, FuelPrice $fuelPrice): ?FuelCostLayer
     {
         // Idempotency: never create a second layer for a price change already backfilled (or
         // already created live) -- without this, re-running the command after it already
@@ -255,7 +252,7 @@ class BackfillFuelCostLayers extends Command
         }
 
         $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
-        $oldCostPerLiterSyp = $oldPrice->amountInSyp($sypRate) * (1 - $marginPercent / 100);
+        $oldCostPerLiter = (float) $oldPrice->price_per_liter * (1 - $marginPercent / 100);
 
         $historicLiters = $fuelType->tanks()
             ->where('is_active', true)
@@ -279,7 +276,8 @@ class BackfillFuelCostLayers extends Command
         $layer = new FuelCostLayer([
             'fuel_type_id' => $fuelType->id,
             'fuel_price_id' => $fuelPrice->id,
-            'cost_per_liter_syp' => round($oldCostPerLiterSyp, 4),
+            'cost_per_liter_syp' => round($oldCostPerLiter, 4),
+            'currency' => $oldPrice->currency,
             'initial_liters' => round($historicLiters, 3),
             'effective_from' => $layerTimestamp,
         ]);

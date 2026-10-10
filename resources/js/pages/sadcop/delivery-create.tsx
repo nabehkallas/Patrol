@@ -59,11 +59,12 @@ export default function SadcopDeliveryCreate() {
     // Prefill the cost price whenever the tank changes; the user can still
     // overwrite it afterwards for that tank.
     useEffect(() => {
-        if (!selectedTank) {
+        const defaultPrice = selectedTank?.default_cost_price_per_liter;
+
+        // Nothing to suggest (no tank, or its fuel isn't priced in SYP): leave the field as is.
+        if (defaultPrice === null || defaultPrice === undefined) {
             return;
         }
-
-        const defaultPrice = selectedTank.default_cost_price_per_liter;
 
         form.setData((data) => {
             const liters = parseFloat(data.liters);

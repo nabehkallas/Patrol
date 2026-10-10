@@ -45,36 +45,4 @@ class ExchangeRate extends Model
 
         return $rate ? (float) $rate->rate_to_usd : 1.0;
     }
-
-    /**
-     * Converts an amount between any two of the station's currencies at today's rates, through
-     * USD (every rate is "units per 1 USD"). For figures that have no recorded rate of their
-     * own, such as a cash box balance that mixes many days.
-     */
-    public static function convert(float $amount, string $from, string $to): float
-    {
-        if ($from === $to) {
-            return $amount;
-        }
-
-        $fromRate = static::currentRateFor($from);
-
-        return $fromRate > 0 ? $amount / $fromRate * static::currentRateFor($to) : 0.0;
-    }
-
-    /**
-     * A per-currency breakdown converted into one currency and summed.
-     *
-     * @param  array<string, float>  $breakdown
-     */
-    public static function convertBreakdown(array $breakdown, string $to): float
-    {
-        $total = 0.0;
-
-        foreach ($breakdown as $currency => $amount) {
-            $total += static::convert((float) $amount, (string) $currency, $to);
-        }
-
-        return round($total, Currency::decimals($to));
-    }
 }

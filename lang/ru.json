@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "Лаймовый",
     "fuel_types.color_fuchsia": "Розовый",
     "fuel_prices.history": "История цен",
-    "exchange_rates.history": "История курсов"
+    "exchange_rates.history": "История курсов",
+    "transactions.exchange_rate_pair": "Обменный курс"
 }

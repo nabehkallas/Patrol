@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Currency;
 use Illuminate\Http\Response;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -48,18 +49,17 @@ class EarningsXlsxExporter
 
     private const FUEL_BLOCK_GAP = 1;
 
-    private const FMT_MONEY = '#,##0';
-
     private const FMT_RATE = '#,##0.00';
 
-    private const FMT_USD = '"$"#,##0.00';
+    /** Whole numbers for SYP, cents for currencies that have them (set per sheet). */
+    private string $moneyFormat = '#,##0';
 
     private Worksheet $sheet;
 
     /**
      * @param  array<int, array{label: string, price_syp: float}>  $priceReference
      * @param  array<int, array<string, mixed>>  $fuelBreakdown  same shape as EarningsController's $breakdown
-     * @param  array{total_syp: int, items: array<int, array<string, mixed>>}  $revaluation
+     * @param  array{total_syp: float, items: array<int, array<string, mixed>>}  $revaluation
      * @param  array{total_revenue_syp: float, total_cogs_syp: float, net_profit_syp: float, items: array<int, array<string, mixed>>}  $shopProfit
      * @param  array<string, string>  $labels
      */
@@ -73,10 +73,11 @@ class EarningsXlsxExporter
         array $shopProfit,
         float $otherExpenseSyp,
         float $totalEarningsSyp,
-        float $sypRate,
         array $labels,
         string $direction = 'ltr',
+        string $currency = 'SYP',
     ): Response {
+        $this->moneyFormat = Currency::decimals($currency) > 0 ? '#,##0.00' : '#,##0';
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
         $this->sheet = $spreadsheet->getActiveSheet();
@@ -115,7 +116,7 @@ class EarningsXlsxExporter
         $maxCol = max($maxCol, $endCol);
         $row++;
 
-        $this->writeGrandTotal($row, $fuelSubtotalRefs, $revaluationTotalRef, $shopNetProfitRef, $otherExpenseSyp, $sypRate, $labels);
+        $this->writeGrandTotal($row, $fuelSubtotalRefs, $revaluationTotalRef, $shopNetProfitRef, $otherExpenseSyp, $labels);
 
         $this->autoSizeColumns($maxCol);
 
@@ -204,10 +205,10 @@ class EarningsXlsxExporter
             if ($marginLastRow >= $marginFirstRow) {
                 $this->setValue($startCol, $row, $labels['margin_earnings']);
                 $this->setFormula($startCol + 2, $row, 'SUM('.$this->range($startCol + 2, $marginFirstRow, $startCol + 2, $marginLastRow).')')
-                    ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                    ->getNumberFormat()->setFormatCode($this->moneyFormat);
             } else {
                 $this->setValue($startCol, $row, $labels['margin_earnings']);
-                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode($this->moneyFormat);
             }
             $this->shadeAndBorder($marginFirstRow - 1, $startCol, $row, $lastCol, self::BLUE, $marginFirstRow);
             $row++;
@@ -229,10 +230,10 @@ class EarningsXlsxExporter
             if ($topupLastRow >= $topupFirstRow) {
                 $this->setValue($startCol, $row, $labels['topup_earnings']);
                 $this->setFormula($startCol + 2, $row, 'SUM('.$this->range($startCol + 2, $topupFirstRow, $startCol + 2, $topupLastRow).')')
-                    ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                    ->getNumberFormat()->setFormatCode($this->moneyFormat);
             } else {
                 $this->setValue($startCol, $row, $labels['topup_earnings']);
-                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setValue($startCol + 2, $row, 0)->getNumberFormat()->setFormatCode($this->moneyFormat);
             }
             $this->shadeAndBorder($topupFirstRow - 1, $startCol, $row, $lastCol, self::BLUE, $topupFirstRow);
             $row++;
@@ -244,7 +245,7 @@ class EarningsXlsxExporter
                 $startCol + 2, $row,
                 $this->ref($startCol + 2, $marginEarningsRow).'+'.$this->ref($startCol + 2, $topupEarningsRow),
             );
-            $subtotalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            $subtotalCell->getNumberFormat()->setFormatCode($this->moneyFormat);
             $subtotalCell->getFont()->setBold(true);
             $this->shadeAndBorder($row, $startCol, $row, $lastCol, self::BLUE, $row);
 
@@ -266,11 +267,11 @@ class EarningsXlsxExporter
         $this->setClean($startCol, $row, $rate);
         $this->setClean($startCol + 1, $row, $liters);
         $this->setFormula($startCol + 2, $row, $this->ref($startCol, $row).'*'.$this->ref($startCol + 1, $row))
-            ->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+            ->getNumberFormat()->setFormatCode($this->moneyFormat);
     }
 
     /**
-     * @param  array{total_syp: int, items: array<int, array<string, mixed>>}  $revaluation
+     * @param  array{total_syp: float, items: array<int, array<string, mixed>>}  $revaluation
      * @param  array<string, string>  $labels
      * @return array{0: int, 1: string, 2: int} next free row, the Total cell's reference, last used column
      */
@@ -290,7 +291,7 @@ class EarningsXlsxExporter
                 $this->setValue(3, $row, $tier['old_price_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
                 $this->setValue(4, $row, $tier['new_price_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
                 $this->setFormula(5, $row, $this->ref(4, $row).'-'.$this->ref(3, $row))->getNumberFormat()->setFormatCode(self::FMT_RATE);
-                $this->setFormula(6, $row, $this->ref(2, $row).'*'.$this->ref(5, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setFormula(6, $row, $this->ref(2, $row).'*'.$this->ref(5, $row))->getNumberFormat()->setFormatCode($this->moneyFormat);
                 $row++;
             }
         }
@@ -299,7 +300,7 @@ class EarningsXlsxExporter
         $totalRow = $row;
         $this->setValue(1, $row, $labels['total'])->getFont()->setBold(true);
         $totalCell = $this->setFormula(6, $row, 'SUM('.$this->range(6, $firstDataRow, 6, $lastDataRow).')');
-        $totalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $totalCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $totalCell->getFont()->setBold(true);
 
         $this->shadeAndBorder($startRow, 1, $row, 6, self::GREEN, $firstDataRow);
@@ -333,11 +334,11 @@ class EarningsXlsxExporter
 
             foreach ($shopProfit['items'] as $item) {
                 $this->setValue(1, $row, $item['name']);
-                $this->setValue(2, $row, $item['quantity_sold'])->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setValue(2, $row, $item['quantity_sold'])->getNumberFormat()->setFormatCode($this->moneyFormat);
                 $this->setValue(3, $row, $item['cost_per_unit_syp'])->getNumberFormat()->setFormatCode(self::FMT_RATE);
-                $this->setValue(4, $row, $item['revenue_syp'])->getNumberFormat()->setFormatCode(self::FMT_MONEY);
-                $this->setFormula(5, $row, $this->ref(2, $row).'*'.$this->ref(3, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
-                $this->setFormula(6, $row, $this->ref(4, $row).'-'.$this->ref(5, $row))->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+                $this->setValue(4, $row, $item['revenue_syp'])->getNumberFormat()->setFormatCode($this->moneyFormat);
+                $this->setFormula(5, $row, $this->ref(2, $row).'*'.$this->ref(3, $row))->getNumberFormat()->setFormatCode($this->moneyFormat);
+                $this->setFormula(6, $row, $this->ref(4, $row).'-'.$this->ref(5, $row))->getNumberFormat()->setFormatCode($this->moneyFormat);
                 $row++;
             }
 
@@ -356,7 +357,7 @@ class EarningsXlsxExporter
         $revenueCell = $revenueRef
             ? $this->setFormula(2, $row, 'SUM('.$revenueRef.')')
             : $this->setValue(2, $row, 0);
-        $revenueCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $revenueCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $revenueSummaryRow = $row;
         $row++;
 
@@ -364,13 +365,13 @@ class EarningsXlsxExporter
         $cogsCell = $cogsRef
             ? $this->setFormula(2, $row, 'SUM('.$cogsRef.')')
             : $this->setValue(2, $row, 0);
-        $cogsCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $cogsCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $cogsSummaryRow = $row;
         $row++;
 
         $this->setValue(1, $row, $labels['net_profit'])->getFont()->setBold(true);
         $netProfitCell = $this->setFormula(2, $row, $this->ref(2, $revenueSummaryRow).'-'.$this->ref(2, $cogsSummaryRow));
-        $netProfitCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $netProfitCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $netProfitCell->getFont()->setBold(true);
         $netProfitRow = $row;
 
@@ -383,7 +384,7 @@ class EarningsXlsxExporter
      * @param  array<int, string>  $fuelSubtotalRefs
      * @param  array<string, string>  $labels
      */
-    private function writeGrandTotal(int $row, array $fuelSubtotalRefs, ?string $revaluationTotalRef, string $shopNetProfitRef, float $otherExpenseSyp, float $sypRate, array $labels): void
+    private function writeGrandTotal(int $row, array $fuelSubtotalRefs, ?string $revaluationTotalRef, string $shopNetProfitRef, float $otherExpenseSyp, array $labels): void
     {
         $terms = $fuelSubtotalRefs;
 
@@ -395,41 +396,22 @@ class EarningsXlsxExporter
 
         $this->setValue(1, $row, $labels['total_earnings']);
         $totalEarningsCell = $this->setFormula(2, $row, implode('+', $terms));
-        $totalEarningsCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $totalEarningsCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $totalEarningsRow = $row;
         $row++;
 
         // A real number read live from expense records, not a formula -- this sheet has no
         // itemized expense breakdown to sum, so there's nothing further to compute it from here.
         $this->setValue(1, $row, $labels['other_expenses']);
-        $this->setValue(2, $row, -$otherExpenseSyp)->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $this->setValue(2, $row, -$otherExpenseSyp)->getNumberFormat()->setFormatCode($this->moneyFormat);
         $otherExpensesRow = $row;
         $row++;
 
         $this->setValue(1, $row, $labels['grand_total'])->getFont()->setBold(true)->setSize(13);
         $grandTotalCell = $this->setFormula(2, $row, $this->ref(2, $totalEarningsRow).'+'.$this->ref(2, $otherExpensesRow));
-        $grandTotalCell->getNumberFormat()->setFormatCode(self::FMT_MONEY);
+        $grandTotalCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $grandTotalCell->getFont()->setBold(true)->setSize(13);
         $this->fillRange(1, $row, 2, $row, self::RED);
-        $grandTotalRow = $row;
-        $row++;
-
-        // Read live from Admin > Exchange Rates -- not hardcoded. If no rate has ever been set
-        // for this station, ExchangeRate::currentRateFor() falls back to 1.0 (so SYP and USD
-        // read the same until a real rate is entered); that fallback is the app's own documented
-        // behavior, not something this export invents.
-        $this->setValue(1, $row, $labels['exchange_rate']);
-        $this->setValue(2, $row, $sypRate)->getNumberFormat()->setFormatCode(self::FMT_RATE);
-        $exchangeRateRow = $row;
-        $row++;
-
-        $this->setValue(1, $row, $labels['grand_total_usd'])->getFont()->setBold(true);
-        // Live formula: Grand Total (SYP) / Exchange Rate -- editing either cell in Excel
-        // recalculates this automatically.
-        $usdCell = $this->setFormula(2, $row, $this->ref(2, $grandTotalRow).'/'.$this->ref(2, $exchangeRateRow));
-        $usdCell->getNumberFormat()->setFormatCode(self::FMT_USD);
-        $usdCell->getFont()->setBold(true);
-        $this->fillRange(1, $row, 2, $row, self::GREEN);
     }
 
     private function writeHeading(int $row, int $startCol, int $endCol, string $text, string $color): int
@@ -512,7 +494,7 @@ class EarningsXlsxExporter
     {
         $this->sheet->setCellValue([$col, $row], $value);
         $isWhole = abs($value - round($value)) < 0.0005;
-        $this->sheet->getStyle([$col, $row])->getNumberFormat()->setFormatCode($isWhole ? self::FMT_MONEY : '#,##0.000');
+        $this->sheet->getStyle([$col, $row])->getNumberFormat()->setFormatCode($isWhole ? $this->moneyFormat : '#,##0.000');
 
         return $this->sheet->getStyle([$col, $row]);
     }

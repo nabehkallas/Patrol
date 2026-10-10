@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "Kesktirş",
     "fuel_types.color_fuchsia": "Pembe",
     "fuel_prices.history": "Dîroka bihayan",
-    "exchange_rates.history": "Dîroka rêjeyan"
+    "exchange_rates.history": "Dîroka rêjeyan",
+    "transactions.exchange_rate_pair": "Rêjeya guherînê"
 }

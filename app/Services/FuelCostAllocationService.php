@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\ExchangeRate;
 use App\Models\FuelCostAllocation;
 use App\Models\FuelCostLayer;
 use App\Models\FuelType;
@@ -67,18 +66,22 @@ class FuelCostAllocationService
                 'fuel_cost_layer_id' => $layer->id,
                 'liters' => round($drawn, 3),
                 'cost_per_liter_syp' => $layer->cost_per_liter_syp,
+                'currency' => $layer->currency,
             ]);
 
             $remaining -= $drawn;
         }
 
         if ($remaining > 0.0005) {
+            [$cost, $currency] = $this->currentCostPerLiter($fuelType);
+
             FuelCostAllocation::create([
                 'transaction_id' => $transaction->id,
                 'fuel_type_id' => $fuelType->id,
                 'fuel_cost_layer_id' => null,
                 'liters' => round($remaining, 3),
-                'cost_per_liter_syp' => round($this->currentCostPerLiterSyp($fuelType), 4),
+                'cost_per_liter_syp' => round($cost, 4),
+                'currency' => $currency,
             ]);
         }
     }
@@ -95,21 +98,23 @@ class FuelCostAllocationService
     }
 
     /**
-     * Today's cost basis for a fuel type: current selling price x (1 - margin%) -- the same
-     * formula a new FuelCostLayer freezes at the moment of a price change, just evaluated live
-     * for whatever hasn't been tagged into a historic layer yet.
+     * Today's cost basis for a fuel type, in the current price's own currency: current selling
+     * price x (1 - margin%) -- the same formula a new FuelCostLayer freezes at the moment of a
+     * price change, just evaluated live for whatever hasn't been tagged into a historic layer
+     * yet. No exchange rate: the cost stays in the currency the price is set in.
+     *
+     * @return array{0: float, 1: string}
      */
-    public function currentCostPerLiterSyp(FuelType $fuelType): float
+    public function currentCostPerLiter(FuelType $fuelType): array
     {
         $currentPrice = $fuelType->currentPrice();
 
         if (! $currentPrice) {
-            return 0.0;
+            return [0.0, Currency::SYP];
         }
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
         $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
 
-        return $currentPrice->amountInSyp($sypRate) * (1 - $marginPercent / 100);
+        return [(float) $currentPrice->price_per_liter * (1 - $marginPercent / 100), $currentPrice->currency];
     }
 }

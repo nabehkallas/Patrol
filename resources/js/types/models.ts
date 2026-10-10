@@ -92,7 +92,8 @@ export type SadcopTankOption = {
     fuel_type_name: string;
     is_active: boolean;
     remaining_liters: number;
-    default_cost_price_per_liter: number;
+    /** Suggested only when the fuel is priced in SYP (Sadcop bills in SYP); otherwise null. */
+    default_cost_price_per_liter: number | null;
 };
 
 export type TankSummary = {
@@ -228,15 +229,13 @@ export type FuelTypeLiters = {
     liters: number;
 };
 
+/** Statistics totals: money per currency (never converted), liters as plain numbers. */
 export type TransactionTotals = {
-    income_syp: number;
-    expense_syp: number;
-    sadcop_syp: number;
+    income: CurrencyBreakdown;
+    expense: CurrencyBreakdown;
+    sadcop: CurrencyBreakdown;
     liters_sold: number;
     liters_delivered: number;
-    liters_sold_by_fuel_type: FuelTypeLiters[];
-    debts_syp: number;
-    debts_liters_sold: number;
 };
 
 /** Amounts per currency code; the station's primary currency is always present. */
@@ -252,17 +251,18 @@ export type DebtsSummary = {
 export type FuelTypeRevenue = {
     name: string;
     liters: number;
-    unit_price_syp: number;
-    revenue_syp: number;
+    currency: Currency;
+    unit_price: number;
+    revenue: number;
 };
 
 export type CashBoxSummary = {
     income: CurrencyBreakdown;
-    income_by_source_syp: {
-        fuel_sales: number;
+    income_by_source: {
+        fuel_sales: CurrencyBreakdown;
         fuel_sales_by_type: FuelTypeRevenue[];
-        store_income: number;
-        debt_collections: number;
+        store_income: CurrencyBreakdown;
+        debt_collections: CurrencyBreakdown;
     };
     sadcop_expense_syp: number;
     other_expense: CurrencyBreakdown;

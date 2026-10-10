@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
-use App\Support\Currency;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,16 +47,5 @@ class FuelPrice extends Model
     public function scopeEffectiveAsOf(Builder $query, CarbonInterface $at): Builder
     {
         return $query->where('effective_at', '<=', $at);
-    }
-
-    public function amountInSyp(float $sypRate): float
-    {
-        $rate = $this->currency === Currency::USD
-            ? 1.0
-            : ExchangeRate::currentRateFor($this->currency);
-
-        $usd = $rate > 0 ? (float) $this->price_per_liter / $rate : 0.0;
-
-        return $usd * $sypRate;
     }
 }

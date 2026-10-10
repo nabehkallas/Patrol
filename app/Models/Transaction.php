@@ -7,7 +7,6 @@ use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
-use App\Support\Currency;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -157,29 +156,5 @@ class Transaction extends Model
     public function isPendingDebt(): bool
     {
         return $this->debt !== null && $this->debt->status === DebtStatus::Outstanding;
-    }
-
-    public function amountInUsd(): float
-    {
-        $rate = $this->currency === Currency::USD
-            ? 1.0
-            : (float) $this->exchange_rate_to_usd;
-
-        return $rate > 0 ? (float) $this->amount / $rate : 0.0;
-    }
-
-    /**
-     * The amount in $target (SYP unless told otherwise), where $rate is $target's current rate to
-     * the dollar. An amount already in $target is returned as it is: going out to dollars at the
-     * rate stored on the record and back at today's rate would multiply it by the rate change
-     * (an SYP amount saved before any SYP rate existed, at rate 1, came back 138 times larger).
-     */
-    public function amountInSyp(float $rate, string $target = Currency::SYP): float
-    {
-        if ($this->currency === $target) {
-            return (float) $this->amount;
-        }
-
-        return $this->amountInUsd() * $rate;
     }
 }

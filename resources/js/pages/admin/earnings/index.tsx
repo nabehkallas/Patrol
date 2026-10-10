@@ -1,6 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
@@ -15,9 +15,10 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { formatNumber, formatSyp } from '@/lib/format';
+import { formatCurrencyAmount, formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import earnings, { exportXlsx } from '@/routes/admin/earnings';
 import type {
     EarningsBreakdownRow,
@@ -25,8 +26,17 @@ import type {
     ShopProfitSummary,
 } from '@/types';
 
+/** The currency the report is showing; every amount on the page is in it (nothing converted). */
+const ViewCurrency = createContext('SYP');
+
+function useMoney() {
+    const currency = useContext(ViewCurrency);
+
+    return (value: number) => formatCurrencyAmount(value, currency);
+}
+
 /**
- * Isolates a money figure from the surrounding RTL paragraph direction and lets formatSyp embed
+ * Isolates a money figure from the surrounding RTL paragraph direction and lets the formatter embed
  * the sign directly in the number, instead of a separate leading "-" text node next to it -- the
  * combination is what the Arabic UI needs to keep a negative amount's minus sign on the correct
  * (leading) side instead of drifting to the visual end of the string. dir="ltr" is explicit
@@ -34,14 +44,22 @@ import type {
  * depends on which character in the string happens to be the first "strong" one.
  */
 function Syp({ value }: { value: number }) {
-    return <bdi dir="ltr">{formatSyp(value)}</bdi>;
+    const money = useMoney();
+
+    return <bdi dir="ltr">{money(value)}</bdi>;
 }
 
 /** Same RTL-safe wrapping as <Syp>, but at 3 decimal places -- for a per-liter margin RATE,
  * where the exact multiplication factor behind margin_earnings_syp needs to stay visible
  * (e.g. 4.542 SYP, not a rounded-looking 4.5 SYP). */
 function SypRate({ value }: { value: number }) {
-    return <bdi dir="ltr">{formatNumber(value, 3)} SYP</bdi>;
+    const currency = useContext(ViewCurrency);
+
+    return (
+        <bdi dir="ltr">
+            {formatNumber(value, 3)} {currency}
+        </bdi>
+    );
 }
 
 type LockedProps = {
@@ -52,6 +70,9 @@ type LockedProps = {
 type UnlockedProps = {
     locked: false;
     filters: { from: string; to: string };
+    /** The currency on screen, and every currency the range can be shown in (primary first). */
+    currency: string;
+    currencies: string[];
     breakdown: EarningsBreakdownRow[];
     revaluation: EarningsRevaluation;
     shop_profit: ShopProfitSummary;
@@ -341,6 +362,8 @@ function RevaluationCard({
     revaluation: EarningsRevaluation;
     t: (key: TranslationKey) => string;
 }) {
+    const formatSyp = useMoney();
+
     if (revaluation.items.length === 0) {
         return null;
     }
@@ -386,6 +409,8 @@ function RevaluationCard({
 
 function EarningsReport({
     filters,
+    currency,
+    currencies,
     breakdown,
     revaluation,
     shop_profit,
@@ -400,7 +425,7 @@ function EarningsReport({
     function apply() {
         router.get(
             earnings.index.url(),
-            { from: fromVal, to: toVal },
+            { from: fromVal, to: toVal, currency },
             { preserveState: false },
         );
     }
@@ -409,66 +434,115 @@ function EarningsReport({
         <>
             <Head title={t('earnings.title')} />
 
-            <div className="space-y-6">
-                <PageHeader
-                    title={t('earnings.title')}
-                    description={t('earnings.description')}
-                />
+            <ViewCurrency.Provider value={currency}>
+                <div className="space-y-6">
+                    <PageHeader
+                        title={t('earnings.title')}
+                        description={t('earnings.description')}
+                    />
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-wrap items-end gap-4">
-                            <DateRangePicker
-                                from={fromVal}
-                                to={toVal}
-                                onChange={(range) => {
-                                    setFromVal(range.from);
-                                    setToVal(range.to);
-                                }}
-                            />
-                            <Button onClick={apply}>
-                                {t('statistics.apply')}
-                            </Button>
-                            <GenerateXlsxButton
-                                href={exportXlsx.url({
-                                    query: { from: fromVal, to: toVal },
-                                })}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <div className="card-grid">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('earnings.total_earnings')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            <Syp value={total_earnings_syp} />
+                        <CardContent className="pt-6">
+                            <div className="flex flex-wrap items-end gap-4">
+                                <DateRangePicker
+                                    from={fromVal}
+                                    to={toVal}
+                                    onChange={(range) => {
+                                        setFromVal(range.from);
+                                        setToVal(range.to);
+                                    }}
+                                />
+                                <Button onClick={apply}>
+                                    {t('statistics.apply')}
+                                </Button>
+                                {currencies.length > 1 && (
+                                    <div
+                                        className="bg-muted inline-flex gap-1 rounded-lg p-1"
+                                        role="tablist"
+                                        aria-label={t('common.currency')}
+                                    >
+                                        {currencies.map((code) => (
+                                            <button
+                                                key={code}
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={
+                                                    code === currency
+                                                }
+                                                onClick={() =>
+                                                    router.get(
+                                                        earnings.index.url(),
+                                                        {
+                                                            from: filters.from,
+                                                            to: filters.to,
+                                                            currency: code,
+                                                        },
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                                className={cn(
+                                                    'rounded-md px-3 py-1 text-sm transition-colors',
+                                                    code === currency
+                                                        ? 'bg-background shadow-xs font-medium'
+                                                        : 'text-muted-foreground hover:text-foreground',
+                                                )}
+                                            >
+                                                {code}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <GenerateXlsxButton
+                                    href={exportXlsx.url({
+                                        query: {
+                                            from: fromVal,
+                                            to: toVal,
+                                            currency,
+                                        },
+                                    })}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-sm font-medium">
-                                {t('cash_box.other_expenses')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-2xl font-semibold">
-                            <Syp value={-other_expense_syp} />
-                        </CardContent>
-                    </Card>
-                </div>
 
-                <div className="panel-grid">
-                    {breakdown.map((row) => (
-                        <DetailCard key={row.fuel_type.id} row={row} t={t} />
-                    ))}
-                    <ShopProfitCard shopProfit={shop_profit} t={t} />
-                    <RevaluationCard revaluation={revaluation} t={t} />
+                    <div className="card-grid">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">
+                                    {t('earnings.total_earnings')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-2xl font-semibold">
+                                <Syp value={total_earnings_syp} />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">
+                                    {t('cash_box.other_expenses')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-2xl font-semibold">
+                                <Syp value={-other_expense_syp} />
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="panel-grid">
+                        {breakdown.map((row) => (
+                            <DetailCard
+                                key={row.fuel_type.id}
+                                row={row}
+                                t={t}
+                            />
+                        ))}
+                        <ShopProfitCard shopProfit={shop_profit} t={t} />
+                        <RevaluationCard revaluation={revaluation} t={t} />
+                    </div>
                 </div>
-            </div>
+            </ViewCurrency.Provider>
         </>
     );
 }

@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "Limette",
     "fuel_types.color_fuchsia": "Pink",
     "fuel_prices.history": "Preisverlauf",
-    "exchange_rates.history": "Kursverlauf"
+    "exchange_rates.history": "Kursverlauf",
+    "transactions.exchange_rate_pair": "Wechselkurs"
 }

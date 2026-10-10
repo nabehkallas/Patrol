@@ -1119,5 +1119,6 @@
     "fuel_types.color_lime": "لیمونی",
     "fuel_types.color_fuchsia": "گلابی",
     "fuel_prices.history": "قیمتوں کی تاریخ",
-    "exchange_rates.history": "شرح تبادلہ کی تاریخ"
+    "exchange_rates.history": "شرح تبادلہ کی تاریخ",
+    "transactions.exchange_rate_pair": "شرح تبادلہ"
 }

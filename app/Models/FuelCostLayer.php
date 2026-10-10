@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['fuel_type_id', 'fuel_price_id', 'cost_per_liter_syp', 'initial_liters', 'effective_from'])]
+#[Fillable(['fuel_type_id', 'fuel_price_id', 'cost_per_liter_syp', 'currency', 'initial_liters', 'effective_from'])]
 class FuelCostLayer extends Model
 {
     use SerializesDatesInAppTimezone;

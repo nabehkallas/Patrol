@@ -37,7 +37,11 @@ import {
 } from '@/routes/admin/fuel-prices';
 import type { Currency, FuelPrice, FuelType, Paginated } from '@/types';
 
-type FuelTypeOption = FuelType & { current_price_syp: number | null };
+type FuelTypeOption = FuelType & {
+    /** The price in force, in its own currency (never converted). */
+    current_price: number | null;
+    current_price_currency: Currency | null;
+};
 
 type PageProps = {
     fuelTypes: FuelTypeOption[];
@@ -58,8 +62,8 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelTypeOption }) {
 
     const percent = parseFloat(form.data.profit_margin_percent as string);
     const costPrice =
-        fuelType.current_price_syp !== null && Number.isFinite(percent)
-            ? fuelType.current_price_syp * (1 - percent / 100)
+        fuelType.current_price !== null && Number.isFinite(percent)
+            ? fuelType.current_price * (1 - percent / 100)
             : null;
 
     return (
@@ -91,7 +95,7 @@ function ProfitMarginRow({ fuelType }: { fuelType: FuelTypeOption }) {
                 <p className="text-muted-foreground text-xs">
                     {t('fuel_prices.cost_price')}:{' '}
                     {costPrice !== null
-                        ? `${formatNumber(costPrice, 3)} SYP`
+                        ? `${formatNumber(costPrice, 3)} ${fuelType.current_price_currency ?? ''}`
                         : '—'}
                 </p>
                 <InputError message={form.errors.profit_margin_percent} />

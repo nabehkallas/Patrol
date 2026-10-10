@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFuelPriceRequest;
 use App\Http\Requests\Admin\UpdateFuelPriceRequest;
 use App\Http\Requests\Admin\UpdateFuelTypeProfitMarginRequest;
-use App\Models\ExchangeRate;
 use App\Models\FuelCostAllocation;
 use App\Models\FuelCostLayer;
 use App\Models\FuelPrice;
@@ -27,11 +26,9 @@ class FuelPriceController extends Controller
     {
         $this->authorize('viewAny', FuelPrice::class);
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-
         return Inertia::render('admin/fuel-prices/index', [
             'fuelTypes' => FuelType::orderBy('name')->get(['id', 'name', 'slug', 'profit_margin_percent'])
-                ->map(function (FuelType $fuelType) use ($sypRate) {
+                ->map(function (FuelType $fuelType) {
                     $currentPrice = $fuelType->currentPrice();
 
                     return [
@@ -39,7 +36,9 @@ class FuelPriceController extends Controller
                         'name' => $fuelType->name,
                         'slug' => $fuelType->slug,
                         'profit_margin_percent' => $fuelType->profit_margin_percent,
-                        'current_price_syp' => $currentPrice ? round($currentPrice->amountInSyp($sypRate), 3) : null,
+                        // The price in force, in its own currency (never converted).
+                        'current_price' => $currentPrice ? (float) $currentPrice->price_per_liter : null,
+                        'current_price_currency' => $currentPrice?->currency,
                     ];
                 }),
             'prices' => FuelPrice::with(['fuelType', 'setBy'])
@@ -235,9 +234,9 @@ class FuelPriceController extends Controller
             }
         }
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        // The old batch's cost, in the old price's own currency (no exchange rate).
         $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
-        $oldCostPerLiterSyp = $oldPrice->amountInSyp($sypRate) * (1 - $marginPercent / 100);
+        $oldCostPerLiter = (float) $oldPrice->price_per_liter * (1 - $marginPercent / 100);
 
         $historicLiters = $fuelType->tanks()
             ->where('is_active', true)
@@ -251,7 +250,8 @@ class FuelPriceController extends Controller
         FuelCostLayer::create([
             'fuel_type_id' => $fuelType->id,
             'fuel_price_id' => $fuelPrice->id,
-            'cost_per_liter_syp' => round($oldCostPerLiterSyp, 4),
+            'cost_per_liter_syp' => round($oldCostPerLiter, 4),
+            'currency' => $oldPrice->currency,
             'initial_liters' => round($historicLiters, 3),
             'effective_from' => $fuelPrice->effective_at,
         ]);

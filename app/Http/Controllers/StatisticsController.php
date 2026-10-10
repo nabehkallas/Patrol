@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\GroupsByCurrency;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debt;
 use App\Models\DebtPayment;
-use App\Models\ExchangeRate;
 use App\Models\FuelType;
 use App\Models\Transaction;
 use App\Services\AnnualFinancialSummary;
@@ -25,6 +25,8 @@ use Inertia\Response;
 
 class StatisticsController extends Controller
 {
+    use GroupsByCurrency;
+
     public function index(Request $request, AnnualFinancialSummary $annual): Response
     {
         $annualUnlocked = (bool) $request->session()->get(AnnualSummaryAccessController::SESSION_KEY);
@@ -51,16 +53,15 @@ class StatisticsController extends Controller
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
 
-        // Every figure on Statistics is converted into the station's primary currency (the
-        // *_syp prop names predate configurable currencies; the values are in the primary one).
-        $sypRate = ExchangeRate::currentRateFor(Currency::primary());
+        // Money figures stay in the currency they were recorded in: each is a per-currency
+        // breakdown, never converted (exchange rates are only used by currency exchanges).
 
         $transactions = $this->filteredTransactions($request, $from, $to);
 
         $byFuelType = $transactions
             ->where('type', TransactionType::FuelSale)
             ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
-            ->map(function (Collection $txns) use ($sypRate) {
+            ->map(function (Collection $txns) {
                 $name = $txns->first()->fuelType->name ?? '—';
 
                 return [
@@ -69,10 +70,7 @@ class StatisticsController extends Controller
                         $txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters),
                         3
                     ),
-                    'income_syp' => round(
-                        $txns->reject(fn (Transaction $t) => $t->isPendingDebt())->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())),
-                        Currency::decimals(Currency::primary())
-                    ),
+                    'income' => $this->byCurrency($txns->reject(fn (Transaction $t) => $t->isPendingDebt())),
                 ];
             })
             ->sortBy('name')
@@ -107,7 +105,7 @@ class StatisticsController extends Controller
         ];
 
         $props = [
-            'totals' => $this->summarize($transactions, $sypRate),
+            'totals' => $this->summarize($transactions),
             'byFuelType' => $byFuelType,
             'salesChart' => $salesChart,
             'deliveriesByFuelType' => $transactions
@@ -116,12 +114,12 @@ class StatisticsController extends Controller
                 ->map(fn (Collection $txns) => [
                     'name' => $txns->first()->fuelType->name ?? '—',
                     'liters' => round($txns->sum(fn (Transaction $t) => (float) $t->liters), 3),
-                    'cost_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())), Currency::decimals(Currency::primary())),
+                    'cost' => $this->byCurrency($txns),
                 ])
                 ->sortBy('name')
                 ->values(),
             'debtPosition' => $this->debtPosition(),
-            'shopSales' => $this->shopSales($transactions, $sypRate),
+            'shopSales' => $this->shopSales($transactions),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'tab' => 'overview',
@@ -131,12 +129,12 @@ class StatisticsController extends Controller
         if ($isAdmin) {
             $props['byUser'] = $transactions
                 ->groupBy('user_id')
-                ->map(function (Collection $txns) use ($sypRate) {
+                ->map(function (Collection $txns) {
                     $u = $txns->first()->user;
 
                     return [
                         'user' => ['id' => $u?->id, 'name' => $u->name ?? '—'],
-                        'totals' => $this->summarize($txns, $sypRate),
+                        'totals' => $this->summarize($txns),
                     ];
                 })
                 ->values();
@@ -239,9 +237,9 @@ class StatisticsController extends Controller
      * shop sale is recorded as other income) and the best-selling items by revenue.
      *
      * @param  Collection<int, Transaction>  $transactions
-     * @return array{total_syp: float, items: array<int, array<string, mixed>>}
+     * @return array{total: array<string, float>, items: array<int, array<string, mixed>>}
      */
-    private function shopSales(Collection $transactions, float $sypRate): array
+    private function shopSales(Collection $transactions): array
     {
         $sales = $transactions
             ->where('type', TransactionType::OtherIncome)
@@ -249,15 +247,16 @@ class StatisticsController extends Controller
             ->reject(fn (Transaction $t) => $t->isPendingDebt());
 
         return [
-            'total_syp' => round($sales->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())), Currency::decimals(Currency::primary())),
+            'total' => $this->byCurrency($sales),
             'items' => $sales
                 ->groupBy('shop_item_id')
                 ->map(fn (Collection $txns) => [
                     'name' => $txns->first()->shopItem->name ?? '—',
                     'quantity' => (int) $txns->sum('quantity'),
-                    'revenue_syp' => round($txns->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())), Currency::decimals(Currency::primary())),
+                    'revenue' => $this->byCurrency($txns),
                 ])
-                ->sortByDesc('revenue_syp')
+                // Best sellers by their primary-currency revenue, then by any other currency.
+                ->sortByDesc(fn (array $item) => [$item['revenue'][Currency::primary()] ?? 0, array_sum($item['revenue'])])
                 ->take(5)
                 ->values()
                 ->all(),
@@ -282,13 +281,10 @@ class StatisticsController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $primary = Currency::primary();
-
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-        // Every figure on Statistics is converted into the station's primary currency (the
-        // *_syp prop names predate configurable currencies; the values are in the primary one).
-        $sypRate = ExchangeRate::currentRateFor(Currency::primary());
+        // Money figures stay in the currency they were recorded in: each is a per-currency
+        // breakdown, never converted (exchange rates are only used by currency exchanges).
 
         $transactions = $this->filteredTransactions($request, $from, $to);
 
@@ -311,14 +307,13 @@ class StatisticsController extends Controller
         $rows = $transactions
             ->where('type', TransactionType::FuelSale)
             ->groupBy(fn (Transaction $t) => $t->fuel_type_id ?? 0)
-            ->map(function (Collection $txns) use ($sypRate, $labels, $primary) {
-                return [
-                    $labels['by_fuel_type'],
-                    $txns->first()->fuelType->name ?? '—',
-                    (float) $txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters),
-                    (float) $txns->reject(fn (Transaction $t) => $t->isPendingDebt())->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())),
-                    $primary,
-                ];
+            ->flatMap(function (Collection $txns) use ($labels) {
+                $name = $txns->first()->fuelType->name ?? '—';
+                $liters = (float) $txns->where('is_governmental', false)->sum(fn (Transaction $t) => (float) $t->liters);
+
+                return collect($this->byCurrency($txns->reject(fn (Transaction $t) => $t->isPendingDebt())))
+                    ->map(fn (float $amount, string $currency) => [$labels['by_fuel_type'], $name, $liters, $amount, $currency])
+                    ->values();
             })
             ->values()
             ->all();
@@ -326,16 +321,13 @@ class StatisticsController extends Controller
         if ($isAdmin) {
             $employeeRows = $transactions
                 ->groupBy('user_id')
-                ->map(function (Collection $txns) use ($sypRate, $labels, $primary) {
-                    $summary = $this->summarize($txns, $sypRate);
+                ->flatMap(function (Collection $txns) use ($labels) {
+                    $summary = $this->summarize($txns);
+                    $name = $txns->first()->user->name ?? '—';
 
-                    return [
-                        $labels['by_employee'],
-                        $txns->first()->user->name ?? '—',
-                        (float) $summary['liters_sold'],
-                        (float) $summary['income_syp'],
-                        $primary,
-                    ];
+                    return collect($summary['income'])
+                        ->map(fn (float $amount, string $currency) => [$labels['by_employee'], $name, (float) $summary['liters_sold'], $amount, $currency])
+                        ->values();
                 })
                 ->values()
                 ->all();
@@ -388,14 +380,13 @@ class StatisticsController extends Controller
 
     /**
      * @param  Collection<int, Transaction>  $transactions
-     * @return array<string, float>
+     * @return array{income: array<string, float>, expense: array<string, float>, sadcop: array<string, float>, liters_sold: float, liters_delivered: float}
      */
-    private function summarize(Collection $transactions, float $sypRate): array
+    private function summarize(Collection $transactions): array
     {
-        $incomeSyp = $transactions
+        $income = $transactions
             ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $t) => $t->isPendingDebt())
-            ->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary()));
+            ->reject(fn (Transaction $t) => $t->isPendingDebt());
 
         // Money out, split the way Cash Box splits it: a payment into Sadcop's balance is a
         // Purchase linked to a Sadcop ledger entry; everything else is an operating expense.
@@ -414,9 +405,9 @@ class StatisticsController extends Controller
             ->sum(fn (Transaction $t) => (float) $t->liters);
 
         return [
-            'income_syp' => round($incomeSyp, Currency::decimals(Currency::primary())),
-            'expense_syp' => round($moneyOut->reject($isSadcopPayment)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())), Currency::decimals(Currency::primary())),
-            'sadcop_syp' => round($moneyOut->filter($isSadcopPayment)->sum(fn (Transaction $t) => $t->amountInSyp($sypRate, Currency::primary())), Currency::decimals(Currency::primary())),
+            'income' => $this->byCurrency($income),
+            'expense' => $this->byCurrency($moneyOut->reject($isSadcopPayment)),
+            'sadcop' => $this->byCurrency($moneyOut->filter($isSadcopPayment)),
             'liters_sold' => round($litersSold, 3),
             'liters_delivered' => round($litersDelivered, 3),
         ];

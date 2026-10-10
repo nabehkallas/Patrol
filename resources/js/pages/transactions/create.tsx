@@ -1,5 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
 import InputError from '@/components/input-error';
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
+import { defaultRate, giveFor, ratePair, receiveFor } from '@/lib/exchange';
 import { formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
@@ -33,27 +34,6 @@ import type {
 } from '@/types';
 
 const CURRENCIES: Currency[] = ['SYP', 'TRY', 'USD'];
-
-/** Converts an amount between currencies via USD, using each currency's rate-to-USD. */
-function convertAmount(
-    amount: number,
-    from: Currency,
-    to: Currency,
-    rates: Record<Currency, number>,
-): number | null {
-    if (!Number.isFinite(amount) || amount <= 0 || from === to) {
-        return null;
-    }
-
-    const fromRate = from === 'USD' ? 1 : rates[from];
-    const toRate = to === 'USD' ? 1 : rates[to];
-
-    if (!fromRate || !toRate) {
-        return null;
-    }
-
-    return (amount / fromRate) * toRate;
-}
 
 type PageProps = {
     tanks: TankOption[];
@@ -147,6 +127,27 @@ export default function TransactionCreate() {
         }));
     }
 
+    // Only a currency exchange uses a rate: the one in its rate field, which starts at today's
+    // saved rate and can be changed. What you receive is worked out from it, either way round,
+    // and that rate is what's stored on the exchange.
+    function exchangeState(
+        data: typeof form.data,
+        from: Currency,
+        to: Currency,
+    ) {
+        const rate = defaultRate(from, to, exchangeRates);
+        const received =
+            rate !== null
+                ? receiveFor(parseFloat(data.amount), from, to, rate)
+                : null;
+
+        return {
+            exchange_rate_to_usd:
+                rate !== null ? String(Number(rate.toFixed(6))) : '',
+            to_amount: received !== null ? received.toFixed(2) : data.to_amount,
+        };
+    }
+
     function handleCurrencyChange(currency: Currency) {
         form.setData((data) => {
             const nextToCurrency =
@@ -155,26 +156,13 @@ export default function TransactionCreate() {
                       data.to_currency)
                     : data.to_currency;
 
-            const converted =
-                data.type === 'currency_exchange'
-                    ? convertAmount(
-                          parseFloat(data.amount),
-                          currency,
-                          nextToCurrency,
-                          exchangeRates,
-                      )
-                    : null;
-
             return {
                 ...data,
                 currency,
                 to_currency: nextToCurrency,
-                to_amount:
-                    converted !== null ? converted.toFixed(2) : data.to_amount,
-                exchange_rate_to_usd:
-                    currency === 'USD'
-                        ? ''
-                        : String(exchangeRates[currency] ?? ''),
+                ...(data.type === 'currency_exchange'
+                    ? exchangeState(data, currency, nextToCurrency)
+                    : {}),
             };
         });
     }
@@ -187,53 +175,85 @@ export default function TransactionCreate() {
                       data.currency)
                     : data.currency;
 
-            const converted = convertAmount(
-                parseFloat(data.amount),
-                nextCurrency,
-                currency,
-                exchangeRates,
-            );
-
             return {
                 ...data,
                 to_currency: currency,
                 currency: nextCurrency,
-                to_amount:
-                    converted !== null ? converted.toFixed(2) : data.to_amount,
+                ...exchangeState(data, nextCurrency, currency),
             };
         });
     }
 
     function handleGiveAmountChange(value: string) {
-        const converted = convertAmount(
-            parseFloat(value),
-            form.data.currency,
-            form.data.to_currency,
-            exchangeRates,
-        );
+        form.setData((data) => {
+            const received = receiveFor(
+                parseFloat(value),
+                data.currency,
+                data.to_currency,
+                parseFloat(data.exchange_rate_to_usd),
+            );
 
-        form.setData((data) => ({
-            ...data,
-            amount: value,
-            to_amount:
-                converted !== null ? converted.toFixed(2) : data.to_amount,
-        }));
+            return {
+                ...data,
+                amount: value,
+                to_amount:
+                    received !== null ? received.toFixed(2) : data.to_amount,
+            };
+        });
     }
 
     function handleReceiveAmountChange(value: string) {
-        const converted = convertAmount(
-            parseFloat(value),
-            form.data.to_currency,
-            form.data.currency,
-            exchangeRates,
-        );
+        form.setData((data) => {
+            const given = giveFor(
+                parseFloat(value),
+                data.currency,
+                data.to_currency,
+                parseFloat(data.exchange_rate_to_usd),
+            );
 
-        form.setData((data) => ({
-            ...data,
-            to_amount: value,
-            amount: converted !== null ? converted.toFixed(2) : data.amount,
-        }));
+            return {
+                ...data,
+                to_amount: value,
+                amount: given !== null ? given.toFixed(2) : data.amount,
+            };
+        });
     }
+
+    function handleRateChange(value: string) {
+        form.setData((data) => {
+            const received = receiveFor(
+                parseFloat(data.amount),
+                data.currency,
+                data.to_currency,
+                parseFloat(value),
+            );
+
+            return {
+                ...data,
+                exchange_rate_to_usd: value,
+                to_amount:
+                    received !== null ? received.toFixed(2) : data.to_amount,
+            };
+        });
+    }
+
+    // An exchange with no rate yet (just switched to one) starts at today's saved rate.
+    useEffect(() => {
+        if (isExchange && form.data.exchange_rate_to_usd === '') {
+            form.setData((data) => ({
+                ...data,
+                ...exchangeState(data, data.currency, data.to_currency),
+            }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isExchange]);
+
+    const pair = ratePair(form.data.currency, form.data.to_currency);
+    const todayRate = defaultRate(
+        form.data.currency,
+        form.data.to_currency,
+        exchangeRates,
+    );
 
     function handleLitersOrPriceChange(liters: string, pricePerLiter: string) {
         const computed = parseFloat(liters) * parseFloat(pricePerLiter);
@@ -550,34 +570,35 @@ export default function TransactionCreate() {
                         </div>
                     )}
 
-                    {form.data.currency !== 'USD' && (
+                    {isExchange && (
                         <div className="grid gap-2">
                             <Label htmlFor="exchange_rate_to_usd">
-                                {t('transactions.exchange_rate')}
-                                <span className="text-muted-foreground ms-1 text-xs">
-                                    {t('common.current_value', {
-                                        value: formatNumber(
-                                            exchangeRates[form.data.currency],
-                                        ),
-                                    })}
-                                </span>
+                                {t('transactions.exchange_rate_pair')}{' '}
+                                <bdi
+                                    dir="ltr"
+                                    className="text-muted-foreground text-xs"
+                                >
+                                    1 {pair.base} = … {pair.quote}
+                                </bdi>
+                                {todayRate !== null && (
+                                    <span className="text-muted-foreground ms-1 text-xs">
+                                        {t('common.current_value', {
+                                            value: formatNumber(todayRate, 6),
+                                        })}
+                                    </span>
+                                )}
                             </Label>
                             <MoneyInput
                                 id="exchange_rate_to_usd"
                                 value={form.data.exchange_rate_to_usd}
-                                onChange={(value) =>
-                                    form.setData('exchange_rate_to_usd', value)
-                                }
-                                placeholder={String(
-                                    exchangeRates[form.data.currency] ?? '',
-                                )}
+                                onChange={handleRateChange}
+                                required
                             />
                             <InputError
                                 message={form.errors.exchange_rate_to_usd}
                             />
                         </div>
                     )}
-
                     <div className="grid gap-2">
                         <Label htmlFor="notes">{t('common.notes')}</Label>
                         <Textarea

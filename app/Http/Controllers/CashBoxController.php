@@ -10,7 +10,6 @@ use App\Enums\TransactionType;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Models\DebtPayment;
-use App\Models\ExchangeRate;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
@@ -51,8 +50,6 @@ class CashBoxController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
-
         // Opening balance is the physical cash actually in the drawer -- a station-wide fact,
         // not something that belongs to whichever cashier happens to be logged in -- so it's
         // deliberately computed unscoped (isAdmin: true) even for a non-admin viewer. Scoping
@@ -68,17 +65,9 @@ class CashBoxController extends Controller
         // carried into it (income - expenses + exchanged - sadcop, summed since the beginning),
         // which is mathematically the same figure as chaining "yesterday's opening + yesterday's
         // net" one day at a time, just computed in one pass instead of recursively.
-        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->startOfDay()->subSecond(), true, $user->id, $sypRate)['net'];
+        $openingBalance = $this->summarize(now()->copy()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->startOfDay()->subSecond(), true, $user->id)['net'];
 
-        $cashBox = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
-        $primary = Currency::primary();
-
-        // Closing balance per currency: what was there at the start plus this period's net.
-        $balance = [];
-        $net = array_map(floatval(...), (array) $cashBox['net']);
-        foreach (array_unique([...array_keys($openingBalance), ...array_keys($net)]) as $currency) {
-            $balance[(string) $currency] = ($openingBalance[$currency] ?? 0.0) + ($net[$currency] ?? 0.0);
-        }
+        $cashBox = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id);
 
         return Inertia::render('cash-box/index', [
             'filters' => [
@@ -88,14 +77,6 @@ class CashBoxController extends Controller
             ],
             'cashBox' => $cashBox,
             'openingBalance' => $openingBalance,
-            // Every currency's balance converted into the primary currency at today's rates,
-            // for the "total in <primary>" card when the box holds more than one currency.
-            'converted' => [
-                'currency' => $primary,
-                'opening' => ExchangeRate::convertBreakdown($openingBalance, $primary),
-                'net' => ExchangeRate::convertBreakdown($net, $primary),
-                'balance' => ExchangeRate::convertBreakdown($balance, $primary),
-            ],
             'history' => $this->historyEntries($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id),
         ]);
     }
@@ -107,11 +88,10 @@ class CashBoxController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->isAdmin();
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
         $direction = Locales::direction();
 
-        $period = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id, $sypRate);
-        $today = $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id, $sypRate);
+        $period = $this->summarize($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id);
+        $today = $this->summarize(now()->startOfDay(), now()->endOfDay(), $isAdmin, $user->id);
 
         $labels = Locales::labels([
             'title' => 'Cash Box',
@@ -400,7 +380,7 @@ class CashBoxController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function summarize(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId, float $sypRate): array
+    private function summarize(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
         $transactions = Transaction::query()
             ->where('occurred_at', '>=', $from)
@@ -444,7 +424,8 @@ class CashBoxController extends Controller
         $sadcopTransactions = $expenseTransactions->filter($isSadcopPayment);
         $otherExpenseTransactions = $expenseTransactions->reject($isSadcopPayment);
 
-        $sadcopExpenseSyp = $sadcopTransactions->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+        // Sadcop is always paid in SYP: a plain sum of the transfers, no exchange rate involved.
+        $sadcopExpenseSyp = (float) $sadcopTransactions->sum(fn (Transaction $transaction) => (float) $transaction->amount);
 
         // Payments made within this window — whether they fully settle a debt or only chip
         // away at it — are cash that actually arrived (receivable) or went out (payable) today.
@@ -456,22 +437,15 @@ class CashBoxController extends Controller
         $incomeBreakdown = $this->byCurrency($incomeTransactions->concat($receivablePayments));
         $otherExpenseBreakdown = $this->byCurrency($otherExpenseTransactions->concat($payablePayments));
 
-        // Income by source (SYP only, mirroring sadcop_expense_syp's precedent) -- for the
-        // dashboard's income breakdown popover, not used by the PDF/XLSX exports' existing
-        // shape, so this is additive rather than a change to what income/incomeBreakdown mean.
+        // Income by source, each in its own currency (no conversion): the dashboard's income
+        // breakdown popover shows the same currency as the income card it belongs to.
         $fuelSaleIncomeTransactions = $incomeTransactions->where('type', TransactionType::FuelSale);
 
-        // Converted into the station's primary currency (the key name predates configurable
-        // currencies). Sadcop figures above stay in SYP: Sadcop always bills in Syrian pounds.
-        $primary = Currency::primary();
-        $primaryRate = ExchangeRate::currentRateFor($primary);
-        $primaryDecimals = Currency::decimals($primary);
-
-        $incomeBySourceSyp = [
-            'fuel_sales' => round($fuelSaleIncomeTransactions->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate, $primary)), $primaryDecimals),
-            'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions, $primaryRate),
-            'store_income' => round($incomeTransactions->where('type', TransactionType::OtherIncome)->sum(fn (Transaction $t) => $t->amountInSyp($primaryRate, $primary)), $primaryDecimals),
-            'debt_collections' => round($receivablePayments->sum(fn ($p) => ExchangeRate::convert((float) $p->amount, $p->currency, $primary)), $primaryDecimals),
+        $incomeBySource = [
+            'fuel_sales' => $this->byCurrency($fuelSaleIncomeTransactions),
+            'fuel_sales_by_type' => $this->fuelRevenueByType($fuelSaleIncomeTransactions),
+            'store_income' => $this->byCurrency($incomeTransactions->where('type', TransactionType::OtherIncome)),
+            'debt_collections' => $this->byCurrency($receivablePayments),
         ];
 
         $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
@@ -496,7 +470,7 @@ class CashBoxController extends Controller
 
         return [
             'income' => $incomeBreakdown,
-            'income_by_source_syp' => $incomeBySourceSyp,
+            'income_by_source' => $incomeBySource,
             'sadcop_expense_syp' => round($sadcopExpenseSyp, 0),
             'other_expense' => $otherExpenseBreakdown,
             'exchanged' => $exchangedBreakdown,
@@ -547,29 +521,31 @@ class CashBoxController extends Controller
     }
 
     /**
-     * Fuel-sale revenue (SYP) per fuel type, for the dashboard's "Total Income" breakdown --
-     * liters and revenue are both summed straight from the transactions, and unit price is
-     * derived from them (revenue / liters) rather than looked up separately, so it always
-     * reconciles exactly as "liters x unit price = revenue" even if a fuel type's price
-     * changed mid-range.
+     * Fuel-sale revenue per fuel type and currency, for the dashboard's "Total Income"
+     * breakdown -- liters and revenue are both summed straight from the transactions, and unit
+     * price is derived from them (revenue / liters) rather than looked up separately, so it
+     * always reconciles exactly as "liters x unit price = revenue" even if a fuel type's price
+     * changed mid-range. Each currency stays its own row; nothing is converted.
      *
      * @param  Collection<int, Transaction>  $fuelSaleIncomeTransactions
-     * @return array<int, array{name: string, liters: float, unit_price_syp: float, revenue_syp: float}>
+     * @return array<int, array{name: string, currency: string, liters: float, unit_price: float, revenue: float}>
      */
-    private function fuelRevenueByType(Collection $fuelSaleIncomeTransactions, float $sypRate): array
+    private function fuelRevenueByType(Collection $fuelSaleIncomeTransactions): array
     {
         return $fuelSaleIncomeTransactions
             ->filter(fn (Transaction $transaction) => $transaction->fuel_type_id !== null)
-            ->groupBy('fuel_type_id')
-            ->map(function ($group) use ($sypRate) {
+            ->groupBy(fn (Transaction $transaction) => $transaction->fuel_type_id.'|'.$transaction->currency)
+            ->map(function ($group) {
+                $currency = $group->first()->currency;
                 $liters = round((float) $group->sum('liters'), 3);
-                $revenue = round($group->sum(fn (Transaction $t) => $t->amountInSyp($sypRate)), 0);
+                $revenue = round((float) $group->sum(fn (Transaction $t) => (float) $t->amount), Currency::decimals($currency));
 
                 return [
                     'name' => $group->first()->fuelType?->name,
+                    'currency' => $currency,
                     'liters' => $liters,
-                    'unit_price_syp' => $liters > 0 ? round($revenue / $liters, 2) : 0,
-                    'revenue_syp' => $revenue,
+                    'unit_price' => $liters > 0 ? round($revenue / $liters, 2) : 0,
+                    'revenue' => $revenue,
                 ];
             })
             ->filter(fn (array $row) => $row['name'] !== null)

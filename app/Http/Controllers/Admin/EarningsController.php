@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\SetupEarningsPasswordRequest;
 use App\Http\Requests\Admin\UnlockEarningsRequest;
 use App\Models\Debt;
 use App\Models\EarningsPassword;
-use App\Models\ExchangeRate;
 use App\Models\FuelPrice;
 use App\Models\FuelType;
 use App\Models\ShopItem;
@@ -39,7 +38,9 @@ class EarningsController extends Controller
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        // One currency at a time: every figure below is in $currency only, nothing converted.
+        $currencies = $this->currenciesFor($from, $to);
+        $currency = $this->pickCurrency($request, $currencies);
 
         // Every figure below is rounded exactly once, at the point it becomes a displayed leaf
         // value (a tier, a top-up tier, an item's profit, other expenses) -- every aggregate
@@ -49,11 +50,11 @@ class EarningsController extends Controller
         // a user checking the arithmetic would expect, which summing raw figures and rounding
         // once at the very end cannot guarantee (two leaves can independently round in opposite
         // directions and land the displayed total 1 SYP away from the displayed parts' sum).
-        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
+        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $currency);
 
-        $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
+        $shopProfit = $this->shopProfitSummary($from, $to, $currency);
 
-        $otherExpenseSyp = round($this->otherExpensesSyp($from, $to, $sypRate), 0);
+        $otherExpenseSyp = round($this->otherExpenses($from, $to, $currency), Currency::decimals($currency));
 
         return Inertia::render('admin/earnings/index', [
             'locked' => false,
@@ -61,6 +62,8 @@ class EarningsController extends Controller
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
+            'currency' => $currency,
+            'currencies' => $currencies,
             'breakdown' => $breakdown,
             'revaluation' => $revaluation,
             'shop_profit' => $shopProfit,
@@ -111,11 +114,12 @@ class EarningsController extends Controller
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
 
-        $sypRate = ExchangeRate::currentRateFor(Currency::SYP);
+        // The sheet is for the currency on screen, every figure in it in that currency only.
+        $currency = $this->pickCurrency($request, $this->currenciesFor($from, $to));
 
-        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $sypRate);
-        $shopProfit = $this->shopProfitSummary($from, $to, $sypRate);
-        $otherExpenseSyp = round($this->otherExpensesSyp($from, $to, $sypRate), 0);
+        [$breakdown, $revaluation, $totalFuelSyp] = $this->fuelTypeBreakdown($from, $to, $currency);
+        $shopProfit = $this->shopProfitSummary($from, $to, $currency);
+        $otherExpenseSyp = round($this->otherExpenses($from, $to, $currency), Currency::decimals($currency));
         $totalEarningsSyp = $totalFuelSyp + $shopProfit['net_profit_syp'] - $otherExpenseSyp;
         $l = Locales::labels([
             'title' => 'Earnings',
@@ -152,30 +156,30 @@ class EarningsController extends Controller
             'total_earnings' => 'Total Earnings',
             'other_expenses' => 'Other Expenses',
             'grand_total' => 'Grand Total',
-            'exchange_rate' => 'Exchange Rate',
-            'grand_total_usd' => 'Grand Total ($)',
         ]);
+        // Column titles name the sheet's currency instead of SYP.
+        $l = array_map(fn (string $label) => str_replace('SYP', $currency, $label), $l);
 
         $priceReference = [];
 
         foreach (FuelType::with('prices')->orderBy('name')->get() as $fuelType) {
             $currentPrice = $fuelType->currentPrice();
 
-            if ($currentPrice) {
-                $priceReference[] = ['label' => $l['price_per_liter_of'].$fuelType->name, 'price_syp' => round($currentPrice->amountInSyp($sypRate), 2)];
+            if ($currentPrice && $currentPrice->currency === $currency) {
+                $priceReference[] = ['label' => $l['price_per_liter_of'].$fuelType->name, 'price_syp' => round((float) $currentPrice->price_per_liter, 2)];
             }
         }
 
         foreach (ShopItem::orderBy('name')->get() as $shopItem) {
             $shopPrice = $shopItem->currentPrice();
 
-            if ($shopPrice) {
-                $priceReference[] = ['label' => $shopItem->name, 'price_syp' => round($this->convertToSyp((float) $shopPrice->sell_price, $shopPrice->currency, $sypRate), 2)];
+            if ($shopPrice && $shopPrice->currency === $currency) {
+                $priceReference[] = ['label' => $shopItem->name, 'price_syp' => round((float) $shopPrice->sell_price, 2)];
             }
         }
 
         return $exporter->download(
-            filename: 'earnings-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
+            filename: 'earnings-'.$currency.'-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
             title: $l['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
             priceReference: $priceReference,
@@ -184,12 +188,12 @@ class EarningsController extends Controller
             shopProfit: $shopProfit,
             otherExpenseSyp: $otherExpenseSyp,
             totalEarningsSyp: $totalEarningsSyp,
-            sypRate: $sypRate,
             labels: $l,
             // Always LTR regardless of locale -- same convention as every other export in this
             // app (see XlsxTableExporter), so columns/numbers stay in a predictable left-to-right
             // layout in Excel even when the labels themselves are Arabic.
             direction: 'ltr',
+            currency: $currency,
         );
     }
 
@@ -207,10 +211,12 @@ class EarningsController extends Controller
      * actual sale amounts, which is what produced a wall of confusing near-duplicate decimals
      * the first time this was tried.
      *
-     * @return array{0: array<int, array<string, mixed>>, 1: array{total_syp: int, items: array<int, array<string, mixed>>}, 2: int}
+     * @return array{0: array<int, array<string, mixed>>, 1: array{total_syp: float, items: array<int, array<string, mixed>>}, 2: float}
      */
-    private function fuelTypeBreakdown(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
+    private function fuelTypeBreakdown(CarbonInterface $from, CarbonInterface $to, string $currency): array
     {
+        $decimals = Currency::decimals($currency);
+
         $fromDt = $from->copy()->startOfDay();
         $toDt = $to->copy()->endOfDay();
 
@@ -221,7 +227,7 @@ class EarningsController extends Controller
             ->where('occurred_at', '>=', $fromDt)
             ->where('occurred_at', '<=', $toDt)
             ->with('costAllocations.fuelCostLayer.fuelPrice')
-            ->get(['id', 'fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+            ->get(['id', 'fuel_type_id', 'liters', 'amount', 'currency', 'occurred_at']);
 
         $standaloneDebtSales = Debt::query()
             ->where('direction', DebtDirection::Receivable)
@@ -229,7 +235,7 @@ class EarningsController extends Controller
             ->whereNull('transaction_id')
             ->whereDate('date', '>=', $from->toDateString())
             ->whereDate('date', '<=', $to->toDateString())
-            ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'exchange_rate_to_usd', 'date']);
+            ->get(['fuel_type_id', 'liters', 'amount', 'currency', 'date']);
 
         // Excludes opening-balance top-ups (a tank's starting inventory, recorded once during
         // onboarding) -- that liters was already in the tank before this reporting period, not
@@ -246,7 +252,7 @@ class EarningsController extends Controller
         $revaluationTotal = 0;
         $revaluationItems = [];
 
-        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $sypRate, &$total, &$revaluationTotal, &$revaluationItems) {
+        $breakdown = $fuelTypes->map(function (FuelType $fuelType) use ($fuelSales, $standaloneDebtSales, $topUps, $currency, $decimals, &$total, &$revaluationTotal, &$revaluationItems) {
             $sales = $fuelSales->where('fuel_type_id', $fuelType->id);
             $debtSales = $standaloneDebtSales->where('fuel_type_id', $fuelType->id);
 
@@ -255,7 +261,8 @@ class EarningsController extends Controller
             $marginPercent = (float) ($fuelType->profit_margin_percent ?? 0);
 
             $currentPrice = $fuelType->currentPrice();
-            $priceSyp = $currentPrice ? $currentPrice->amountInSyp($sypRate) : 0.0;
+            // Today's price and margin, shown only on the view of the currency the price is in.
+            $priceSyp = $currentPrice && $currentPrice->currency === $currency ? (float) $currentPrice->price_per_liter : 0.0;
             $marginSyp = $priceSyp * ($marginPercent / 100);
 
             // Margin buckets, keyed so a real FIFO historic layer gets its OWN bucket (its old
@@ -292,16 +299,27 @@ class EarningsController extends Controller
                     // shipped, or through a path that doesn't allocate) -- no batch to attribute,
                     // so fall back to whichever price actually governed its own sale date.
                     $priceAtSale = $this->priceAtSaleFor($fuelType, $sale->occurred_at);
-                    $rateSyp = $priceAtSale ? $priceAtSale->amountInSyp($sypRate) * ($marginPercent / 100) : 0.0;
+
+                    // Its margin is in the currency of that price; it belongs to that view.
+                    if (($priceAtSale->currency ?? $sale->currency) !== $currency) {
+                        continue;
+                    }
+
+                    $rateSyp = $priceAtSale ? (float) $priceAtSale->price_per_liter * ($marginPercent / 100) : 0.0;
                     $key = $priceAtSale ? 'price_'.$priceAtSale->id : 'price_none';
                     $addMargin($key, $saleLiters, $rateSyp, $priceAtSale?->effective_at);
 
                     continue;
                 }
 
-                $revenuePerLiterSyp = $sale->amountInSyp($sypRate) / $saleLiters;
+                $revenuePerLiterSyp = (float) $sale->amount / $saleLiters;
 
                 foreach ($sale->costAllocations as $allocation) {
+                    // A slice's cost (and so its margin) is in the currency it was frozen in.
+                    if ($allocation->currency !== $currency) {
+                        continue;
+                    }
+
                     $sliceLiters = (float) $allocation->liters;
 
                     if ($allocation->fuel_cost_layer_id === null) {
@@ -329,6 +347,12 @@ class EarningsController extends Controller
 
                     $addMargin('layer_'.$allocation->fuel_cost_layer_id, $sliceLiters, $oldMarginRateSyp, $layer?->effective_from);
 
+                    // Revaluation compares the batch's old price with what it sold for, so both
+                    // must be in the same currency.
+                    if ($sale->currency !== $currency) {
+                        continue;
+                    }
+
                     $bucketKey = $allocation->fuel_cost_layer_id;
                     $revaluationBuckets[$bucketKey] ??= ['liters' => 0.0, 'old_price_syp' => $oldPriceSyp, 'revenue_syp' => 0.0, 'sort_key' => $layer?->effective_from];
                     $revaluationBuckets[$bucketKey]['liters'] += $sliceLiters;
@@ -351,7 +375,12 @@ class EarningsController extends Controller
                 // FuelPriceController::resolveEffectiveAt()) is still correctly picked up instead
                 // of silently falling back to whatever price was effective the day before.
                 $priceAtSale = $this->priceAtSaleFor($fuelType, $debt->date->copy()->endOfDay());
-                $rateSyp = $priceAtSale ? $priceAtSale->amountInSyp($sypRate) * ($marginPercent / 100) : 0.0;
+
+                if (($priceAtSale->currency ?? $debt->currency) !== $currency) {
+                    continue;
+                }
+
+                $rateSyp = $priceAtSale ? (float) $priceAtSale->price_per_liter * ($marginPercent / 100) : 0.0;
                 $key = $priceAtSale ? 'price_'.$priceAtSale->id : 'price_none';
                 $addMargin($key, $debtLiters, $rateSyp, $priceAtSale?->effective_at);
             }
@@ -367,7 +396,7 @@ class EarningsController extends Controller
                 ->map(fn (array $bucket) => [
                     'margin_rate_syp' => round($bucket['rate'], 3),
                     'liters' => round($bucket['liters'], 3),
-                    'earnings_syp' => (int) round($bucket['liters'] * $bucket['rate'], 0),
+                    'earnings_syp' => round($bucket['liters'] * $bucket['rate'], $decimals),
                     '_sort_key' => $bucket['sort_key'],
                 ])
                 // A string key, not the bare float -- Collection::groupBy() uses the group
@@ -380,7 +409,7 @@ class EarningsController extends Controller
                 ->map(fn ($group) => [
                     'margin_rate_syp' => $group->first()['margin_rate_syp'],
                     'liters' => round((float) $group->sum('liters'), 3),
-                    'earnings_syp' => (int) $group->sum('earnings_syp'),
+                    'earnings_syp' => round((float) $group->sum('earnings_syp'), $decimals),
                     '_sort_key' => $group->min('_sort_key'),
                 ])
                 ->sortBy('_sort_key')
@@ -394,7 +423,7 @@ class EarningsController extends Controller
             // capped at the layer's initial_liters snapshot -- once a layer is exhausted, further
             // sales fall to the 'current' margin bucket above and stop contributing here.
             $revaluationTiers = collect($revaluationBuckets)
-                ->map(function (array $bucket) {
+                ->map(function (array $bucket) use ($decimals) {
                     $liters = $bucket['liters'];
                     $newPriceSyp = $liters > 0 ? $bucket['revenue_syp'] / $liters : 0.0;
                     $priceDiffSyp = $newPriceSyp - $bucket['old_price_syp'];
@@ -404,7 +433,7 @@ class EarningsController extends Controller
                         'old_price_syp' => round($bucket['old_price_syp'], 2),
                         'new_price_syp' => round($newPriceSyp, 2),
                         'price_diff_syp' => round($priceDiffSyp, 2),
-                        'profit_syp' => (int) round($liters * $priceDiffSyp, 0),
+                        'profit_syp' => round($liters * $priceDiffSyp, $decimals),
                         '_sort_key' => $bucket['sort_key'],
                     ];
                 })
@@ -413,7 +442,7 @@ class EarningsController extends Controller
 
             // Sum of the already-rounded per-tier figures, not a separately-rounded raw sum --
             // see the note in index() on why every aggregate here is built this way.
-            $revaluationProfitSyp = (int) $revaluationTiers->sum('profit_syp');
+            $revaluationProfitSyp = round((float) $revaluationTiers->sum('profit_syp'), $decimals);
 
             if ($revaluationTiers->isNotEmpty()) {
                 $revaluationTotal += $revaluationProfitSyp;
@@ -445,25 +474,28 @@ class EarningsController extends Controller
             // previous price.
             $topUpTiers = $fuelTopUps
                 ->groupBy(fn (TankTopUp $topUp) => $fuelType->priceAt($topUp->date->copy()->endOfDay())->id ?? 0)
-                ->map(function ($group) use ($fuelType, $sypRate) {
+                ->map(function ($group) use ($fuelType, $decimals) {
                     $priceAtDate = $fuelType->priceAt($group->first()->date->copy()->endOfDay());
-                    $tierPriceSyp = $priceAtDate ? $priceAtDate->amountInSyp($sypRate) : 0.0;
+                    $tierPriceSyp = $priceAtDate ? (float) $priceAtDate->price_per_liter : 0.0;
                     $tierLiters = (float) $group->sum('liters');
 
                     return [
                         'price_per_liter_syp' => round($tierPriceSyp, 2),
                         'liters' => round($tierLiters, 3),
-                        'earnings_syp' => (int) round($tierLiters * $tierPriceSyp, 0),
+                        'earnings_syp' => round($tierLiters * $tierPriceSyp, $decimals),
                         '_effective_at' => $priceAtDate?->effective_at,
+                        // A top-up is worth its price, in that price's currency.
+                        '_currency' => $priceAtDate->currency ?? Currency::SYP,
                     ];
                 })
+                ->filter(fn (array $tier) => $tier['_currency'] === $currency)
                 ->sortBy('_effective_at')
                 ->values();
 
             // Sum of the already-rounded per-tier figures, not a separately-rounded raw sum --
             // see the note in index() on why every aggregate here is built this way.
-            $topUpEarningsSyp = (int) $topUpTiers->sum('earnings_syp');
-            $marginEarningsSyp = (int) $marginTiers->sum('earnings_syp');
+            $topUpEarningsSyp = round((float) $topUpTiers->sum('earnings_syp'), $decimals);
+            $marginEarningsSyp = round((float) $marginTiers->sum('earnings_syp'), $decimals);
             $subtotal = $marginEarningsSyp + $topUpEarningsSyp;
             $total += $subtotal + $revaluationProfitSyp;
 
@@ -481,7 +513,7 @@ class EarningsController extends Controller
                     'earnings_syp' => $tier['earnings_syp'],
                 ])->all(),
                 'margin_earnings_syp' => $marginEarningsSyp,
-                'topup_liters' => round($topUpLiters, 3),
+                'topup_liters' => round((float) $topUpTiers->sum('liters'), 3),
                 'price_per_liter_syp' => round($priceSyp, 2),
                 'topup_tiers' => $topUpTiers->map(fn (array $tier) => [
                     'price_per_liter_syp' => $tier['price_per_liter_syp'],
@@ -491,7 +523,10 @@ class EarningsController extends Controller
                 'topup_earnings_syp' => $topUpEarningsSyp,
                 'subtotal_syp' => $subtotal,
             ];
-        })->values()->all();
+        })
+            // Another currency's view lists only the fuel types that earned anything in it.
+            ->filter(fn (array $row) => $currency === Currency::primary() || $row['margin_tiers'] !== [] || $row['topup_tiers'] !== [])
+            ->values()->all();
 
         return [
             $breakdown,
@@ -509,20 +544,23 @@ class EarningsController extends Controller
      * exactly once, and net_profit_syp/average_margin_percent are built from those
      * already-rounded totals -- see the note in index().
      *
-     * @return array{total_revenue_syp: int, total_cogs_syp: int, average_margin_percent: float, net_profit_syp: int, items: array<int, array<string, mixed>>}
+     * @return array{total_revenue_syp: float, total_cogs_syp: float, average_margin_percent: float, net_profit_syp: float, items: array<int, array<string, mixed>>}
      */
-    private function shopProfitSummary(CarbonInterface $from, CarbonInterface $to, float $sypRate): array
+    private function shopProfitSummary(CarbonInterface $from, CarbonInterface $to, string $currency): array
     {
+        $decimals = Currency::decimals($currency);
+
         $fromDt = $from->copy()->startOfDay();
         $toDt = $to->copy()->endOfDay();
 
         $sales = Transaction::query()
             ->where('type', TransactionType::OtherIncome)
             ->whereNotNull('shop_item_id')
+            ->where('currency', $currency)
             ->where('occurred_at', '>=', $fromDt)
             ->where('occurred_at', '<=', $toDt)
             ->with('shopItem')
-            ->get(['shop_item_id', 'quantity', 'amount', 'currency', 'exchange_rate_to_usd', 'occurred_at']);
+            ->get(['shop_item_id', 'quantity', 'amount', 'currency', 'occurred_at']);
 
         $totalRevenueSyp = 0;
         $totalCogsSyp = 0;
@@ -536,7 +574,7 @@ class EarningsController extends Controller
             }
 
             $quantitySold = (int) $group->sum('quantity');
-            $revenueSyp = (int) round((float) $group->sum(fn (Transaction $sale) => $sale->amountInSyp($sypRate)), 0);
+            $revenueSyp = round((float) $group->sum('amount'), $decimals);
 
             // Each sale costed at whichever price was actually in effect on its own date (see
             // ShopItem::priceAt()), not blanket today's cost applied to the whole range — a sale
@@ -545,8 +583,10 @@ class EarningsController extends Controller
 
             foreach ($group->groupBy(fn (Transaction $sale) => $item->priceAt($sale->occurred_at)->id ?? 0) as $priceGroup) {
                 $priceAtSale = $item->priceAt($priceGroup->first()->occurred_at);
-                $costPerUnitAtSaleSyp = $priceAtSale ? $this->convertToSyp((float) $priceAtSale->base_price, $priceAtSale->currency, $sypRate) : 0.0;
-                $cogsSyp += (int) round((float) $priceGroup->sum('quantity') * $costPerUnitAtSaleSyp, 0);
+                // The cost price in force then, in its own currency (a shop price's cost and sell
+                // price share one currency, the one the sale was made in).
+                $costPerUnitAtSaleSyp = $priceAtSale && $priceAtSale->currency === $currency ? (float) $priceAtSale->base_price : 0.0;
+                $cogsSyp += round((float) $priceGroup->sum('quantity') * $costPerUnitAtSaleSyp, $decimals);
             }
 
             // A single blended per-unit figure for display, consistent with profit_per_unit_syp
@@ -585,27 +625,6 @@ class EarningsController extends Controller
     }
 
     /**
-     * Converts a raw amount in $currency to SYP at CURRENT exchange rates -- for values (like
-     * ShopItemPrice::base_price) that aren't attached to a transaction's own recorded
-     * exchange_rate_to_usd, so there's no historical rate to use instead.
-     */
-    private function convertToSyp(float $amount, string $currency, float $sypRate): float
-    {
-        if ($currency === Currency::SYP) {
-            return $amount;
-        }
-
-        if ($currency === Currency::USD) {
-            return $amount * $sypRate;
-        }
-
-        $rateToUsd = ExchangeRate::currentRateFor($currency);
-        $amountInUsd = $rateToUsd > 0 ? $amount / $rateToUsd : 0.0;
-
-        return $amountInUsd * $sypRate;
-    }
-
-    /**
      * The price actually in effect on a historical date -- used to bucket a sale (or standalone
      * liters-debt) into its correct margin tier by whichever price really governed it, not
      * whatever's current now. $fuelType->prices must already be eager-loaded (fuelTypeBreakdown
@@ -627,10 +646,11 @@ class EarningsController extends Controller
      * shopProfitSummary() when the restocked units are sold. Counting it again here as an
      * immediate cash expense would subtract the same cost twice from the Grand Total.
      */
-    private function otherExpensesSyp(CarbonInterface $from, CarbonInterface $to, float $sypRate): float
+    private function otherExpenses(CarbonInterface $from, CarbonInterface $to, string $currency): float
     {
-        return Transaction::query()
+        return (float) Transaction::query()
             ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
+            ->where('currency', $currency)
             ->where('occurred_at', '>=', $from->copy()->startOfDay())
             ->where('occurred_at', '<=', $to->copy()->endOfDay())
             ->with(['debt', 'sadcopLedgerEntry'])
@@ -638,6 +658,36 @@ class EarningsController extends Controller
             ->reject(fn (Transaction $transaction) => $transaction->sadcopLedgerEntry !== null)
             ->reject(fn (Transaction $transaction) => $transaction->isPendingDebt())
             ->reject(fn (Transaction $transaction) => $transaction->type === TransactionType::Purchase && $transaction->shop_item_id !== null)
-            ->sum(fn (Transaction $transaction) => $transaction->amountInSyp($sypRate));
+            ->sum(fn (Transaction $transaction) => (float) $transaction->amount);
+    }
+
+    /**
+     * The currencies Earnings can be shown in for the range: the primary one first, then any
+     * other currency the range's sales, expenses or fuel costs were recorded in.
+     *
+     * @return array<int, string>
+     */
+    private function currenciesFor(CarbonInterface $from, CarbonInterface $to): array
+    {
+        $fromDt = $from->copy()->startOfDay();
+        $toDt = $to->copy()->endOfDay();
+
+        $used = Transaction::query()
+            ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome, TransactionType::Expense, TransactionType::Purchase])
+            ->where('occurred_at', '>=', $fromDt)
+            ->where('occurred_at', '<=', $toDt)
+            ->distinct()
+            ->pluck('currency')
+            ->merge(FuelPrice::query()->distinct()->pluck('currency'));
+
+        return collect([Currency::primary()])->merge($used)->map(fn ($code) => (string) $code)->unique()->values()->all();
+    }
+
+    /** @param  array<int, string>  $currencies */
+    private function pickCurrency(Request $request, array $currencies): string
+    {
+        $asked = $request->string('currency')->value();
+
+        return in_array($asked, $currencies, true) ? $asked : $currencies[0];
     }
 }

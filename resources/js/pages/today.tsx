@@ -23,7 +23,6 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { today } from '@/routes';
-import { index as exchangeRates } from '@/routes/admin/exchange-rates';
 import { index as fuelPrices } from '@/routes/admin/fuel-prices';
 import { index as cashBox } from '@/routes/cash-box';
 import { index as debts } from '@/routes/debts';
@@ -105,7 +104,6 @@ export default function Today() {
     const missingPumps = pumps.filter((pump) => !pump.recorded);
     const negativeTanks = tanks.filter((tank) => tank.state === 'negative');
     const lowTanks = tanks.filter((tank) => tank.state === 'low');
-    const missingRates = rates.filter((rate) => rate.rate === null);
 
     // What needs doing, most urgent first. Each item links to where it's fixed.
     const attention: { key: string; text: string; href: string }[] = [
@@ -131,13 +129,8 @@ export default function Today() {
             text: t('today.alert.low', { tank: tank.name }),
             href: inventory.url(),
         })),
-        ...(auth.isAdmin
-            ? missingRates.map((rate) => ({
-                  key: `rate-${rate.currency}`,
-                  text: t('today.alert.rate', { currency: rate.currency }),
-                  href: exchangeRates.url(),
-              }))
-            : []),
+        // No alert for a missing exchange rate: a rate is only needed when exchanging currency,
+        // and that form asks for one.
     ];
 
     const recordedCount = pumps.length - missingPumps.length;

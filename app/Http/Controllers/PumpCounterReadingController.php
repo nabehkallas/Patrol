@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
 use App\Models\Debtor;
-use App\Models\ExchangeRate;
 use App\Models\FuelPump;
 use App\Models\FuelType;
 use App\Models\PumpCounterReading;
@@ -723,11 +722,10 @@ class PumpCounterReadingController extends Controller
         $priceAtDate = $fuelType->priceAt($occurredAt);
         $currency = $priceAtDate ? $priceAtDate->currency : Currency::SYP;
         $pricePerLiter = $priceAtDate ? (float) $priceAtDate->price_per_liter : 0.0;
-        $exchangeRate = ExchangeRate::currentRateFor($currency);
 
         return DB::transaction(function () use (
             $pump, $tank, $normalLiters, $governmentalLiters, $returnLiters, $litersSold,
-            $pricePerLiter, $currency, $exchangeRate, $occurredAt, $notes, $userId,
+            $pricePerLiter, $currency, $occurredAt, $notes, $userId,
         ) {
             $transactionId = null;
             $governmentalTransactionId = null;
@@ -742,7 +740,7 @@ class PumpCounterReadingController extends Controller
                     'price_per_liter' => $pricePerLiter,
                     'amount' => round($normalLiters * $pricePerLiter, 2),
                     'currency' => $currency,
-                    'exchange_rate_to_usd' => $exchangeRate,
+                    'exchange_rate_to_usd' => null,
                     'occurred_at' => $occurredAt,
                     'description' => $pump->name,
                     'notes' => $notes,
@@ -761,7 +759,7 @@ class PumpCounterReadingController extends Controller
                     'price_per_liter' => $pricePerLiter,
                     'amount' => round($governmentalLiters * $pricePerLiter, 2),
                     'currency' => $currency,
-                    'exchange_rate_to_usd' => $exchangeRate,
+                    'exchange_rate_to_usd' => null,
                     'occurred_at' => $occurredAt,
                     'description' => $pump->name.' — '.__('Governmental sale'),
                     'notes' => $notes,

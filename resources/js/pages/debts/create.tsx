@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatNumber, getPrimaryCurrency } from '@/lib/format';
+import { getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debts';
 import type {
@@ -31,13 +31,12 @@ import type {
 type PageProps = {
     debtors: Debtor[];
     fuelTypes: FuelTypeWithPrice[];
-    exchangeRates: Record<Currency, number>;
 };
 
 type DebtKind = 'money' | 'liters';
 
 export default function DebtCreate() {
-    const { debtors, fuelTypes, exchangeRates } = usePage<PageProps>().props;
+    const { debtors, fuelTypes } = usePage<PageProps>().props;
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
     const [debtKind, setDebtKind] = useState<DebtKind>('money');
@@ -50,7 +49,6 @@ export default function DebtCreate() {
         price_per_liter: '',
         amount: '',
         currency: getPrimaryCurrency() as Currency,
-        exchange_rate_to_usd: '',
         date: defaultEntryDate,
         details: '',
         affect_cash_box: false,
@@ -125,8 +123,6 @@ export default function DebtCreate() {
         form.setData((data) => ({
             ...data,
             currency,
-            exchange_rate_to_usd:
-                currency === 'USD' ? '' : String(exchangeRates[currency] ?? ''),
         }));
     }
 
@@ -352,34 +348,6 @@ export default function DebtCreate() {
                             <InputError message={form.errors.currency} />
                         </div>
                     </div>
-
-                    {form.data.currency !== 'USD' && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="exchange_rate_to_usd">
-                                {t('transactions.exchange_rate')}
-                                <span className="text-muted-foreground ms-1 text-xs">
-                                    {t('common.current_value', {
-                                        value: formatNumber(
-                                            exchangeRates[form.data.currency],
-                                        ),
-                                    })}
-                                </span>
-                            </Label>
-                            <MoneyInput
-                                id="exchange_rate_to_usd"
-                                value={form.data.exchange_rate_to_usd}
-                                onChange={(value) =>
-                                    form.setData('exchange_rate_to_usd', value)
-                                }
-                                placeholder={String(
-                                    exchangeRates[form.data.currency] ?? '',
-                                )}
-                            />
-                            <InputError
-                                message={form.errors.exchange_rate_to_usd}
-                            />
-                        </div>
-                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="details">{t('common.details')}</Label>

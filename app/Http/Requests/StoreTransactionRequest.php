@@ -32,7 +32,8 @@ class StoreTransactionRequest extends FormRequest
             'currency' => ['required', Currency::rule()],
             'to_currency' => ['nullable', 'required_if:type,currency_exchange', Currency::rule()],
             'to_amount' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'min:0.01'],
-            'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
+            // The rate of a currency exchange (required there, used nowhere else).
+            'exchange_rate_to_usd' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'gt:0'],
             'occurred_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'other_income_category' => ['nullable', 'required_if:type,other_income', new Enum(OtherIncomeCategory::class)],

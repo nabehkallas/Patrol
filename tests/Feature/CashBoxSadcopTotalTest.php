@@ -52,7 +52,7 @@ class CashBoxSadcopTotalTest extends TestCase
         $from = Carbon::parse($day)->startOfDay();
         $to = Carbon::parse($day)->endOfDay();
 
-        $summary = (new ReflectionMethod($controller, 'summarize'))->invoke($controller, $from, $to, true, $this->userId, 138.0);
+        $summary = (new ReflectionMethod($controller, 'summarize'))->invoke($controller, $from, $to, true, $this->userId);
         $history = (new ReflectionMethod($controller, 'historyEntries'))->invoke($controller, $from, $to, true, $this->userId);
 
         return [
@@ -81,13 +81,11 @@ class CashBoxSadcopTotalTest extends TestCase
         $this->assertSame(4765000.0, $cashBox['total']);
     }
 
-    public function test_an_amount_already_in_the_target_currency_is_never_converted(): void
+    public function test_no_amount_is_ever_converted_between_currencies(): void
     {
-        $transfer = new Transaction(['amount' => 3515000, 'currency' => 'SYP', 'exchange_rate_to_usd' => 1]);
-
-        $this->assertSame(3515000.0, $transfer->amountInSyp(138.0));
-        $this->assertSame(3515000.0, (new Transaction(['amount' => 3515000, 'currency' => 'SYP', 'exchange_rate_to_usd' => 138]))->amountInSyp(138.0));
-        // A dollar amount still converts at the given rate.
-        $this->assertSame(1380.0, (new Transaction(['amount' => 10, 'currency' => 'USD']))->amountInSyp(138.0));
+        // The conversion helpers that caused the bug no longer exist: amounts stay in their own
+        // currency, and only a currency exchange uses a rate.
+        $this->assertFalse(method_exists(Transaction::class, 'amountInSyp'));
+        $this->assertFalse(method_exists(Transaction::class, 'amountInUsd'));
     }
 }

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/card';
 import {
     formatCurrencyAmount,
+    formatNonZeroBreakdown,
     formatNumber,
     formatPrimary,
     getPrimaryCurrency,
@@ -33,6 +34,7 @@ import { exportPdf, exportXlsx, index } from '@/routes/statistics';
 import type {
     Auth,
     Currency,
+    CurrencyBreakdown,
     SalesChartData,
     TransactionTotals,
     UserSummary,
@@ -41,13 +43,13 @@ import type {
 type FuelTypeRow = {
     name: string;
     liters: number;
-    income_syp: number;
+    income: CurrencyBreakdown;
 };
 
 type DeliveryRow = {
     name: string;
     liters: number;
-    cost_syp: number;
+    cost: CurrencyBreakdown;
 };
 
 type ByUserRow = {
@@ -61,8 +63,8 @@ type DebtPosition = {
 };
 
 type ShopSales = {
-    total_syp: number;
-    items: { name: string; quantity: number; revenue_syp: number }[];
+    total: CurrencyBreakdown;
+    items: { name: string; quantity: number; revenue: CurrencyBreakdown }[];
 };
 
 type PageProps = {
@@ -301,7 +303,9 @@ function Overview() {
     const fuelText = (name: string) => fuelColors.byName(name).text;
 
     const employees = [...(byUser ?? [])].sort(
-        (a, b) => b.totals.income_syp - a.totals.income_syp,
+        (a, b) =>
+            (b.totals.income[getPrimaryCurrency()] ?? 0) -
+            (a.totals.income[getPrimaryCurrency()] ?? 0),
     );
 
     const receivable = currencyLines(debtPosition.receivable);
@@ -339,17 +343,17 @@ function Overview() {
                 <div className="card-grid">
                     <KpiCard
                         label={t('dashboard.income')}
-                        value={formatPrimary(totals.income_syp)}
+                        value={formatNonZeroBreakdown(totals.income)}
                         accent="border-t-emerald-500"
                     />
                     <KpiCard
                         label={t('dashboard.expenses')}
-                        value={formatPrimary(totals.expense_syp)}
+                        value={formatNonZeroBreakdown(totals.expense)}
                         accent="border-t-rose-500"
                     />
                     <KpiCard
                         label={t('statistics.sadcop_payments')}
-                        value={formatPrimary(totals.sadcop_syp)}
+                        value={formatNonZeroBreakdown(totals.sadcop)}
                         accent="border-t-indigo-500"
                     />
                     <KpiCard
@@ -375,7 +379,7 @@ function Overview() {
                                 label={row.name}
                                 labelClassName={fuelText(row.name)}
                                 value={`${formatNumber(row.liters)} L`}
-                                detail={formatPrimary(row.income_syp)}
+                                detail={formatNonZeroBreakdown(row.income)}
                             />
                         ))}
                         {byFuelType.length === 0 && (
@@ -390,7 +394,7 @@ function Overview() {
                                 label={row.name}
                                 labelClassName={fuelText(row.name)}
                                 value={`${formatNumber(row.liters)} L`}
-                                detail={formatPrimary(row.cost_syp)}
+                                detail={formatNonZeroBreakdown(row.cost)}
                             />
                         ))}
                         {deliveriesByFuelType.length === 0 && (
@@ -404,7 +408,7 @@ function Overview() {
                             labelClassName={STORE_TEXT}
                             value={
                                 <span className={STORE_TEXT}>
-                                    {formatPrimary(shopSales.total_syp)}
+                                    {formatNonZeroBreakdown(shopSales.total)}
                                 </span>
                             }
                         />
@@ -412,7 +416,7 @@ function Overview() {
                             <BreakdownRow
                                 key={item.name}
                                 label={item.name}
-                                value={formatPrimary(item.revenue_syp)}
+                                value={formatNonZeroBreakdown(item.revenue)}
                                 detail={`${formatNumber(item.quantity, 0)} ${t('statistics.units')}`}
                             />
                         ))}
@@ -447,7 +451,9 @@ function Overview() {
                                 <BreakdownRow
                                     key={row.user.id ?? row.user.name}
                                     label={row.user.name}
-                                    value={formatPrimary(row.totals.income_syp)}
+                                    value={formatNonZeroBreakdown(
+                                        row.totals.income,
+                                    )}
                                     detail={`${formatNumber(row.totals.liters_sold)} L`}
                                 />
                             ))}

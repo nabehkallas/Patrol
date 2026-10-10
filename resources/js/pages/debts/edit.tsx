@@ -32,14 +32,12 @@ type PageProps = {
     debt: Debt;
     debtors: Debtor[];
     fuelTypes: FuelTypeWithPrice[];
-    exchangeRates: Record<Currency, number>;
 };
 
 type DebtKind = 'money' | 'liters';
 
 export default function DebtEdit() {
-    const { debt, debtors, fuelTypes, exchangeRates } =
-        usePage<PageProps>().props;
+    const { debt, debtors, fuelTypes } = usePage<PageProps>().props;
     const { t } = useTranslation();
     const [debtKind, setDebtKind] = useState<DebtKind>(
         debt.fuel_type_id ? 'liters' : 'money',
@@ -53,7 +51,6 @@ export default function DebtEdit() {
         price_per_liter: trimDecimal(debt.price_per_liter),
         amount: trimDecimal(debt.amount),
         currency: debt.currency,
-        exchange_rate_to_usd: trimDecimal(debt.exchange_rate_to_usd),
         date: debt.date.slice(0, 10),
         details: debt.details ?? '',
         status: debt.status,
@@ -134,8 +131,6 @@ export default function DebtEdit() {
         form.setData((data) => ({
             ...data,
             currency,
-            exchange_rate_to_usd:
-                currency === 'USD' ? '' : String(exchangeRates[currency] ?? ''),
         }));
     }
 
@@ -352,24 +347,6 @@ export default function DebtEdit() {
                             <InputError message={form.errors.currency} />
                         </div>
                     </div>
-
-                    {form.data.currency !== 'USD' && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="exchange_rate_to_usd">
-                                {t('transactions.exchange_rate')}
-                            </Label>
-                            <MoneyInput
-                                id="exchange_rate_to_usd"
-                                value={form.data.exchange_rate_to_usd}
-                                onChange={(value) =>
-                                    form.setData('exchange_rate_to_usd', value)
-                                }
-                            />
-                            <InputError
-                                message={form.errors.exchange_rate_to_usd}
-                            />
-                        </div>
-                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="status">{t('common.status')}</Label>
