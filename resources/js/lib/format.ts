@@ -12,6 +12,8 @@ export function formatNumber(value: string | number, digits = 1): string {
     return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: digits,
+        // Never "-0": a zero, or anything that rounds to zero, shows without a sign.
+        signDisplay: 'negative',
     }).format(Number.isFinite(num) ? num : 0);
 }
 
@@ -72,6 +74,7 @@ export function formatMoney(
     const number = new Intl.NumberFormat('en-US', {
         minimumFractionDigits: digits,
         maximumFractionDigits: digits,
+        signDisplay: 'negative',
     }).format(Number.isFinite(value) ? value : 0);
 
     return `${number} ${currency}`;
@@ -81,6 +84,7 @@ export function formatUsd(amount: number): string {
     return amount.toLocaleString('en-US', {
         style: 'currency',
         currency: 'USD',
+        signDisplay: 'negative',
     });
 }
 

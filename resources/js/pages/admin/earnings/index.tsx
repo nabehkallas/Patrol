@@ -525,7 +525,7 @@ function EarningsReport({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="text-2xl font-semibold">
-                                <Syp value={-other_expense_syp} />
+                                <Syp value={other_expense_syp} />
                             </CardContent>
                         </Card>
                     </div>

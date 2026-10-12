@@ -216,7 +216,6 @@ function ItemRow({
     subLine?: string;
     tone: 'income' | 'expense';
 }) {
-    const sign = tone === 'income' ? '+' : '-';
     const toneClass = tone === 'income' ? 'text-success' : 'text-destructive';
 
     return (
@@ -228,7 +227,6 @@ function ItemRow({
                 )}
             </div>
             <span className={`shrink-0 text-sm font-medium ${toneClass}`}>
-                {sign}
                 {value}
             </span>
         </div>

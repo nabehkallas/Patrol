@@ -403,12 +403,14 @@ class EarningsXlsxExporter
         // A real number read live from expense records, not a formula -- this sheet has no
         // itemized expense breakdown to sum, so there's nothing further to compute it from here.
         $this->setValue(1, $row, $labels['other_expenses']);
-        $this->setValue(2, $row, -$otherExpenseSyp)->getNumberFormat()->setFormatCode($this->moneyFormat);
+        // Shown as the positive amount spent (the label says it's an expense); the grand total
+        // below subtracts it.
+        $this->setValue(2, $row, $otherExpenseSyp + 0.0)->getNumberFormat()->setFormatCode($this->moneyFormat);
         $otherExpensesRow = $row;
         $row++;
 
         $this->setValue(1, $row, $labels['grand_total'])->getFont()->setBold(true)->setSize(13);
-        $grandTotalCell = $this->setFormula(2, $row, $this->ref(2, $totalEarningsRow).'+'.$this->ref(2, $otherExpensesRow));
+        $grandTotalCell = $this->setFormula(2, $row, $this->ref(2, $totalEarningsRow).'-'.$this->ref(2, $otherExpensesRow));
         $grandTotalCell->getNumberFormat()->setFormatCode($this->moneyFormat);
         $grandTotalCell->getFont()->setBold(true)->setSize(13);
         $this->fillRange(1, $row, 2, $row, self::RED);
