@@ -137,7 +137,7 @@ class PumpCounterReadingController extends Controller
 
         $rows = $readings->map(fn (PumpCounterReading $reading) => [
             $reading->pump->name ?? '—',
-            $reading->tank ? $reading->tank->fuelType?->name.' — '.$reading->tank->name : '—',
+            $reading->tank->name ?? '—',
             number_format((float) $reading->reading_value, 0),
             $reading->liters_sold !== null ? number_format((float) $reading->liters_sold, 3).' L' : '—',
             $reading->governmental_liters !== null ? number_format((float) $reading->governmental_liters, 3).' L' : '—',
@@ -365,15 +365,20 @@ class PumpCounterReadingController extends Controller
      * (fuel-type/tank mismatch, or governmental+return exceeding liters sold), nothing in the
      * batch is saved, and the failing row's own errors are reported back keyed by its index so
      * the frontend can point at the exact row.
+     *
+     * A row carrying an id is a reading already saved on that day (a past day prefills them):
+     * it's updated through updateReading(), like the edit page, but only when something in it
+     * actually changed. Unchanged rows aren't touched at all.
      */
     public function storeBulk(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'date' => 'required|date',
             'readings' => 'required|array|min:1',
+            'readings.*.id' => 'nullable|integer|exists:pump_counter_readings,id',
             'readings.*.pump_id' => 'required|exists:fuel_pumps,id',
             'readings.*.tank_id' => 'nullable|required_with:readings.*.reading_value|exists:tanks,id',
-            'readings.*.reading_value' => 'nullable|integer|min:0',
+            'readings.*.reading_value' => 'nullable|required_with:readings.*.id|integer|min:0',
             'readings.*.governmental_liters' => 'nullable|numeric|min:0',
             'readings.*.return_liters' => 'nullable|numeric|min:0',
             'readings.*.notes' => 'nullable|string|max:500',
@@ -381,14 +386,19 @@ class PumpCounterReadingController extends Controller
 
         $rowsToSave = collect(Arr::array($validated, 'readings'))
             ->map(fn ($row, $index) => $row + ['_index' => $index])
-            ->filter(fn ($row) => filled($row['reading_value'] ?? null))
+            ->filter(fn ($row) => filled($row['id'] ?? null)
+                ? $this->rowChanges(PumpCounterReading::findOrFail((int) $row['id']), $row)
+                : filled($row['reading_value'] ?? null))
             ->values();
 
         if ($rowsToSave->isEmpty()) {
             throw ValidationException::withMessages([
-                'readings' => __('Enter at least one counter value.'),
+                'readings' => __('Nothing to save: enter a counter value or change a saved one.'),
             ]);
         }
+
+        // Changing a saved reading is an admin action, as on the edit page.
+        abort_if($rowsToSave->contains(fn ($row) => filled($row['id'] ?? null)) && ! $request->user()->isAdmin(), 403);
 
         $savedCount = DB::transaction(function () use ($rowsToSave, $validated, $request) {
             $errors = [];
@@ -396,7 +406,18 @@ class PumpCounterReadingController extends Controller
 
             foreach ($rowsToSave as $row) {
                 try {
-                    $this->createReading([...$row, 'date' => $validated['date']], $request->user()->id);
+                    if (filled($row['id'] ?? null)) {
+                        $reading = PumpCounterReading::findOrFail((int) $row['id']);
+
+                        if ($reading->pump_id !== (int) $row['pump_id'] || $reading->date->toDateString() !== Carbon::parse($validated['date'])->toDateString()) {
+                            throw ValidationException::withMessages(['reading_value' => __('This reading belongs to another pump or day; reload the page.')]);
+                        }
+
+                        $this->updateReading($reading, [...$row, 'date' => $validated['date']], $request->user()->id);
+                    } else {
+                        $this->createReading([...$row, 'date' => $validated['date']], $request->user()->id);
+                    }
+
                     $count++;
                 } catch (ValidationException $e) {
                     foreach ($e->errors() as $field => $messages) {
@@ -419,6 +440,22 @@ class PumpCounterReadingController extends Controller
         $this->flashWithStockCheck($message, $rowsToSave->pluck('tank_id')->map(fn ($id) => (int) $id)->all());
 
         return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date'], 'entry_date' => $validated['date']]);
+    }
+
+    /**
+     * Whether an entry-table row differs from the saved reading it was prefilled from.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function rowChanges(PumpCounterReading $reading, array $row): bool
+    {
+        $liters = fn ($value) => round((float) ($value ?? 0), 3);
+
+        return (int) $reading->reading_value !== (int) ($row['reading_value'] ?? -1)
+            || (int) $reading->tank_id !== (int) ($row['tank_id'] ?? 0)
+            || $liters($reading->governmental_liters) !== $liters($row['governmental_liters'] ?? null)
+            || $liters($reading->return_liters) !== $liters($row['return_liters'] ?? null)
+            || trim((string) $reading->notes) !== trim((string) ($row['notes'] ?? ''));
     }
 
     /**
@@ -518,6 +555,22 @@ class PumpCounterReadingController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $this->updateReading($pumpCounterReading, $data, $request->user()->id);
+
+        $this->flashWithStockCheck(__('Reading updated.'), [(int) $data['tank_id']]);
+
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
+    }
+
+    /**
+     * Updates a saved reading and everything derived from it: its own sale, the reading after
+     * it, and (when it moved to another day or pump) the reading that used to follow it. Shared
+     * by the edit page and the entry table, so both recalculate the same way.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function updateReading(PumpCounterReading $pumpCounterReading, array $data, int $userId): void
+    {
         $pump = FuelPump::findOrFail((int) $data['pump_id']);
         $tank = Tank::with('fuelType')->findOrFail((int) $data['tank_id']);
 
@@ -527,7 +580,7 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($request, $data, $pump, $tank, $pumpCounterReading) {
+        DB::transaction(function () use ($userId, $data, $pump, $tank, $pumpCounterReading) {
             // The reading after its old place, and the readings around its new place (itself
             // left out: its row still holds the old date and value).
             $oldNextReading = $this->nextReadingFor($pumpCounterReading);
@@ -541,8 +594,8 @@ class PumpCounterReadingController extends Controller
             }
 
             [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
-                $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
-                $request->user()->id, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
+                $pump, $tank, $prevReading, (string) $data['reading_value'], $data['date'], $data['notes'] ?? null,
+                $userId, (float) ($data['governmental_liters'] ?? 0), (float) ($data['return_liters'] ?? 0)
             );
 
             $pumpCounterReading->update([
@@ -571,10 +624,6 @@ class PumpCounterReadingController extends Controller
                 $this->recomputeReading($oldNextReading, $this->previousReadingFor($oldNextReading));
             }
         });
-
-        $this->flashWithStockCheck(__('Reading updated.'), [(int) $data['tank_id']]);
-
-        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
     }
 
     public function destroy(PumpCounterReading $pumpCounterReading): RedirectResponse
@@ -881,8 +930,9 @@ class PumpCounterReadingController extends Controller
 
     /**
      * What the entry table needs for the day it's entering: per pump, the readings a new value
-     * must sit between (the last one up to that day, the first one after it) and any readings
-     * already on that day, so a past day shows which pumps are done and which were missed.
+     * must sit between (the last one up to that day, the first one after it) and the reading
+     * already saved on that day, if any, so a past day shows which pumps are done and which
+     * were missed. For a saved reading the bounds are the readings around it.
      *
      * @return array{date: string, requested: bool, pumps: array<int, array<string, mixed>>}
      */
@@ -892,7 +942,13 @@ class PumpCounterReadingController extends Controller
             'date' => $date,
             'requested' => $requested,
             'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date) {
-                [$previous, $next] = $this->neighbours($pump->id, $date);
+                // A pump shared across tanks can log more than one reading a day; the entry
+                // table shows (and edits) the day's last one, the closing reading.
+                $recorded = PumpCounterReading::where('pump_id', $pump->id)
+                    ->whereDate('date', $date)
+                    ->orderByDesc('id')
+                    ->first();
+                [$previous, $next] = $this->neighbours($pump->id, $date, $recorded?->id);
 
                 return [
                     'pump_id' => $pump->id,
@@ -905,19 +961,14 @@ class PumpCounterReadingController extends Controller
                         'reading_value' => $next->reading_value,
                         'date' => $next->date->toDateString(),
                     ] : null,
-                    'recorded' => PumpCounterReading::with('tank')
-                        ->where('pump_id', $pump->id)
-                        ->whereDate('date', $date)
-                        ->orderBy('id')
-                        ->get()
-                        ->map(fn (PumpCounterReading $reading) => [
-                            'id' => $reading->id,
-                            'reading_value' => $reading->reading_value,
-                            'tank_id' => $reading->tank_id,
-                            'tank_name' => $reading->tank?->name,
-                        ])
-                        ->values()
-                        ->all(),
+                    'recorded' => $recorded ? [
+                        'id' => $recorded->id,
+                        'reading_value' => $recorded->reading_value,
+                        'tank_id' => $recorded->tank_id,
+                        'governmental_liters' => $recorded->governmental_liters !== null ? (float) $recorded->governmental_liters : null,
+                        'return_liters' => $recorded->return_liters !== null ? (float) $recorded->return_liters : null,
+                        'notes' => $recorded->notes,
+                    ] : null,
                 ];
             })->values()->all(),
         ];

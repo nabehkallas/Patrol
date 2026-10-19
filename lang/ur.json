@@ -759,7 +759,6 @@
     "Due to us": "ہمیں لینا ہے",
     "Earnings": "منافع",
     "Earnings password set.": "منافع کا پاس ورڈ مقرر ہو گیا۔",
-    "Enter at least one counter value.": "کم از کم ایک میٹر ریڈنگ درج کریں۔",
     "Entry deleted.": "اندراج حذف ہو گیا۔",
     "Entry updated.": "اندراج اپ ڈیٹ ہو گیا۔",
     "Exchange Rate": "شرحِ مبادلہ",
@@ -1121,11 +1120,16 @@
     "fuel_prices.history": "قیمتوں کی تاریخ",
     "exchange_rates.history": "شرح تبادلہ کی تاریخ",
     "transactions.exchange_rate_pair": "شرح تبادلہ",
-    "pump_counters.past_day_note": "گزشتہ دن (:date) کی ریڈنگز درج کی جا رہی ہیں۔ اس دن ریکارڈ شدہ پمپ اپنی ریڈنگ دکھاتے ہیں؛ صرف رہ جانے والی ریڈنگز درج کریں۔ اگلے دن کی فروخت خود بخود دوبارہ شمار ہوتی ہے۔",
     "pump_counters.recorded_on_day": "درج شدہ",
-    "pump_counters.next_reading": "اگلی ریڈنگ",
     "pump_counters.between": ":previous اور :next کے درمیان ہونی چاہیے",
     "pump_counters.at_most": ":next سے زیادہ نہیں ہونی چاہیے",
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "کاؤنٹر کی قدر :previous (:previous_date کی ریڈنگ) اور :next (:next_date کی ریڈنگ) کے درمیان ہونی چاہیے۔",
-    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "کاؤنٹر کی قدر اگلی ریڈنگ :next (:next_date کی ریڈنگ) سے زیادہ نہیں ہو سکتی۔"
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "کاؤنٹر کی قدر اگلی ریڈنگ :next (:next_date کی ریڈنگ) سے زیادہ نہیں ہو سکتی۔",
+    "pump_counters.past_date": "گزشتہ تاریخ",
+    "pump_counters.between_hint": ":previous اور :next کے درمیان",
+    "pump_counters.meter_replaced_title": "پچھلی ریڈنگ سے کم",
+    "pump_counters.meter_replaced_confirm": "ریڈنگ پچھلی ریڈنگ سے کم ہے۔ کیا میٹر تبدیل کیا گیا؟",
+    "pump_counters.meter_replaced_yes": "ہاں، محفوظ کریں",
+    "Nothing to save: enter a counter value or change a saved one.": "محفوظ کرنے کو کچھ نہیں: کاؤنٹر کی قدر درج کریں یا محفوظ شدہ میں تبدیلی کریں۔",
+    "This reading belongs to another pump or day; reload the page.": "یہ ریڈنگ کسی اور پمپ یا دن کی ہے؛ صفحہ دوبارہ لوڈ کریں۔"
 }

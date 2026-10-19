@@ -12,12 +12,16 @@ use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\FuelCostAllocationService;
+use App\Services\PdfTableExporter;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use ReflectionMethod;
+use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -45,6 +49,8 @@ class BackdatedPumpReadingTest extends TestCase
         $this->travelTo(Carbon::parse('2026-10-19 12:00:00'));
         $id = DB::table('users')->insertGetId(['name' => 'Admin', 'email' => 'a@example.test', 'password' => 'x', 'created_at' => now(), 'updated_at' => now()]);
         $this->user = User::findOrFail($id);
+        Role::findOrCreate('admin', 'web');
+        $this->user->assignRole('admin');
 
         $this->fuelTypeId = DB::table('fuel_types')->insertGetId(['name' => 'مازوت', 'slug' => 'diesel', 'profit_margin_percent' => 5, 'created_at' => now(), 'updated_at' => now()]);
         $this->tankId = DB::table('tanks')->insertGetId(['fuel_type_id' => $this->fuelTypeId, 'name' => 'مازوت اساسي', 'capacity_liters' => 50000, 'created_at' => now(), 'updated_at' => now()]);
@@ -88,6 +94,19 @@ class BackdatedPumpReadingTest extends TestCase
         app(PumpCounterReadingController::class)->storeBulk($this->request([
             'date' => $date,
             'readings' => [['pump_id' => $this->pumpId, 'tank_id' => $this->tankId, 'reading_value' => $value]],
+        ]));
+    }
+
+    /** The entry table on a past day: a saved reading comes back prefilled, with its id. */
+    private function saveRow(PumpCounterReading $reading, array $changes = []): void
+    {
+        app(PumpCounterReadingController::class)->storeBulk($this->request([
+            'date' => $reading->date->toDateString(),
+            'readings' => [[
+                'id' => $reading->id, 'pump_id' => $reading->pump_id, 'tank_id' => $reading->tank_id,
+                'reading_value' => $reading->reading_value, 'governmental_liters' => $reading->governmental_liters,
+                'return_liters' => $reading->return_liters, 'notes' => $reading->notes, ...$changes,
+            ]],
         ]));
     }
 
@@ -152,7 +171,7 @@ class BackdatedPumpReadingTest extends TestCase
         $this->assertSame($readings->whereNotNull('transaction_id')->count(), Transaction::where('type', 'fuel_sale')->count());
     }
 
-    private function assertRejected(callable $save, string $field): void
+    private function assertRejected(callable $save, string $field, array $bounds = ['1,000', '1,500']): void
     {
         $before = [PumpCounterReading::count(), PumpCounterReading::pluck('liters_sold', 'id')->all(), Transaction::count()];
 
@@ -161,8 +180,9 @@ class BackdatedPumpReadingTest extends TestCase
             $this->fail('The reading was accepted.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey($field, $e->errors());
-            $this->assertStringContainsString('1,000', $e->errors()[$field][0]);
-            $this->assertStringContainsString('1,500', $e->errors()[$field][0]);
+            foreach ($bounds as $bound) {
+                $this->assertStringContainsString($bound, $e->errors()[$field][0]);
+            }
         }
 
         $this->assertSame($before, [PumpCounterReading::count(), PumpCounterReading::pluck('liters_sold', 'id')->all(), Transaction::count()]);
@@ -266,5 +286,64 @@ class BackdatedPumpReadingTest extends TestCase
 
         $this->assertSalesMatchReadings();
         $this->assertSame($before['cost'], $this->totals()['cost']);
+    }
+
+    public function test_the_entry_table_updates_a_changed_saved_reading(): void
+    {
+        $before = $this->totals();
+
+        $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1450, 'notes' => 'corrected']);
+
+        $this->assertSame(1450, (int) $this->readingOn('2026-10-17')->reading_value);
+        $this->assertSame('corrected', $this->readingOn('2026-10-17')->notes);
+        $this->assertSame(450.0, (float) $this->readingOn('2026-10-17')->liters_sold);
+        $this->assertSame(350.0, (float) $this->readingOn('2026-10-18')->liters_sold);
+        $this->assertSame(3, PumpCounterReading::count());
+        $this->assertSalesMatchReadings();
+        $this->assertEquals($before, $this->totals());
+    }
+
+    public function test_an_unchanged_saved_row_is_not_touched(): void
+    {
+        $reading = $this->readingOn('2026-10-17');
+        $saleId = $reading->transaction_id;
+
+        try {
+            $this->saveRow($reading);
+            $this->fail('An unchanged row was saved.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('readings', $e->errors());
+        }
+
+        $this->assertSame($saleId, $this->readingOn('2026-10-17')->transaction_id);
+        $this->assertSame($reading->updated_at->toIso8601String(), $this->readingOn('2026-10-17')->updated_at->toIso8601String());
+    }
+
+    public function test_the_entry_table_checks_a_saved_reading_against_its_neighbours(): void
+    {
+        $this->assertRejected(fn () => $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1900]), 'readings.0.reading_value', ['1,000', '1,800']);
+    }
+
+    public function test_only_an_admin_can_change_a_saved_reading(): void
+    {
+        $this->user->removeRole('admin');
+
+        $this->expectException(HttpException::class);
+        $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1450]);
+    }
+
+    public function test_the_readings_pdf_shows_only_the_tank_name(): void
+    {
+        $rows = null;
+        $exporter = \Mockery::mock(PdfTableExporter::class);
+        $exporter->shouldReceive('download')->once()->andReturnUsing(function (...$args) use (&$rows) {
+            $rows = $args[4];
+
+            return new Response('');
+        });
+
+        app(PumpCounterReadingController::class)->exportPdf(Request::create('/x', 'GET', ['from' => '2026-10-15', 'to' => '2026-10-18']), $exporter);
+
+        $this->assertSame(['مازوت اساسي'], array_values(array_unique(array_column($rows, 1))));
     }
 }

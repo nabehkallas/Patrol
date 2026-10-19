@@ -759,7 +759,6 @@
     "Due to us": "Da incassare",
     "Earnings": "Guadagni",
     "Earnings password set.": "Password di Guadagni impostata.",
-    "Enter at least one counter value.": "Inserisci almeno una lettura del contatore.",
     "Entry deleted.": "Registrazione eliminata.",
     "Entry updated.": "Registrazione aggiornata.",
     "Exchange Rate": "Tasso di cambio",
@@ -1121,11 +1120,16 @@
     "fuel_prices.history": "Storico prezzi",
     "exchange_rates.history": "Storico tassi",
     "transactions.exchange_rate_pair": "Tasso di cambio",
-    "pump_counters.past_day_note": "Inserimento letture per un giorno passato (:date). Le pompe già registrate quel giorno mostrano la lettura; inserisci quelle mancanti. Le vendite del giorno successivo vengono ricalcolate automaticamente.",
     "pump_counters.recorded_on_day": "Registrata",
-    "pump_counters.next_reading": "Lettura successiva",
     "pump_counters.between": "Deve essere tra :previous e :next",
     "pump_counters.at_most": "Non deve superare :next",
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Il valore del contatore deve essere tra :previous (lettura del :previous_date) e :next (lettura del :next_date).",
-    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Il valore del contatore non può superare la lettura successiva, :next (lettura del :next_date)."
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Il valore del contatore non può superare la lettura successiva, :next (lettura del :next_date).",
+    "pump_counters.past_date": "Data passata",
+    "pump_counters.between_hint": "Tra :previous e :next",
+    "pump_counters.meter_replaced_title": "Inferiore alla lettura precedente",
+    "pump_counters.meter_replaced_confirm": "La lettura è inferiore alla precedente. Il contatore è stato sostituito?",
+    "pump_counters.meter_replaced_yes": "Sì, salva",
+    "Nothing to save: enter a counter value or change a saved one.": "Niente da salvare: inserisci una lettura o modificane una salvata.",
+    "This reading belongs to another pump or day; reload the page.": "Questa lettura appartiene a un'altra pompa o a un altro giorno; ricarica la pagina."
 }

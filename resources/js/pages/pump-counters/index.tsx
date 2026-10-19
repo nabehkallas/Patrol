@@ -1,36 +1,36 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
+import type {
+    EntryPump,
+    EntryRowData,
+    EntryTank,
+} from '@/components/pump-counters/entry-row';
+import { EntryRow } from '@/components/pump-counters/entry-row';
 import type { EntryStamp } from '@/components/pump-counters/last-entry';
-import {
-    PreviousReading,
-    SystemLastEntry,
-} from '@/components/pump-counters/last-entry';
+import { SystemLastEntry } from '@/components/pump-counters/last-entry';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
-import { FuelTypeDot, TankSelectItems } from '@/components/tank-select-items';
+import { FuelTypeDot } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import {
-    formatDateTime,
-    formatDayMonthYear,
-    formatNumber,
-    todayInStation,
-} from '@/lib/format';
+import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { selectableTanks } from '@/lib/tanks';
@@ -45,13 +45,7 @@ import {
 } from '@/routes/pump-counters';
 import type { Auth, PumpCounterReading, PumpSummary } from '@/types';
 
-type TankOption = {
-    id: number;
-    name: string;
-    fuel_type_id: number;
-    fuel_type_name: string;
-    is_active: boolean;
-};
+type TankOption = EntryTank;
 
 type FuelTypeTotal = {
     fuel_type_id: number;
@@ -67,19 +61,6 @@ type FuelTypeTotal = {
 function loggedAt(reading: PumpCounterReading): string {
     return `${reading.date.slice(0, 10)}T${reading.created_at.slice(11)}`;
 }
-
-/** One pump on the day being entered: the readings a new value must sit between, and any it already has that day. */
-type EntryPump = {
-    pump_id: number;
-    previous: (EntryStamp & { reading_value: number }) | null;
-    next: { reading_value: number; date: string } | null;
-    recorded: {
-        id: number;
-        reading_value: number;
-        tank_id: number | null;
-        tank_name: string | null;
-    }[];
-};
 
 type PageProps = {
     auth: Auth;
@@ -134,24 +115,69 @@ const TOTAL_BADGE =
 const NEUTRAL_BADGE =
     'bg-muted text-foreground ring-border dark:bg-slate-800 dark:ring-slate-700';
 
-type BulkRow = {
-    pump_id: number;
-    tank_id: string;
-    reading_value: string;
-    governmental_liters: string;
-    return_liters: string;
-    notes: string;
-};
+type BulkRow = EntryRowData;
+type Entry = PageProps['entry'];
 
-function buildRows(pumpList: PumpSummary[], tanks: TankOption[]): BulkRow[] {
-    return pumpList.map((pump) => ({
-        pump_id: pump.id,
-        tank_id: String(defaultTankFor(pump, tanksFor(pump, tanks))),
-        reading_value: '',
-        governmental_liters: '',
-        return_liters: '',
-        notes: '',
-    }));
+/** Whether the entry context is for a day before today (station time). */
+function isPast(entry: Entry): boolean {
+    return entry.date < todayInStation();
+}
+
+// One row per pump. On a past day a pump's saved reading comes back prefilled (with its id, so
+// saving updates it); every other row starts empty.
+function buildRows(
+    pumpList: PumpSummary[],
+    tanks: TankOption[],
+    entry: Entry,
+): BulkRow[] {
+    const byPump = new Map(entry.pumps.map((row) => [row.pump_id, row]));
+    const past = isPast(entry);
+
+    return pumpList.map((pump) => {
+        const saved = past ? (byPump.get(pump.id)?.recorded ?? null) : null;
+        const defaultTank = String(defaultTankFor(pump, tanksFor(pump, tanks)));
+
+        return saved
+            ? {
+                  id: saved.id,
+                  pump_id: pump.id,
+                  tank_id:
+                      saved.tank_id !== null
+                          ? String(saved.tank_id)
+                          : defaultTank,
+                  reading_value: String(saved.reading_value),
+                  governmental_liters:
+                      saved.governmental_liters !== null
+                          ? String(saved.governmental_liters)
+                          : '',
+                  return_liters:
+                      saved.return_liters !== null
+                          ? String(saved.return_liters)
+                          : '',
+                  notes: saved.notes ?? '',
+              }
+            : {
+                  id: null,
+                  pump_id: pump.id,
+                  tank_id: defaultTank,
+                  reading_value: '',
+                  governmental_liters: '',
+                  return_liters: '',
+                  notes: '',
+              };
+    });
+}
+
+// A saved reading keeps its own tank in the list, even one that's since been deactivated.
+function rowTanks(
+    pump: PumpSummary,
+    row: BulkRow,
+    tanks: TankOption[],
+): TankOption[] {
+    const options = tanksFor(pump, tanks);
+    const own = tanks.find((tank) => String(tank.id) === row.tank_id);
+
+    return own && !options.includes(own) ? [own, ...options] : options;
 }
 
 export default function PumpCountersIndex() {
@@ -217,7 +243,7 @@ export default function PumpCountersIndex() {
     const form = useForm({
         // After saving a past day the page comes back on that day, not on today.
         date: entry.requested ? entry.date : defaultEntryDate,
-        readings: buildRows(sortedPumps, tanks),
+        readings: buildRows(sortedPumps, tanks, entry),
     });
 
     function updateRow(pumpId: number, patch: Partial<BulkRow>) {
@@ -238,27 +264,71 @@ export default function PumpCountersIndex() {
         }
     }, [entryDate, entry.date]);
 
-    // A past day lists every pump: those already recorded that day show their reading, the
-    // missed ones get empty fields.
-    const isPastDay = entry.date === entryDate && entryDate < todayInStation();
+    // A past day: saved readings are prefilled and editable, missed pumps are marked.
+    const isPastDay = entry.date === entryDate && isPast(entry);
 
-    function submitAll(event: FormEvent) {
-        event.preventDefault();
+    // Rows follow the day being entered: rebuilt (prefilled) whenever that day's context loads.
+    useEffect(() => {
+        form.setData('readings', buildRows(sortedPumps, tanks, entry));
+        // Only on a new day; typing must never be reset by a re-render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [entry.date]);
+
+    // The newest reading may be lower than the one before it only when the meter was replaced:
+    // ask before saving it.
+    const [lowerPumps, setLowerPumps] = useState<string[] | null>(null);
+
+    function lowerThanPrevious(): string[] {
+        return form.data.readings
+            .filter((row) => {
+                const context = entryByPump.get(row.pump_id);
+
+                if (
+                    row.reading_value === '' ||
+                    !context?.previous ||
+                    context.next
+                ) {
+                    return false;
+                }
+
+                const value = Number(row.reading_value);
+                const unchanged =
+                    row.id !== null &&
+                    context.recorded?.reading_value === value;
+
+                return !unchanged && value < context.previous.reading_value;
+            })
+            .map((row) => pumpsById.get(row.pump_id)?.name ?? '');
+    }
+
+    function save() {
+        setLowerPumps(null);
         form.post(storeBulk.url(), {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
                 form.setData(
                     'readings',
-                    form.data.readings.map((row) => ({
-                        ...row,
-                        reading_value: '',
-                        governmental_liters: '',
-                        return_liters: '',
-                        notes: '',
-                    })),
+                    buildRows(
+                        sortedPumps,
+                        tanks,
+                        (page.props as unknown as PageProps).entry,
+                    ),
                 );
             },
         });
+    }
+
+    function submitAll(event: FormEvent) {
+        event.preventDefault();
+        const lower = lowerThanPrevious();
+
+        if (lower.length > 0) {
+            setLowerPumps(lower);
+
+            return;
+        }
+
+        save();
     }
 
     const exportFuelTypes = useMemo(() => {
@@ -321,6 +391,14 @@ export default function PumpCountersIndex() {
                                         form.setData('date', e.target.value)
                                     }
                                 />
+                                {isPastDay && (
+                                    <span
+                                        className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+                                        data-test="past-date-badge"
+                                    >
+                                        {t('pump_counters.past_date')}
+                                    </span>
+                                )}
                                 <InputError message={form.errors.date} />
                                 {(fuelTypeTotals.length > 0 ||
                                     governmentalTotals.length > 0) && (
@@ -400,17 +478,6 @@ export default function PumpCountersIndex() {
 
                             <InputError message={form.errors.readings} />
 
-                            {isPastDay && (
-                                <p
-                                    className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
-                                    data-test="past-day-note"
-                                >
-                                    {t('pump_counters.past_day_note', {
-                                        date: formatDayMonthYear(entryDate),
-                                    })}
-                                </p>
-                            )}
-
                             <div className="table-stack overflow-x-auto rounded-xl border">
                                 <table className="w-full text-sm">
                                     <thead>
@@ -452,34 +519,6 @@ export default function PumpCountersIndex() {
                                                     return null;
                                                 }
 
-                                                const tankOptions = tanksFor(
-                                                    pump,
-                                                    tanks,
-                                                );
-                                                const context = entryByPump.get(
-                                                    pump.id,
-                                                );
-                                                const previous =
-                                                    context?.previous ?? null;
-                                                const next =
-                                                    context?.next ?? null;
-                                                const recorded = isPastDay
-                                                    ? (context?.recorded ?? [])
-                                                    : [];
-                                                const value =
-                                                    row.reading_value === ''
-                                                        ? null
-                                                        : Number(
-                                                              row.reading_value,
-                                                          );
-                                                const outOfRange =
-                                                    value !== null &&
-                                                    next !== null &&
-                                                    (value >
-                                                        next.reading_value ||
-                                                        (previous !== null &&
-                                                            value <
-                                                                previous.reading_value));
                                                 const rowFuelTypeId =
                                                     pump.fuel_type_ids[0] ??
                                                     tanks.find(
@@ -487,355 +526,50 @@ export default function PumpCountersIndex() {
                                                             String(tank.id) ===
                                                             row.tank_id,
                                                     )?.fuel_type_id;
-                                                const maxLitersSold =
-                                                    previous && value !== null
-                                                        ? value -
-                                                          Number(
-                                                              previous.reading_value,
-                                                          )
-                                                        : null;
 
                                                 return (
-                                                    <tr
+                                                    <EntryRow
                                                         key={pump.id}
-                                                        className={cn(
-                                                            'border-s-4 border-t transition-colors',
+                                                        row={row}
+                                                        rowIndex={rowIndex}
+                                                        pumpName={pump.name}
+                                                        pumpTitle={[
+                                                            pump.name,
+                                                            ...pump.fuel_type_names,
+                                                        ].join(' — ')}
+                                                        badgeClass={
+                                                            fuelTypeBadge[
+                                                                rowFuelTypeId ??
+                                                                    -1
+                                                            ] ?? NEUTRAL_BADGE
+                                                        }
+                                                        rowBorderClass={
                                                             fuelTypeRowBorder[
                                                                 rowFuelTypeId ??
                                                                     -1
                                                             ] ??
-                                                                'border-s-border',
+                                                            'border-s-border'
+                                                        }
+                                                        tankOptions={rowTanks(
+                                                            pump,
+                                                            row,
+                                                            tanks,
                                                         )}
-                                                    >
-                                                        <td className="px-3 py-2.5 align-top">
-                                                            <div className="flex min-h-9 items-center justify-center">
-                                                                <span
-                                                                    className={cn(
-                                                                        'inline-block max-w-[10rem] truncate rounded-md px-2.5 py-1 text-center text-base font-semibold ring-1 ring-inset [unicode-bidi:plaintext]',
-                                                                        fuelTypeBadge[
-                                                                            rowFuelTypeId ??
-                                                                                -1
-                                                                        ] ??
-                                                                            NEUTRAL_BADGE,
-                                                                    )}
-                                                                    title={[
-                                                                        pump.name,
-                                                                        ...pump.fuel_type_names,
-                                                                    ].join(
-                                                                        ' — ',
-                                                                    )}
-                                                                >
-                                                                    {pump.name}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        {recorded.length > 0 ? (
-                                                            <td
-                                                                colSpan={5}
-                                                                className="px-3 py-2.5 align-middle"
-                                                                data-test="recorded-on-day"
-                                                            >
-                                                                <div className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1">
-                                                                    {recorded.map(
-                                                                        (
-                                                                            existing,
-                                                                        ) => (
-                                                                            <span
-                                                                                key={
-                                                                                    existing.id
-                                                                                }
-                                                                                className="inline-flex flex-wrap items-center gap-2"
-                                                                            >
-                                                                                <span className="text-muted-foreground">
-                                                                                    {t(
-                                                                                        'pump_counters.recorded_on_day',
-                                                                                    )}
-
-                                                                                    :
-                                                                                </span>
-                                                                                <bdi
-                                                                                    dir="ltr"
-                                                                                    className="font-semibold tabular-nums"
-                                                                                >
-                                                                                    {formatNumber(
-                                                                                        existing.reading_value,
-                                                                                        0,
-                                                                                    )}
-                                                                                </bdi>
-                                                                                {existing.tank_name && (
-                                                                                    <span className="text-muted-foreground">
-                                                                                        (
-                                                                                        {
-                                                                                            existing.tank_name
-                                                                                        }
-
-                                                                                        )
-                                                                                    </span>
-                                                                                )}
-                                                                                {auth.isAdmin && (
-                                                                                    <Link
-                                                                                        href={
-                                                                                            edit(
-                                                                                                existing.id,
-                                                                                            )
-                                                                                                .url
-                                                                                        }
-                                                                                        className="text-primary font-medium hover:underline"
-                                                                                    >
-                                                                                        {t(
-                                                                                            'common.edit',
-                                                                                        )}
-                                                                                    </Link>
-                                                                                )}
-                                                                            </span>
-                                                                        ),
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        ) : (
-                                                            <>
-                                                                <td className="px-3 py-2.5 align-top">
-                                                                    <Select
-                                                                        value={
-                                                                            row.tank_id
-                                                                        }
-                                                                        onValueChange={(
-                                                                            value,
-                                                                        ) =>
-                                                                            updateRow(
-                                                                                pump.id,
-                                                                                {
-                                                                                    tank_id:
-                                                                                        value,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <SelectTrigger className="w-full min-w-[10rem] max-w-[13rem] border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <TankSelectItems
-                                                                                tanks={
-                                                                                    tankOptions
-                                                                                }
-                                                                            />
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                    <InputError
-                                                                        message={
-                                                                            form
-                                                                                .errors[
-                                                                                `readings.${rowIndex}.tank_id`
-                                                                            ]
-                                                                        }
-                                                                    />
-                                                                </td>
-                                                                <td className="px-3 py-2.5 align-top">
-                                                                    <div className="w-full min-w-[6rem]">
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="1"
-                                                                            min="0"
-                                                                            className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
-                                                                            value={
-                                                                                row.reading_value
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateRow(
-                                                                                    pump.id,
-                                                                                    {
-                                                                                        reading_value:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        {previous && (
-                                                                            <PreviousReading
-                                                                                value={
-                                                                                    previous.reading_value
-                                                                                }
-                                                                                entry={
-                                                                                    previous
-                                                                                }
-                                                                            />
-                                                                        )}
-                                                                        {next && (
-                                                                            <p
-                                                                                className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300"
-                                                                                data-test="next-reading"
-                                                                            >
-                                                                                {t(
-                                                                                    'pump_counters.next_reading',
-                                                                                )}
-
-                                                                                :{' '}
-                                                                                {formatNumber(
-                                                                                    next.reading_value,
-                                                                                    0,
-                                                                                )}{' '}
-                                                                                <span className="text-xs font-normal">
-                                                                                    (
-                                                                                    <bdi dir="ltr">
-                                                                                        {formatDayMonthYear(
-                                                                                            next.date,
-                                                                                        )}
-                                                                                    </bdi>
-
-                                                                                    )
-                                                                                </span>
-                                                                            </p>
-                                                                        )}
-                                                                        <InputError
-                                                                            message={
-                                                                                form
-                                                                                    .errors[
-                                                                                    `readings.${rowIndex}.reading_value`
-                                                                                ] ??
-                                                                                (outOfRange &&
-                                                                                next
-                                                                                    ? previous
-                                                                                        ? t(
-                                                                                              'pump_counters.between',
-                                                                                              {
-                                                                                                  previous:
-                                                                                                      formatNumber(
-                                                                                                          previous.reading_value,
-                                                                                                          0,
-                                                                                                      ),
-                                                                                                  next: formatNumber(
-                                                                                                      next.reading_value,
-                                                                                                      0,
-                                                                                                  ),
-                                                                                              },
-                                                                                          )
-                                                                                        : t(
-                                                                                              'pump_counters.at_most',
-                                                                                              {
-                                                                                                  next: formatNumber(
-                                                                                                      next.reading_value,
-                                                                                                      0,
-                                                                                                  ),
-                                                                                              },
-                                                                                          )
-                                                                                    : undefined)
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-3 py-2.5 align-top">
-                                                                    <div className="w-full min-w-[5rem]">
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.001"
-                                                                            min="0"
-                                                                            className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
-                                                                            value={
-                                                                                row.governmental_liters
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateRow(
-                                                                                    pump.id,
-                                                                                    {
-                                                                                        governmental_liters:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        {maxLitersSold !==
-                                                                            null && (
-                                                                            <p className="mt-1 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                                                {t(
-                                                                                    'pump_counters.max',
-                                                                                )}
-
-                                                                                :{' '}
-                                                                                {formatNumber(
-                                                                                    maxLitersSold,
-                                                                                )}{' '}
-                                                                                L
-                                                                            </p>
-                                                                        )}
-                                                                        <InputError
-                                                                            message={
-                                                                                form
-                                                                                    .errors[
-                                                                                    `readings.${rowIndex}.governmental_liters`
-                                                                                ]
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-3 py-2.5 align-top">
-                                                                    <div className="w-full min-w-[5rem]">
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.001"
-                                                                            min="0"
-                                                                            className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
-                                                                            value={
-                                                                                row.return_liters
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateRow(
-                                                                                    pump.id,
-                                                                                    {
-                                                                                        return_liters:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                form
-                                                                                    .errors[
-                                                                                    `readings.${rowIndex}.return_liters`
-                                                                                ]
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-3 py-2.5 align-top">
-                                                                    <div className="w-full min-w-[6rem]">
-                                                                        <Input
-                                                                            type="text"
-                                                                            className="w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
-                                                                            value={
-                                                                                row.notes
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateRow(
-                                                                                    pump.id,
-                                                                                    {
-                                                                                        notes: e
-                                                                                            .target
-                                                                                            .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                            </>
+                                                        context={entryByPump.get(
+                                                            pump.id,
                                                         )}
-                                                    </tr>
+                                                        isPastDay={isPastDay}
+                                                        canEditSaved={
+                                                            auth.isAdmin
+                                                        }
+                                                        errors={form.errors}
+                                                        onChange={(patch) =>
+                                                            updateRow(
+                                                                pump.id,
+                                                                patch,
+                                                            )
+                                                        }
+                                                    />
                                                 );
                                             },
                                         )}
@@ -843,6 +577,39 @@ export default function PumpCountersIndex() {
                                 </table>
                             </div>
                         </form>
+                        <Dialog
+                            open={lowerPumps !== null}
+                            onOpenChange={(open) =>
+                                !open && setLowerPumps(null)
+                            }
+                        >
+                            <DialogContent
+                                className="sm:max-w-md"
+                                data-test="meter-replaced-dialog"
+                            >
+                                <DialogTitle>
+                                    {t('pump_counters.meter_replaced_title')}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {t('pump_counters.meter_replaced_confirm')}
+                                    {lowerPumps && lowerPumps.length > 0 && (
+                                        <bdi className="mt-2 block font-medium">
+                                            {lowerPumps.join('، ')}
+                                        </bdi>
+                                    )}
+                                </DialogDescription>
+                                <DialogFooter className="gap-2">
+                                    <DialogClose asChild>
+                                        <Button variant="outline">
+                                            {t('common.cancel')}
+                                        </Button>
+                                    </DialogClose>
+                                    <Button onClick={save}>
+                                        {t('pump_counters.meter_replaced_yes')}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardContent>
                 </Card>
 

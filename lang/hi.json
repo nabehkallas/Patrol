@@ -759,7 +759,6 @@
     "Due to us": "हमें लेना है",
     "Earnings": "मुनाफ़ा",
     "Earnings password set.": "मुनाफ़ा पासवर्ड तय हुआ।",
-    "Enter at least one counter value.": "कम से कम एक मीटर रीडिंग डालें।",
     "Entry deleted.": "प्रविष्टि हटाई गई।",
     "Entry updated.": "प्रविष्टि अपडेट हुई।",
     "Exchange Rate": "विनिमय दर",
@@ -1121,11 +1120,16 @@
     "fuel_prices.history": "मूल्य इतिहास",
     "exchange_rates.history": "विनिमय दर इतिहास",
     "transactions.exchange_rate_pair": "विनिमय दर",
-    "pump_counters.past_day_note": "पिछले दिन (:date) की रीडिंग दर्ज की जा रही है। उस दिन दर्ज पंप अपनी रीडिंग दिखाते हैं; छूटी हुई रीडिंग भरें। अगले दिन की बिक्री अपने आप दोबारा गणना होती है।",
     "pump_counters.recorded_on_day": "दर्ज",
-    "pump_counters.next_reading": "अगली रीडिंग",
     "pump_counters.between": ":previous और :next के बीच होनी चाहिए",
     "pump_counters.at_most": ":next से अधिक नहीं होनी चाहिए",
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "काउंटर का मान :previous (:previous_date की रीडिंग) और :next (:next_date की रीडिंग) के बीच होना चाहिए।",
-    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "काउंटर का मान अगली रीडिंग :next (:next_date की रीडिंग) से अधिक नहीं हो सकता।"
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "काउंटर का मान अगली रीडिंग :next (:next_date की रीडिंग) से अधिक नहीं हो सकता।",
+    "pump_counters.past_date": "पिछली तारीख",
+    "pump_counters.between_hint": ":previous और :next के बीच",
+    "pump_counters.meter_replaced_title": "पिछली रीडिंग से कम",
+    "pump_counters.meter_replaced_confirm": "रीडिंग पिछली रीडिंग से कम है। क्या मीटर बदला गया?",
+    "pump_counters.meter_replaced_yes": "हाँ, सहेजें",
+    "Nothing to save: enter a counter value or change a saved one.": "सहेजने को कुछ नहीं: काउंटर मान दर्ज करें या सहेजा हुआ बदलें।",
+    "This reading belongs to another pump or day; reload the page.": "यह रीडिंग किसी और पंप या दिन की है; पेज फिर से लोड करें।"
 }

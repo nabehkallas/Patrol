@@ -759,7 +759,6 @@
     "Due to us": "Li ser wan",
     "Earnings": "Qezenc",
     "Earnings password set.": "Şîfreya Qezencê hate diyarkirin.",
-    "Enter at least one counter value.": "Herî kêm nirxeke jimarkerê binivîse.",
     "Entry deleted.": "Tomar hate jêbirin.",
     "Entry updated.": "Tomar hate nûkirin.",
     "Exchange Rate": "Rêjeya diravan",
@@ -1121,11 +1120,16 @@
     "fuel_prices.history": "Dîroka bihayan",
     "exchange_rates.history": "Dîroka rêjeyan",
     "transactions.exchange_rate_pair": "Rêjeya guherînê",
-    "pump_counters.past_day_note": "Xwendinên rojeke borî (:date) tên tomarkirin. Pompeyên ku wê rojê hatine tomarkirin xwendina xwe nîşan didin; yên mayî tije bike. Firotina roja din bixweber ji nû ve tê hesabkirin.",
     "pump_counters.recorded_on_day": "Tomarkirî",
-    "pump_counters.next_reading": "Xwendina pêş",
     "pump_counters.between": "Divê di navbera :previous û :next de be",
     "pump_counters.at_most": "Divê ji :next ne zêdetir be",
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Nirxa jimarvanê divê di navbera :previous (xwendina :previous_date) û :next (xwendina :next_date) de be.",
-    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Nirxa jimarvanê nikare ji xwendina pêş, :next (xwendina :next_date), bilindtir be."
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Nirxa jimarvanê nikare ji xwendina pêş, :next (xwendina :next_date), bilindtir be.",
+    "pump_counters.past_date": "Dîroka borî",
+    "pump_counters.between_hint": "Di navbera :previous û :next de",
+    "pump_counters.meter_replaced_title": "Ji xwendina berê kêmtir",
+    "pump_counters.meter_replaced_confirm": "Xwendin ji ya berê kêmtir e. Ma jimarvan hate guhertin?",
+    "pump_counters.meter_replaced_yes": "Erê, tomar bike",
+    "Nothing to save: enter a counter value or change a saved one.": "Tiştek ji bo tomarkirinê tune: nirxeke jimarvanê binivîse an yeke tomarkirî biguherîne.",
+    "This reading belongs to another pump or day; reload the page.": "Ev xwendin ya pompeyek an rojeke din e; rûpelê ji nû ve bar bike."
 }

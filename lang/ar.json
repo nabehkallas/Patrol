@@ -759,7 +759,6 @@
     "Due to us": "مستحق لنا",
     "Earnings": "الأرباح",
     "Earnings password set.": "تم تعيين كلمة مرور الأرباح.",
-    "Enter at least one counter value.": "أدخل قيمة عداد واحدة على الأقل.",
     "Entry deleted.": "تم حذف القيد.",
     "Entry updated.": "تم تحديث القيد.",
     "Exchange Rate": "سعر الصرف",
@@ -1121,11 +1120,16 @@
     "fuel_prices.history": "سجل الأسعار",
     "exchange_rates.history": "سجل أسعار الصرف",
     "transactions.exchange_rate_pair": "سعر الصرف",
-    "pump_counters.past_day_note": "إدخال قراءات ليوم سابق (:date). المضخات المسجلة في ذلك اليوم تظهر قراءتها؛ أدخل القراءات الناقصة فقط. تُعاد حسابات مبيعات اليوم التالي تلقائياً.",
     "pump_counters.recorded_on_day": "مسجّلة",
-    "pump_counters.next_reading": "القراءة التالية",
     "pump_counters.between": "يجب أن تكون بين :previous و :next",
     "pump_counters.at_most": "يجب ألا تتجاوز :next",
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "يجب أن تكون قراءة العداد بين :previous (قراءة :previous_date) و :next (قراءة :next_date).",
-    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "لا يمكن أن تتجاوز قراءة العداد القراءة التالية :next (قراءة :next_date)."
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "لا يمكن أن تتجاوز قراءة العداد القراءة التالية :next (قراءة :next_date).",
+    "pump_counters.past_date": "تاريخ سابق",
+    "pump_counters.between_hint": "بين :previous و :next",
+    "pump_counters.meter_replaced_title": "قراءة أقل من السابقة",
+    "pump_counters.meter_replaced_confirm": "القراءة أقل من القراءة السابقة. هل تم تبديل العداد؟",
+    "pump_counters.meter_replaced_yes": "نعم، احفظ",
+    "Nothing to save: enter a counter value or change a saved one.": "لا يوجد ما يُحفظ: أدخل قراءة عداد أو عدّل قراءة محفوظة.",
+    "This reading belongs to another pump or day; reload the page.": "هذه القراءة تخص مضخة أو يوماً آخر؛ أعد تحميل الصفحة."
 }
