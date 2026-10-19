@@ -2,6 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo } from 'react';
 import InputError from '@/components/input-error';
+import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
 import { TankSelectItems } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
@@ -183,14 +184,14 @@ export default function PumpCounterReadingEdit() {
                         <Label htmlFor="reading_value">
                             {t('pump_counters.reading_value')}
                         </Label>
-                        <Input
+                        <MoneyInput
                             id="reading_value"
-                            type="number"
-                            step="1"
-                            min="0"
+                            inputMode="numeric"
+                            dir="ltr"
+                            className="text-end tabular-nums"
                             value={form.data.reading_value}
-                            onChange={(e) =>
-                                form.setData('reading_value', e.target.value)
+                            onChange={(raw) =>
+                                form.setData('reading_value', raw.split('.')[0])
                             }
                         />
                         <InputError message={form.errors.reading_value} />

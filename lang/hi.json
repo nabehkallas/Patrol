@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "काउंटर का मान :previous (:previous_date की रीडिंग) और :next (:next_date की रीडिंग) के बीच होना चाहिए।",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "काउंटर का मान अगली रीडिंग :next (:next_date की रीडिंग) से अधिक नहीं हो सकता।",
     "pump_counters.past_date": "पिछली तारीख",
-    "pump_counters.between_hint": ":previous और :next के बीच",
     "pump_counters.meter_replaced_title": "पिछली रीडिंग से कम",
     "pump_counters.meter_replaced_confirm": "रीडिंग पिछली रीडिंग से कम है। क्या मीटर बदला गया?",
     "pump_counters.meter_replaced_yes": "हाँ, सहेजें",

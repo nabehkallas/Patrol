@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Sayaç değeri :previous (:previous_date okuması) ile :next (:next_date okuması) arasında olmalıdır.",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Sayaç değeri sonraki okumadan, :next (:next_date okuması), yüksek olamaz.",
     "pump_counters.past_date": "Geçmiş tarih",
-    "pump_counters.between_hint": ":previous ile :next arası",
     "pump_counters.meter_replaced_title": "Önceki okumadan düşük",
     "pump_counters.meter_replaced_confirm": "Okuma önceki okumadan düşük. Sayaç değiştirildi mi?",
     "pump_counters.meter_replaced_yes": "Evet, kaydet",

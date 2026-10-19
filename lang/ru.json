@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Показание счётчика должно быть между :previous (показание от :previous_date) и :next (показание от :next_date).",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Показание счётчика не может быть больше следующего, :next (показание от :next_date).",
     "pump_counters.past_date": "Прошедшая дата",
-    "pump_counters.between_hint": "Между :previous и :next",
     "pump_counters.meter_replaced_title": "Меньше предыдущего показания",
     "pump_counters.meter_replaced_confirm": "Показание меньше предыдущего. Счётчик был заменён?",
     "pump_counters.meter_replaced_yes": "Да, сохранить",

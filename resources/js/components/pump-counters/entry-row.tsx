@@ -1,5 +1,7 @@
 import { CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { MoneyInput } from '@/components/money-input';
 import { TankSelectItems } from '@/components/tank-select-items';
 import { Input } from '@/components/ui/input';
 import {
@@ -8,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDayMonthYear, formatNumber } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { EntryStamp } from './last-entry';
@@ -49,9 +51,6 @@ export type EntryRowData = {
 
 const INPUT =
     'w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80';
-// One fixed-height line under an input, so every row keeps the same height.
-const HINT =
-    'mt-1 h-4 truncate whitespace-nowrap text-xs leading-4 text-muted-foreground';
 
 type Props = {
     row: EntryRowData;
@@ -96,34 +95,51 @@ export function EntryRow({
     );
     const error = (field: string) => errors[`readings.${rowIndex}.${field}`];
 
+    // Checked once the field is left (and again by the server on save), never while typing.
+    const [checked, setChecked] = useState<Record<string, boolean>>({});
+    const check = (field: string) =>
+        setChecked((current) => ({ ...current, [field]: true }));
+    const edit = (field: keyof EntryRowData, value: string) => {
+        setChecked((current) => ({ ...current, [field]: false }));
+        onChange({ [field]: value });
+    };
+
     const value = row.reading_value === '' ? null : Number(row.reading_value);
-    const between = previous && next;
     const outOfRange =
         value !== null &&
         next !== null &&
         (value > next.reading_value ||
             (previous !== null && value < previous.reading_value));
-    const maxLitersSold =
+    const litersSold =
         previous && value !== null && value > previous.reading_value
             ? value - previous.reading_value
             : null;
+    const deducted =
+        Number(row.governmental_liters || 0) + Number(row.return_liters || 0);
+    const tooManyDeducted =
+        litersSold !== null && deducted > litersSold + 0.0005;
 
-    const hint = between
-        ? t('pump_counters.between_hint', {
-              previous: formatNumber(previous.reading_value, 0),
-              next: formatNumber(next.reading_value, 0),
-          })
-        : previous
-          ? `${t('pump_counters.previous')}: ${formatNumber(previous.reading_value, 0)}`
-          : '';
-    const hintTitle = [
-        previous &&
-            `${formatDayMonthYear(previous.date)}: ${formatNumber(previous.reading_value, 0)}`,
-        next &&
-            `${formatDayMonthYear(next.date)}: ${formatNumber(next.reading_value, 0)}`,
-    ]
-        .filter(Boolean)
-        .join(' · ');
+    const readingMessage =
+        error('reading_value') ??
+        (checked.reading_value && outOfRange && next
+            ? previous
+                ? t('pump_counters.between', {
+                      previous: formatNumber(previous.reading_value, 0),
+                      next: formatNumber(next.reading_value, 0),
+                  })
+                : t('pump_counters.at_most', {
+                      next: formatNumber(next.reading_value, 0),
+                  })
+            : undefined);
+    const deductedMessage =
+        error('return_liters') ??
+        ((checked.governmental_liters || checked.return_liters) &&
+        tooManyDeducted
+            ? t(
+                  'Governmental and return liters cannot exceed the liters sold (:liters L).',
+                  { liters: formatNumber(litersSold, 3) },
+              )
+            : undefined);
 
     return (
         <tr
@@ -174,48 +190,20 @@ export function EntryRow({
             </td>
             <td className="px-3 py-2.5 align-top">
                 <div className="w-full min-w-[6rem]">
-                    <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        className={inputClass}
+                    {/* Whole counter values, shown grouped (2,589,386); typed with or without commas. */}
+                    <MoneyInput
+                        inputMode="numeric"
+                        dir="ltr"
+                        className={cn(inputClass, 'text-end tabular-nums')}
                         value={row.reading_value}
                         readOnly={readOnly}
-                        onChange={(e) =>
-                            onChange({ reading_value: e.target.value })
+                        onChange={(raw) =>
+                            edit('reading_value', raw.split('.')[0])
                         }
+                        onBlur={() => check('reading_value')}
+                        data-test="reading-input"
                     />
-                    <p
-                        className={HINT}
-                        title={hintTitle}
-                        data-test="bounds-hint"
-                    >
-                        <bdi>{hint}</bdi>
-                    </p>
-                    <InputError
-                        message={
-                            error('reading_value') ??
-                            (outOfRange && next
-                                ? previous
-                                    ? t('pump_counters.between', {
-                                          previous: formatNumber(
-                                              previous.reading_value,
-                                              0,
-                                          ),
-                                          next: formatNumber(
-                                              next.reading_value,
-                                              0,
-                                          ),
-                                      })
-                                    : t('pump_counters.at_most', {
-                                          next: formatNumber(
-                                              next.reading_value,
-                                              0,
-                                          ),
-                                      })
-                                : undefined)
-                        }
-                    />
+                    <InputError message={readingMessage} />
                 </div>
             </td>
             <td className="px-3 py-2.5 align-top">
@@ -228,13 +216,10 @@ export function EntryRow({
                         value={row.governmental_liters}
                         readOnly={readOnly}
                         onChange={(e) =>
-                            onChange({ governmental_liters: e.target.value })
+                            edit('governmental_liters', e.target.value)
                         }
+                        onBlur={() => check('governmental_liters')}
                     />
-                    <p className={HINT}>
-                        {maxLitersSold !== null &&
-                            `${t('pump_counters.max')}: ${formatNumber(maxLitersSold)} L`}
-                    </p>
                     <InputError message={error('governmental_liters')} />
                 </div>
             </td>
@@ -247,11 +232,10 @@ export function EntryRow({
                         className={inputClass}
                         value={row.return_liters}
                         readOnly={readOnly}
-                        onChange={(e) =>
-                            onChange({ return_liters: e.target.value })
-                        }
+                        onChange={(e) => edit('return_liters', e.target.value)}
+                        onBlur={() => check('return_liters')}
                     />
-                    <InputError message={error('return_liters')} />
+                    <InputError message={deductedMessage} />
                 </div>
             </td>
             <td className="px-3 py-2.5 align-top">

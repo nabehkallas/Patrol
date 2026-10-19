@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "کاؤنٹر کی قدر :previous (:previous_date کی ریڈنگ) اور :next (:next_date کی ریڈنگ) کے درمیان ہونی چاہیے۔",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "کاؤنٹر کی قدر اگلی ریڈنگ :next (:next_date کی ریڈنگ) سے زیادہ نہیں ہو سکتی۔",
     "pump_counters.past_date": "گزشتہ تاریخ",
-    "pump_counters.between_hint": ":previous اور :next کے درمیان",
     "pump_counters.meter_replaced_title": "پچھلی ریڈنگ سے کم",
     "pump_counters.meter_replaced_confirm": "ریڈنگ پچھلی ریڈنگ سے کم ہے۔ کیا میٹر تبدیل کیا گیا؟",
     "pump_counters.meter_replaced_yes": "ہاں، محفوظ کریں",

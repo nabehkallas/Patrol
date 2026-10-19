@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Nirxa jimarvanê divê di navbera :previous (xwendina :previous_date) û :next (xwendina :next_date) de be.",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Nirxa jimarvanê nikare ji xwendina pêş, :next (xwendina :next_date), bilindtir be.",
     "pump_counters.past_date": "Dîroka borî",
-    "pump_counters.between_hint": "Di navbera :previous û :next de",
     "pump_counters.meter_replaced_title": "Ji xwendina berê kêmtir",
     "pump_counters.meter_replaced_confirm": "Xwendin ji ya berê kêmtir e. Ma jimarvan hate guhertin?",
     "pump_counters.meter_replaced_yes": "Erê, tomar bike",

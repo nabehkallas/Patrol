@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "يجب أن تكون قراءة العداد بين :previous (قراءة :previous_date) و :next (قراءة :next_date).",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "لا يمكن أن تتجاوز قراءة العداد القراءة التالية :next (قراءة :next_date).",
     "pump_counters.past_date": "تاريخ سابق",
-    "pump_counters.between_hint": "بين :previous و :next",
     "pump_counters.meter_replaced_title": "قراءة أقل من السابقة",
     "pump_counters.meter_replaced_confirm": "القراءة أقل من القراءة السابقة. هل تم تبديل العداد؟",
     "pump_counters.meter_replaced_yes": "نعم، احفظ",

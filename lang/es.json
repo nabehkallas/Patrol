@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "El valor del contador debe estar entre :previous (lectura del :previous_date) y :next (lectura del :next_date).",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "El valor del contador no puede superar la lectura siguiente, :next (lectura del :next_date).",
     "pump_counters.past_date": "Fecha pasada",
-    "pump_counters.between_hint": "Entre :previous y :next",
     "pump_counters.meter_replaced_title": "Menor que la lectura anterior",
     "pump_counters.meter_replaced_confirm": "La lectura es menor que la anterior. ¿Se cambió el contador?",
     "pump_counters.meter_replaced_yes": "Sí, guardar",

@@ -247,6 +247,21 @@ export default function PumpCountersIndex() {
     });
 
     function updateRow(pumpId: number, patch: Partial<BulkRow>) {
+        // A server message about a field goes once that field is edited again.
+        const rowIndex = form.data.readings.findIndex(
+            (row) => row.pump_id === pumpId,
+        );
+        const fields = Object.keys(patch).flatMap((field) =>
+            field === 'governmental_liters'
+                ? [field, 'return_liters']
+                : [field],
+        );
+        form.clearErrors(
+            ...(fields.map(
+                (field) => `readings.${rowIndex}.${field}`,
+            ) as never[]),
+        );
+
         form.setData(
             'readings',
             form.data.readings.map((row) =>

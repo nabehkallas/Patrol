@@ -1126,7 +1126,6 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Der Zählerstand muss zwischen :previous (Stand vom :previous_date) und :next (Stand vom :next_date) liegen.",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Der Zählerstand darf nicht höher sein als der nächste Stand, :next (Stand vom :next_date).",
     "pump_counters.past_date": "Vergangenes Datum",
-    "pump_counters.between_hint": "Zwischen :previous und :next",
     "pump_counters.meter_replaced_title": "Niedriger als der vorige Stand",
     "pump_counters.meter_replaced_confirm": "Der Stand ist niedriger als der vorige. Wurde der Zähler ausgetauscht?",
     "pump_counters.meter_replaced_yes": "Ja, speichern",

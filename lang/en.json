@@ -856,10 +856,10 @@
     "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).",
     "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "The counter value cannot be higher than the next reading, :next (reading of :next_date).",
     "pump_counters.past_date": "Past date",
-    "pump_counters.between_hint": "Between :previous and :next",
     "pump_counters.meter_replaced_title": "Lower than the previous reading",
     "pump_counters.meter_replaced_confirm": "The reading is lower than the previous reading. Was the meter replaced?",
     "pump_counters.meter_replaced_yes": "Yes, save",
     "Nothing to save: enter a counter value or change a saved one.": "Nothing to save: enter a counter value or change a saved one.",
-    "This reading belongs to another pump or day; reload the page.": "This reading belongs to another pump or day; reload the page."
+    "This reading belongs to another pump or day; reload the page.": "This reading belongs to another pump or day; reload the page.",
+    "Governmental and return liters cannot exceed the liters sold (:liters L).": "Governmental and return liters cannot exceed the liters sold (:liters L)."
 }
