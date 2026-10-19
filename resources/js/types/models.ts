@@ -399,7 +399,7 @@ export type PumpCounterReading = {
     transaction_id: number | null;
     notes: string | null;
     pump?: { name: string };
-    tank?: { name: string; fuel_type?: { name: string } };
+    tank?: { name: string; fuel_type_id: number; fuel_type?: { name: string } };
     recorded_by?: UserSummary;
 };
 

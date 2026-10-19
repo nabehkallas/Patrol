@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "گلابی",
     "fuel_prices.history": "قیمتوں کی تاریخ",
     "exchange_rates.history": "شرح تبادلہ کی تاریخ",
-    "transactions.exchange_rate_pair": "شرح تبادلہ"
+    "transactions.exchange_rate_pair": "شرح تبادلہ",
+    "pump_counters.past_day_note": "گزشتہ دن (:date) کی ریڈنگز درج کی جا رہی ہیں۔ اس دن ریکارڈ شدہ پمپ اپنی ریڈنگ دکھاتے ہیں؛ صرف رہ جانے والی ریڈنگز درج کریں۔ اگلے دن کی فروخت خود بخود دوبارہ شمار ہوتی ہے۔",
+    "pump_counters.recorded_on_day": "درج شدہ",
+    "pump_counters.next_reading": "اگلی ریڈنگ",
+    "pump_counters.between": ":previous اور :next کے درمیان ہونی چاہیے",
+    "pump_counters.at_most": ":next سے زیادہ نہیں ہونی چاہیے",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "کاؤنٹر کی قدر :previous (:previous_date کی ریڈنگ) اور :next (:next_date کی ریڈنگ) کے درمیان ہونی چاہیے۔",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "کاؤنٹر کی قدر اگلی ریڈنگ :next (:next_date کی ریڈنگ) سے زیادہ نہیں ہو سکتی۔"
 }

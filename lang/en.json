@@ -849,5 +849,12 @@
     "fuel_types.color_fuchsia": "Pink",
     "fuel_prices.history": "Price history",
     "exchange_rates.history": "Rate history",
-    "transactions.exchange_rate_pair": "Exchange rate"
+    "transactions.exchange_rate_pair": "Exchange rate",
+    "pump_counters.past_day_note": "Entering readings for a past day (:date). Pumps already recorded that day show their reading; fill in the ones that were missed. The next day's sales are recalculated automatically.",
+    "pump_counters.recorded_on_day": "Recorded",
+    "pump_counters.next_reading": "Next reading",
+    "pump_counters.between": "Must be between :previous and :next",
+    "pump_counters.at_most": "Must be at most :next",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "The counter value cannot be higher than the next reading, :next (reading of :next_date)."
 }

@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "Pink",
     "fuel_prices.history": "Preisverlauf",
     "exchange_rates.history": "Kursverlauf",
-    "transactions.exchange_rate_pair": "Wechselkurs"
+    "transactions.exchange_rate_pair": "Wechselkurs",
+    "pump_counters.past_day_note": "Ablesungen für einen vergangenen Tag (:date). Bereits erfasste Zapfsäulen zeigen ihren Stand; tragen Sie die fehlenden ein. Die Verkäufe des Folgetags werden automatisch neu berechnet.",
+    "pump_counters.recorded_on_day": "Erfasst",
+    "pump_counters.next_reading": "Nächster Stand",
+    "pump_counters.between": "Muss zwischen :previous und :next liegen",
+    "pump_counters.at_most": "Darf höchstens :next sein",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Der Zählerstand muss zwischen :previous (Stand vom :previous_date) und :next (Stand vom :next_date) liegen.",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Der Zählerstand darf nicht höher sein als der nächste Stand, :next (Stand vom :next_date)."
 }

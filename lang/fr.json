@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "Rose",
     "fuel_prices.history": "Historique des prix",
     "exchange_rates.history": "Historique des taux",
-    "transactions.exchange_rate_pair": "Taux de change"
+    "transactions.exchange_rate_pair": "Taux de change",
+    "pump_counters.past_day_note": "Saisie des relevés d'un jour passé (:date). Les pompes déjà relevées ce jour-là affichent leur relevé ; complétez celles qui manquent. Les ventes du jour suivant sont recalculées automatiquement.",
+    "pump_counters.recorded_on_day": "Relevé",
+    "pump_counters.next_reading": "Relevé suivant",
+    "pump_counters.between": "Doit être entre :previous et :next",
+    "pump_counters.at_most": "Ne doit pas dépasser :next",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "La valeur du compteur doit être entre :previous (relevé du :previous_date) et :next (relevé du :next_date).",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "La valeur du compteur ne peut pas dépasser le relevé suivant, :next (relevé du :next_date)."
 }

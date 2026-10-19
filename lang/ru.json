@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "Розовый",
     "fuel_prices.history": "История цен",
     "exchange_rates.history": "История курсов",
-    "transactions.exchange_rate_pair": "Обменный курс"
+    "transactions.exchange_rate_pair": "Обменный курс",
+    "pump_counters.past_day_note": "Ввод показаний за прошедший день (:date). Уже записанные колонки показывают своё показание; заполните пропущенные. Продажи следующего дня пересчитываются автоматически.",
+    "pump_counters.recorded_on_day": "Записано",
+    "pump_counters.next_reading": "Следующее показание",
+    "pump_counters.between": "Должно быть между :previous и :next",
+    "pump_counters.at_most": "Не должно превышать :next",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Показание счётчика должно быть между :previous (показание от :previous_date) и :next (показание от :next_date).",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Показание счётчика не может быть больше следующего, :next (показание от :next_date)."
 }

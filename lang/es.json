@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "Rosa",
     "fuel_prices.history": "Historial de precios",
     "exchange_rates.history": "Historial de tipos",
-    "transactions.exchange_rate_pair": "Tipo de cambio"
+    "transactions.exchange_rate_pair": "Tipo de cambio",
+    "pump_counters.past_day_note": "Introduciendo lecturas de un día pasado (:date). Los surtidores ya registrados ese día muestran su lectura; complete los que faltan. Las ventas del día siguiente se recalculan automáticamente.",
+    "pump_counters.recorded_on_day": "Registrada",
+    "pump_counters.next_reading": "Lectura siguiente",
+    "pump_counters.between": "Debe estar entre :previous y :next",
+    "pump_counters.at_most": "No debe superar :next",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "El valor del contador debe estar entre :previous (lectura del :previous_date) y :next (lectura del :next_date).",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "El valor del contador no puede superar la lectura siguiente, :next (lectura del :next_date)."
 }

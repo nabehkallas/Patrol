@@ -103,6 +103,7 @@ class PumpCounterReadingController extends Controller
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
             'lastEntry' => $this->lastEntry(),
+            'entry' => $this->entryContext(($request->date('entry_date') ?? today())->toDateString(), $request->has('entry_date')),
             'tanks' => $this->tankOptions(),
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
@@ -352,7 +353,7 @@ class PumpCounterReadingController extends Controller
 
         $this->flashWithStockCheck($message, [(int) $data['tank_id']]);
 
-        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date'], 'entry_date' => $data['date']]);
     }
 
     /**
@@ -417,7 +418,7 @@ class PumpCounterReadingController extends Controller
 
         $this->flashWithStockCheck($message, $rowsToSave->pluck('tank_id')->map(fn ($id) => (int) $id)->all());
 
-        return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date']]);
+        return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date'], 'entry_date' => $validated['date']]);
     }
 
     /**
@@ -441,16 +442,16 @@ class PumpCounterReadingController extends Controller
         }
 
         return DB::transaction(function () use ($data, $pump, $tank, $userId) {
-            // whereDate(), not where('date', ...): the column stores a full "Y-m-d H:i:s"
-            // string, so a bare <= comparison against $data['date'] (just "Y-m-d") is false for
-            // a reading dated on that same day (the longer string sorts after the short one) --
-            // silently skipping same-day predecessors and picking an earlier day's reading
-            // instead, which computes the wrong liters sold.
-            $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-                ->whereDate('date', '<=', $data['date'])
-                ->orderByDesc('date')
-                ->orderByDesc('id')
-                ->first();
+            // A new reading goes after any the pump already has on its day.
+            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date']);
+            $this->assertBetweenNeighbours((int) $data['reading_value'], $prevReading, $nextReading);
+
+            // A backdated entry lands before a reading that already exists, whose sale was
+            // computed against its old predecessor. That sale is released first, so this earlier
+            // day draws its fuel cost before the later one does.
+            if ($nextReading !== null) {
+                $this->releaseSales($nextReading);
+            }
 
             [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
                 $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
@@ -470,11 +471,6 @@ class PumpCounterReadingController extends Controller
                 'recorded_by_id' => $userId,
                 'notes' => $data['notes'] ?? null,
             ]);
-
-            // A backdated entry can land before a reading that already exists — that later
-            // reading's own liters sold was computed against whatever used to be its immediate
-            // predecessor, which is now stale (its true predecessor is this new reading instead).
-            $nextReading = $this->nextReadingFor($reading);
 
             if ($nextReading !== null) {
                 $this->recomputeReading($nextReading, $reading);
@@ -532,28 +528,17 @@ class PumpCounterReadingController extends Controller
         }
 
         DB::transaction(function () use ($request, $data, $pump, $tank, $pumpCounterReading) {
-            if ($pumpCounterReading->transaction_id) {
-                Transaction::find($pumpCounterReading->transaction_id)?->delete();
-            }
+            // The reading after its old place, and the readings around its new place (itself
+            // left out: its row still holds the old date and value).
+            $oldNextReading = $this->nextReadingFor($pumpCounterReading);
+            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date'], $pumpCounterReading->id);
+            $this->assertBetweenNeighbours((int) $data['reading_value'], $prevReading, $nextReading);
 
-            if ($pumpCounterReading->governmental_transaction_id) {
-                Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
+            // Every sale this edit changes is released before any is recreated, so each one
+            // draws its fuel cost back in order.
+            foreach (array_filter([$pumpCounterReading, $oldNextReading, $nextReading]) as $affected) {
+                $this->releaseSales($affected);
             }
-
-            // This query runs before the row below is saved, so the reading's own still-old DB
-            // state could otherwise match itself here if the date is changing (e.g. moving it
-            // later would make its own pre-update date satisfy "< new date") — excluded by id
-            // explicitly rather than relying on the date/id comparison alone. whereDate(), not
-            // where('date', ...), for the same reason as store(): the column stores a full
-            // datetime string, so a bare equality/less-than check against $data['date'] ("Y-m-d"
-            // only) never matches a same-day row at all.
-            $prevReading = PumpCounterReading::where('pump_id', $pump->id)
-                ->where('id', '!=', $pumpCounterReading->id)
-                ->where(fn ($q) => $q->whereDate('date', '<', $data['date'])
-                    ->orWhere(fn ($q2) => $q2->whereDate('date', $data['date'])->where('id', '<', $pumpCounterReading->id)))
-                ->orderByDesc('date')
-                ->orderByDesc('id')
-                ->first();
 
             [$litersSold, $transactionId, $governmentalTransactionId, $governmentalLiters, $returnLiters] = $this->computeAndCreateTransaction(
                 $pump, $tank, $prevReading, $data['reading_value'], $data['date'], $data['notes'] ?? null,
@@ -573,15 +558,17 @@ class PumpCounterReadingController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            // This reading's value just changed — the very next reading for this pump (if any)
-            // had its own liters sold computed against the *old* value, so it's now stale and
-            // needs recomputing against the new one. Nothing further out is affected: a reading
-            // two or more steps ahead derives its liters sold from its immediate predecessor's
-            // reading_value, which hasn't changed.
-            $nextReading = $this->nextReadingFor($pumpCounterReading);
-
+            // The next reading's liters sold were computed against this one's old value (or
+            // against another reading, if the date moved), so they're recomputed against it. When
+            // the reading moved to another day or pump, the reading that used to follow it now
+            // follows its old predecessor instead. Nothing further out is affected: a reading
+            // two or more steps ahead derives its liters from its immediate predecessor.
             if ($nextReading !== null) {
                 $this->recomputeReading($nextReading, $pumpCounterReading);
+            }
+
+            if ($oldNextReading !== null && $oldNextReading->id !== $nextReading?->id) {
+                $this->recomputeReading($oldNextReading, $this->previousReadingFor($oldNextReading));
             }
         });
 
@@ -594,17 +581,23 @@ class PumpCounterReadingController extends Controller
     {
         $date = $pumpCounterReading->date->toDateString();
 
-        // Cascades to delete any debt tied to the governmental-sale transaction too
-        // (debts.transaction_id is cascadeOnDelete).
-        if ($pumpCounterReading->transaction_id) {
-            Transaction::find($pumpCounterReading->transaction_id)?->delete();
-        }
+        DB::transaction(function () use ($pumpCounterReading) {
+            // The next reading's liters were counted from this one; without it they count from
+            // the reading before, so its sale is recomputed (released first, like the deleted
+            // reading's own, so the fuel cost goes back before it's drawn again).
+            $nextReading = $this->nextReadingFor($pumpCounterReading);
+            $prevReading = $this->previousReadingFor($pumpCounterReading);
 
-        if ($pumpCounterReading->governmental_transaction_id) {
-            Transaction::find($pumpCounterReading->governmental_transaction_id)?->delete();
-        }
+            foreach (array_filter([$pumpCounterReading, $nextReading]) as $affected) {
+                $this->releaseSales($affected);
+            }
 
-        $pumpCounterReading->delete();
+            $pumpCounterReading->delete();
+
+            if ($nextReading !== null) {
+                $this->recomputeReading($nextReading, $prevReading);
+            }
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Reading deleted.')]);
 
@@ -623,6 +616,91 @@ class PumpCounterReadingController extends Controller
         $to = $request->date('to') ?? $from;
 
         return $from->greaterThan($to) ? [$to->startOfDay(), $from->startOfDay()] : [$from->startOfDay(), $to->startOfDay()];
+    }
+
+    /**
+     * The pump's readings just before and just after a place in its history: the end of $date
+     * for a new reading, or the place of reading $id (left out of both) on $date. whereDate(),
+     * not where('date', ...): the column stores a full "Y-m-d H:i:s" string, so a bare
+     * comparison against a "Y-m-d" date never matches a same-day row.
+     *
+     * @return array{0: ?PumpCounterReading, 1: ?PumpCounterReading}
+     */
+    private function neighbours(int $pumpId, string $date, ?int $id = null): array
+    {
+        $readings = fn () => PumpCounterReading::where('pump_id', $pumpId)
+            ->when($id !== null, fn ($q) => $q->whereKeyNot($id));
+
+        $previous = $readings()
+            ->where(fn ($q) => $q->whereDate('date', '<', $date)
+                ->orWhere(fn ($q2) => $q2->whereDate('date', $date)->when($id !== null, fn ($q3) => $q3->where('id', '<', $id))))
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->first();
+
+        $next = $readings()
+            ->where(fn ($q) => $q->whereDate('date', '>', $date)
+                ->when($id !== null, fn ($q2) => $q2->orWhere(fn ($q3) => $q3->whereDate('date', $date)->where('id', '>', $id))))
+            ->orderBy('date')
+            ->orderBy('id')
+            ->first();
+
+        return [$previous, $next];
+    }
+
+    /**
+     * A reading placed before a later one must sit between the readings around it: the meter
+     * only counts up, so anything outside is a typo that would leave a day with negative sales.
+     * The newest reading has nothing after it and keeps its old rule (a lower value records no
+     * sale, e.g. after a meter was replaced).
+     */
+    private function assertBetweenNeighbours(int $value, ?PumpCounterReading $previous, ?PumpCounterReading $next): void
+    {
+        if ($next === null) {
+            return;
+        }
+
+        $tooLow = $previous !== null && $value < (int) $previous->reading_value;
+
+        if (! $tooLow && $value <= (int) $next->reading_value) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'reading_value' => $previous !== null
+                ? __('The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).', [
+                    'previous' => number_format((float) $previous->reading_value, 0),
+                    'previous_date' => $previous->date->format('d/m/Y'),
+                    'next' => number_format((float) $next->reading_value, 0),
+                    'next_date' => $next->date->format('d/m/Y'),
+                ])
+                : __('The counter value cannot be higher than the next reading, :next (reading of :next_date).', [
+                    'next' => number_format((float) $next->reading_value, 0),
+                    'next_date' => $next->date->format('d/m/Y'),
+                ]),
+        ]);
+    }
+
+    /**
+     * Deletes a reading's sales (and its governmental debt, by cascade). Deleting a sale also
+     * deletes its fuel cost allocations, which hands the liters back to the cost layers.
+     */
+    private function releaseSales(PumpCounterReading $reading): void
+    {
+        foreach (array_filter([$reading->transaction_id, $reading->governmental_transaction_id]) as $transactionId) {
+            Transaction::find($transactionId)?->delete();
+        }
+    }
+
+    /** The reading immediately before the given one for the same pump; see nextReadingFor(). */
+    private function previousReadingFor(PumpCounterReading $reading): ?PumpCounterReading
+    {
+        return PumpCounterReading::where('pump_id', $reading->pump_id)
+            ->where(fn ($q) => $q->where('date', '<', $reading->date)
+                ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '<', $reading->id)))
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**
@@ -648,13 +726,7 @@ class PumpCounterReadingController extends Controller
      */
     private function recomputeReading(PumpCounterReading $reading, ?PumpCounterReading $prevReading): void
     {
-        if ($reading->transaction_id) {
-            Transaction::find($reading->transaction_id)?->delete();
-        }
-
-        if ($reading->governmental_transaction_id) {
-            Transaction::find($reading->governmental_transaction_id)?->delete();
-        }
+        $this->releaseSales($reading);
 
         $pump = FuelPump::findOrFail($reading->pump_id);
         $tank = Tank::with('fuelType')->findOrFail($reading->tank_id);
@@ -805,6 +877,50 @@ class PumpCounterReadingController extends Controller
             'date' => $latest->date->toDateString(),
             'recorded_at' => $latest->created_at?->toIso8601String(),
         ] : null;
+    }
+
+    /**
+     * What the entry table needs for the day it's entering: per pump, the readings a new value
+     * must sit between (the last one up to that day, the first one after it) and any readings
+     * already on that day, so a past day shows which pumps are done and which were missed.
+     *
+     * @return array{date: string, requested: bool, pumps: array<int, array<string, mixed>>}
+     */
+    private function entryContext(string $date, bool $requested): array
+    {
+        return [
+            'date' => $date,
+            'requested' => $requested,
+            'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date) {
+                [$previous, $next] = $this->neighbours($pump->id, $date);
+
+                return [
+                    'pump_id' => $pump->id,
+                    'previous' => $previous ? [
+                        'reading_value' => $previous->reading_value,
+                        'date' => $previous->date->toDateString(),
+                        'recorded_at' => $previous->created_at?->toIso8601String(),
+                    ] : null,
+                    'next' => $next ? [
+                        'reading_value' => $next->reading_value,
+                        'date' => $next->date->toDateString(),
+                    ] : null,
+                    'recorded' => PumpCounterReading::with('tank')
+                        ->where('pump_id', $pump->id)
+                        ->whereDate('date', $date)
+                        ->orderBy('id')
+                        ->get()
+                        ->map(fn (PumpCounterReading $reading) => [
+                            'id' => $reading->id,
+                            'reading_value' => $reading->reading_value,
+                            'tank_id' => $reading->tank_id,
+                            'tank_name' => $reading->tank?->name,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })->values()->all(),
+        ];
     }
 
     /**

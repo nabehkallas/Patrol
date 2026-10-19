@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "وردي",
     "fuel_prices.history": "سجل الأسعار",
     "exchange_rates.history": "سجل أسعار الصرف",
-    "transactions.exchange_rate_pair": "سعر الصرف"
+    "transactions.exchange_rate_pair": "سعر الصرف",
+    "pump_counters.past_day_note": "إدخال قراءات ليوم سابق (:date). المضخات المسجلة في ذلك اليوم تظهر قراءتها؛ أدخل القراءات الناقصة فقط. تُعاد حسابات مبيعات اليوم التالي تلقائياً.",
+    "pump_counters.recorded_on_day": "مسجّلة",
+    "pump_counters.next_reading": "القراءة التالية",
+    "pump_counters.between": "يجب أن تكون بين :previous و :next",
+    "pump_counters.at_most": "يجب ألا تتجاوز :next",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "يجب أن تكون قراءة العداد بين :previous (قراءة :previous_date) و :next (قراءة :next_date).",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "لا يمكن أن تتجاوز قراءة العداد القراءة التالية :next (قراءة :next_date)."
 }

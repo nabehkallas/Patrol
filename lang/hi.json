@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "गुलाबी",
     "fuel_prices.history": "मूल्य इतिहास",
     "exchange_rates.history": "विनिमय दर इतिहास",
-    "transactions.exchange_rate_pair": "विनिमय दर"
+    "transactions.exchange_rate_pair": "विनिमय दर",
+    "pump_counters.past_day_note": "पिछले दिन (:date) की रीडिंग दर्ज की जा रही है। उस दिन दर्ज पंप अपनी रीडिंग दिखाते हैं; छूटी हुई रीडिंग भरें। अगले दिन की बिक्री अपने आप दोबारा गणना होती है।",
+    "pump_counters.recorded_on_day": "दर्ज",
+    "pump_counters.next_reading": "अगली रीडिंग",
+    "pump_counters.between": ":previous और :next के बीच होनी चाहिए",
+    "pump_counters.at_most": ":next से अधिक नहीं होनी चाहिए",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "काउंटर का मान :previous (:previous_date की रीडिंग) और :next (:next_date की रीडिंग) के बीच होना चाहिए।",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "काउंटर का मान अगली रीडिंग :next (:next_date की रीडिंग) से अधिक नहीं हो सकता।"
 }

@@ -1120,5 +1120,12 @@
     "fuel_types.color_fuchsia": "Pembe",
     "fuel_prices.history": "Fiyat geçmişi",
     "exchange_rates.history": "Kur geçmişi",
-    "transactions.exchange_rate_pair": "Döviz kuru"
+    "transactions.exchange_rate_pair": "Döviz kuru",
+    "pump_counters.past_day_note": "Geçmiş bir gün için okuma girişi (:date). O gün kaydedilen pompalar okumalarını gösterir; eksik olanları girin. Sonraki günün satışları otomatik olarak yeniden hesaplanır.",
+    "pump_counters.recorded_on_day": "Kaydedildi",
+    "pump_counters.next_reading": "Sonraki okuma",
+    "pump_counters.between": ":previous ile :next arasında olmalı",
+    "pump_counters.at_most": "En fazla :next olmalı",
+    "The counter value must be between :previous (reading of :previous_date) and :next (reading of :next_date).": "Sayaç değeri :previous (:previous_date okuması) ile :next (:next_date okuması) arasında olmalıdır.",
+    "The counter value cannot be higher than the next reading, :next (reading of :next_date).": "Sayaç değeri sonraki okumadan, :next (:next_date okuması), yüksek olamaz."
 }
