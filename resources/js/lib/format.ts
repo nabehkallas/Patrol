@@ -284,6 +284,16 @@ export function formatShortDate(value: string): string {
  * yesterday). Use this instead of `toISOString().slice(0, 10)`, which gives the UTC date --
  * still the previous day for the first hours after midnight east of UTC.
  */
+/** The station's current time of day, "HH:MM" (24h). */
+export function nowTimeInStation(): string {
+    return new Date().toLocaleTimeString('en-GB', {
+        timeZone: getStationTimeZone(),
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
 export function todayInStation(offsetDays = 0): string {
     const date = new Date(Date.now() + offsetDays * 86_400_000);
 

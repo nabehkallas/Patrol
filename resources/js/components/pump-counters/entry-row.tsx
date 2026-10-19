@@ -1,4 +1,5 @@
-import { CheckCircle2 } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { CheckCircle2, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -13,6 +14,7 @@ import {
 import { formatNumber } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { edit as editReading } from '@/routes/pump-counters';
 import type { EntryStamp } from './last-entry';
 
 export type EntryTank = {
@@ -23,24 +25,19 @@ export type EntryTank = {
     is_active: boolean;
 };
 
-/** One pump on the day being entered: the readings around it, and its saved reading that day. */
+/**
+ * One pump in the date + shift being entered: the readings a new value must sit between, and
+ * the readings already saved there (never put back into the inputs).
+ */
 export type EntryPump = {
     pump_id: number;
     previous: (EntryStamp & { reading_value: number }) | null;
     next: { reading_value: number; date: string } | null;
-    recorded: {
-        id: number;
-        reading_value: number;
-        tank_id: number | null;
-        governmental_liters: number | null;
-        return_liters: number | null;
-        notes: string | null;
-    } | null;
+    recorded: { id: number; reading_value: number }[];
 };
 
-/** A row of the entry table: a new reading (id null) or a saved one prefilled on a past day. */
+/** A row of the entry table: always a new reading, empty until typed. */
 export type EntryRowData = {
-    id: number | null;
     pump_id: number;
     tank_id: string;
     reading_value: string;
@@ -61,9 +58,9 @@ type Props = {
     rowBorderClass: string;
     tankOptions: EntryTank[];
     context: EntryPump | undefined;
-    /** A past day: missed pumps are marked, saved ones show a check. */
+    /** A past day: pumps with nothing saved in that date + shift are marked. */
     isPastDay: boolean;
-    /** Saved readings are changed by admins only, as on the edit page. */
+    /** Saved readings are changed by admins only, on the edit page. */
     canEditSaved: boolean;
     errors: Record<string, string | undefined>;
     onChange: (patch: Partial<EntryRowData>) => void;
@@ -86,9 +83,10 @@ export function EntryRow({
     const { t } = useTranslation();
     const previous = context?.previous ?? null;
     const next = context?.next ?? null;
-    const saved = row.id !== null;
-    const readOnly = saved && !canEditSaved;
+    const recorded = context?.recorded ?? [];
+    const saved = recorded.length > 0;
     const missing = isPastDay && !saved;
+    const lastSaved = recorded.at(-1);
     const inputClass = cn(
         INPUT,
         missing && 'border-amber-300 dark:border-amber-600/70',
@@ -163,7 +161,7 @@ export function EntryRow({
                         >
                             {pumpName}
                         </span>
-                        {isPastDay && saved && (
+                        {saved && (
                             <CheckCircle2
                                 className="bg-card absolute -end-1.5 -top-1.5 size-3.5 rounded-full text-emerald-600/80 dark:text-emerald-400/80"
                                 aria-label={t('pump_counters.recorded_on_day')}
@@ -171,12 +169,23 @@ export function EntryRow({
                             />
                         )}
                     </span>
+                    {/* Opens the shift's (last) saved reading on the edit page. */}
+                    {saved && canEditSaved && lastSaved && (
+                        <Link
+                            href={editReading(lastSaved.id).url}
+                            className="text-muted-foreground hover:text-foreground ms-2 shrink-0 rounded p-0.5"
+                            title={`${t('common.edit')}: ${formatNumber(lastSaved.reading_value, 0)}`}
+                            aria-label={t('common.edit')}
+                            data-test="edit-saved"
+                        >
+                            <Pencil className="size-3.5" />
+                        </Link>
+                    )}
                 </div>
             </td>
             <td className="px-3 py-2.5 align-top">
                 <Select
                     value={row.tank_id}
-                    disabled={readOnly}
                     onValueChange={(tankId) => onChange({ tank_id: tankId })}
                 >
                     <SelectTrigger className="w-full min-w-[9rem] max-w-[13rem] border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
@@ -196,7 +205,6 @@ export function EntryRow({
                         dir="ltr"
                         className={cn(inputClass, 'text-end tabular-nums')}
                         value={row.reading_value}
-                        readOnly={readOnly}
                         onChange={(raw) =>
                             edit('reading_value', raw.split('.')[0])
                         }
@@ -214,7 +222,6 @@ export function EntryRow({
                         min="0"
                         className={inputClass}
                         value={row.governmental_liters}
-                        readOnly={readOnly}
                         onChange={(e) =>
                             edit('governmental_liters', e.target.value)
                         }
@@ -231,7 +238,6 @@ export function EntryRow({
                         min="0"
                         className={inputClass}
                         value={row.return_liters}
-                        readOnly={readOnly}
                         onChange={(e) => edit('return_liters', e.target.value)}
                         onBlur={() => check('return_liters')}
                     />
@@ -244,7 +250,6 @@ export function EntryRow({
                         type="text"
                         className={inputClass}
                         value={row.notes}
-                        readOnly={readOnly}
                         onChange={(e) => onChange({ notes: e.target.value })}
                     />
                 </div>

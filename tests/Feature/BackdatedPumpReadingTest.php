@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use ReflectionMethod;
 use Spatie\Permission\Models\Role;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -94,19 +93,6 @@ class BackdatedPumpReadingTest extends TestCase
         app(PumpCounterReadingController::class)->storeBulk($this->request([
             'date' => $date,
             'readings' => [['pump_id' => $this->pumpId, 'tank_id' => $this->tankId, 'reading_value' => $value]],
-        ]));
-    }
-
-    /** The entry table on a past day: a saved reading comes back prefilled, with its id. */
-    private function saveRow(PumpCounterReading $reading, array $changes = []): void
-    {
-        app(PumpCounterReadingController::class)->storeBulk($this->request([
-            'date' => $reading->date->toDateString(),
-            'readings' => [[
-                'id' => $reading->id, 'pump_id' => $reading->pump_id, 'tank_id' => $reading->tank_id,
-                'reading_value' => $reading->reading_value, 'governmental_liters' => $reading->governmental_liters,
-                'return_liters' => $reading->return_liters, 'notes' => $reading->notes, ...$changes,
-            ]],
         ]));
     }
 
@@ -288,48 +274,20 @@ class BackdatedPumpReadingTest extends TestCase
         $this->assertSame($before['cost'], $this->totals()['cost']);
     }
 
-    public function test_the_entry_table_updates_a_changed_saved_reading(): void
+    public function test_a_value_for_a_pump_already_recorded_is_an_additional_reading(): void
     {
+        // A tank switch on 17 Oct: the entry table never edits the saved 1,500 reading, a second
+        // value is a second reading after it, and 18 Oct now counts from that one.
         $before = $this->totals();
 
-        $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1450, 'notes' => 'corrected']);
+        $this->storeBulk('2026-10-17', 1650);
 
-        $this->assertSame(1450, (int) $this->readingOn('2026-10-17')->reading_value);
-        $this->assertSame('corrected', $this->readingOn('2026-10-17')->notes);
-        $this->assertSame(450.0, (float) $this->readingOn('2026-10-17')->liters_sold);
-        $this->assertSame(350.0, (float) $this->readingOn('2026-10-18')->liters_sold);
-        $this->assertSame(3, PumpCounterReading::count());
+        $day = PumpCounterReading::whereDate('date', '2026-10-17')->orderBy('id')->get();
+        $this->assertSame([1500, 1650], $day->pluck('reading_value')->map(fn ($v) => (int) $v)->all());
+        $this->assertSame([500.0, 150.0], $day->pluck('liters_sold')->map(fn ($v) => (float) $v)->all());
+        $this->assertSame(150.0, (float) $this->readingOn('2026-10-18')->liters_sold);
         $this->assertSalesMatchReadings();
         $this->assertEquals($before, $this->totals());
-    }
-
-    public function test_an_unchanged_saved_row_is_not_touched(): void
-    {
-        $reading = $this->readingOn('2026-10-17');
-        $saleId = $reading->transaction_id;
-
-        try {
-            $this->saveRow($reading);
-            $this->fail('An unchanged row was saved.');
-        } catch (ValidationException $e) {
-            $this->assertArrayHasKey('readings', $e->errors());
-        }
-
-        $this->assertSame($saleId, $this->readingOn('2026-10-17')->transaction_id);
-        $this->assertSame($reading->updated_at->toIso8601String(), $this->readingOn('2026-10-17')->updated_at->toIso8601String());
-    }
-
-    public function test_the_entry_table_checks_a_saved_reading_against_its_neighbours(): void
-    {
-        $this->assertRejected(fn () => $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1900]), 'readings.0.reading_value', ['1,000', '1,800']);
-    }
-
-    public function test_only_an_admin_can_change_a_saved_reading(): void
-    {
-        $this->user->removeRole('admin');
-
-        $this->expectException(HttpException::class);
-        $this->saveRow($this->readingOn('2026-10-17'), ['reading_value' => 1450]);
     }
 
     public function test_the_readings_pdf_shows_only_the_tank_name(): void

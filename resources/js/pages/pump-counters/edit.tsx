@@ -18,12 +18,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import type { ShiftOption } from '@/lib/shifts';
 import { selectableTanks } from '@/lib/tanks';
 import { index, update } from '@/routes/pump-counters';
 
 type Reading = {
     id: number;
     pump_id: number;
+    shift_id: number | null;
     tank_id: number | null;
     date: string;
     reading_value: string;
@@ -51,16 +53,18 @@ type PageProps = {
     reading: Reading;
     pumps: PumpOption[];
     tanks: TankOption[];
+    shifts: ShiftOption[];
 };
 
 export default function PumpCounterReadingEdit() {
-    const { reading, pumps, tanks } = usePage<PageProps>().props;
+    const { reading, pumps, tanks, shifts } = usePage<PageProps>().props;
     const { t } = useTranslation();
 
     const form = useForm({
         pump_id: String(reading.pump_id),
         tank_id: String(reading.tank_id ?? selectableTanks(tanks)[0]?.id ?? ''),
         date: reading.date,
+        shift_id: String(reading.shift_id ?? shifts[0]?.id ?? ''),
         reading_value: reading.reading_value,
         governmental_liters: trimDecimal(reading.governmental_liters),
         return_liters: trimDecimal(reading.return_liters),
@@ -101,6 +105,13 @@ export default function PumpCounterReadingEdit() {
                 : String(nextTanks[0]?.id ?? ''),
         }));
     }
+
+    // Active shifts, plus the reading's own if it's since been deactivated. A station with a
+    // single active shift sees no shift field.
+    const shiftOptions = shifts.filter(
+        (shift) => shift.is_active || String(shift.id) === form.data.shift_id,
+    );
+    const showShifts = shifts.filter((shift) => shift.is_active).length > 1;
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -179,6 +190,35 @@ export default function PumpCounterReadingEdit() {
                         />
                         <InputError message={form.errors.date} />
                     </div>
+
+                    {showShifts && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="shift_id">
+                                {t('pump_counters.shift')}
+                            </Label>
+                            <Select
+                                value={form.data.shift_id}
+                                onValueChange={(value) =>
+                                    form.setData('shift_id', value)
+                                }
+                            >
+                                <SelectTrigger id="shift_id" className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {shiftOptions.map((shift) => (
+                                        <SelectItem
+                                            key={shift.id}
+                                            value={String(shift.id)}
+                                        >
+                                            {shift.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={form.errors.shift_id} />
+                        </div>
+                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="reading_value">

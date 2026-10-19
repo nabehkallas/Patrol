@@ -8,6 +8,7 @@ use App\Models\Debtor;
 use App\Models\FuelPump;
 use App\Models\FuelType;
 use App\Models\PumpCounterReading;
+use App\Models\Shift;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Services\FuelCostAllocationService;
@@ -38,7 +39,7 @@ class PumpCounterReadingController extends Controller
 
         $pumps = FuelPump::with('fuelTypes')->orderBy('name')->get()
             ->map(function (FuelPump $pump) use ($from, $to) {
-                $latest = $pump->counterReadings()->orderByDesc('date')->orderByDesc('id')->first();
+                $latest = $pump->counterReadings()->chronological('desc')->first();
                 $dailyLiters = (float) $pump->counterReadings()
                     ->whereDate('date', '>=', $from)
                     ->whereDate('date', '<=', $to)
@@ -60,19 +61,13 @@ class PumpCounterReadingController extends Controller
                 ];
             });
 
-        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
-            ->whereDate('date', '>=', $from)
-            ->whereDate('date', '<=', $to)
-            ->orderByDesc('date')
-            ->latest('id')
+        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy', 'shift'])
+            ->whereDate('pump_counter_readings.date', '>=', $from)
+            ->whereDate('pump_counter_readings.date', '<=', $to)
+            ->chronological('desc')
             ->get()
             ->each(function (PumpCounterReading $reading) {
-                $reading->previous_reading_value = PumpCounterReading::where('pump_id', $reading->pump_id)
-                    ->where(fn ($q) => $q->where('date', '<', $reading->date)
-                        ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '<', $reading->id)))
-                    ->orderByDesc('date')
-                    ->orderByDesc('id')
-                    ->value('reading_value');
+                $reading->previous_reading_value = $this->previousReadingFor($reading)?->reading_value;
             });
 
         // Since a pump's meter can now be shared across several fuel types, "liters sold today
@@ -103,7 +98,12 @@ class PumpCounterReadingController extends Controller
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
             'lastEntry' => $this->lastEntry(),
-            'entry' => $this->entryContext(($request->date('entry_date') ?? today())->toDateString(), $request->has('entry_date')),
+            'entry' => $this->entryContext(
+                ($request->date('entry_date') ?? today())->toDateString(),
+                Shift::find($request->integer('entry_shift')) ?? Shift::defaultShift(),
+                $request->has('entry_date'),
+            ),
+            'shifts' => $this->shiftOptions(),
             'tanks' => $this->tankOptions(),
             'readings' => $readings,
             'fuelTypeTotals' => $fuelTypeTotals,
@@ -118,10 +118,9 @@ class PumpCounterReadingController extends Controller
         $direction = Locales::direction();
 
         $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
-            ->whereDate('date', '>=', $from)
-            ->whereDate('date', '<=', $to)
-            ->orderByDesc('date')
-            ->latest('id')
+            ->whereDate('pump_counter_readings.date', '>=', $from)
+            ->whereDate('pump_counter_readings.date', '<=', $to)
+            ->chronological('desc')
             ->get();
 
         $labels = Locales::labels([
@@ -182,10 +181,9 @@ class PumpCounterReadingController extends Controller
         // which was silently dropping any reading dated on the exact last day of the range.
         $readingsByDay = PumpCounterReading::with('pump')
             ->whereIn('tank_id', $tankIds)
-            ->whereDate('date', '>=', $from->toDateString())
-            ->whereDate('date', '<=', $to->toDateString())
-            ->orderBy('date')
-            ->orderBy('id')
+            ->whereDate('pump_counter_readings.date', '>=', $from->toDateString())
+            ->whereDate('pump_counter_readings.date', '<=', $to->toDateString())
+            ->chronological()
             ->get()
             ->groupBy(fn (PumpCounterReading $reading) => $reading->date->toDateString());
 
@@ -209,9 +207,8 @@ class PumpCounterReadingController extends Controller
         // always reliable: a pump with no prior reading at all has nothing to show here, and the
         // station knows the real starting value better than any guess this could make.
         $lastKnownReading = PumpCounterReading::whereIn('tank_id', $tankIds)
-            ->whereDate('date', '<', $from->toDateString())
-            ->orderBy('date')
-            ->orderBy('id')
+            ->whereDate('pump_counter_readings.date', '<', $from->toDateString())
+            ->chronological()
             ->get()
             ->groupBy('pump_id')
             ->map(fn ($readings) => (int) $readings->last()->reading_value)
@@ -266,8 +263,8 @@ class PumpCounterReadingController extends Controller
             $thisRow = $firstDataRow + 1 + $i;
             $previousRow = $thisRow - 1;
 
-            // A pump can log more than one reading the same day (e.g. shared across tanks) --
-            // the closing (last recorded) reading_value is what the column shows for that day.
+            // A pump can log more than one reading the same day (several shifts, or a tank
+            // switch) -- the closing one (last shift, last saved) is what the column shows.
             $closingReadingByPumpId = $dayReadings->groupBy('pump_id')
                 ->map(fn ($readings) => (int) $readings->last()->reading_value);
 
@@ -337,6 +334,7 @@ class PumpCounterReadingController extends Controller
     {
         $data = $request->validate([
             'pump_id' => 'required|exists:fuel_pumps,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'tank_id' => 'required|exists:tanks,id',
             'date' => 'required|date',
             'reading_value' => 'required|integer|min:0',
@@ -353,7 +351,7 @@ class PumpCounterReadingController extends Controller
 
         $this->flashWithStockCheck($message, [(int) $data['tank_id']]);
 
-        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date'], 'entry_date' => $data['date']]);
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date'], 'entry_date' => $data['date'], 'entry_shift' => $reading->shift_id]);
     }
 
     /**
@@ -366,19 +364,19 @@ class PumpCounterReadingController extends Controller
      * batch is saved, and the failing row's own errors are reported back keyed by its index so
      * the frontend can point at the exact row.
      *
-     * A row carrying an id is a reading already saved on that day (a past day prefills them):
-     * it's updated through updateReading(), like the edit page, but only when something in it
-     * actually changed. Unchanged rows aren't touched at all.
+     * The entry table only ever adds readings: saved ones are changed on the edit page. A pump
+     * that already has a reading in that date + shift gets another one (a tank switch); the
+     * entry table asks first.
      */
     public function storeBulk(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'date' => 'required|date',
+            'shift_id' => 'nullable|exists:shifts,id',
             'readings' => 'required|array|min:1',
-            'readings.*.id' => 'nullable|integer|exists:pump_counter_readings,id',
             'readings.*.pump_id' => 'required|exists:fuel_pumps,id',
             'readings.*.tank_id' => 'nullable|required_with:readings.*.reading_value|exists:tanks,id',
-            'readings.*.reading_value' => 'nullable|required_with:readings.*.id|integer|min:0',
+            'readings.*.reading_value' => 'nullable|integer|min:0',
             'readings.*.governmental_liters' => 'nullable|numeric|min:0',
             'readings.*.return_liters' => 'nullable|numeric|min:0',
             'readings.*.notes' => 'nullable|string|max:500',
@@ -386,38 +384,24 @@ class PumpCounterReadingController extends Controller
 
         $rowsToSave = collect(Arr::array($validated, 'readings'))
             ->map(fn ($row, $index) => $row + ['_index' => $index])
-            ->filter(fn ($row) => filled($row['id'] ?? null)
-                ? $this->rowChanges(PumpCounterReading::findOrFail((int) $row['id']), $row)
-                : filled($row['reading_value'] ?? null))
+            ->filter(fn ($row) => filled($row['reading_value'] ?? null))
             ->values();
 
         if ($rowsToSave->isEmpty()) {
             throw ValidationException::withMessages([
-                'readings' => __('Nothing to save: enter a counter value or change a saved one.'),
+                'readings' => __('Enter at least one counter value.'),
             ]);
         }
 
-        // Changing a saved reading is an admin action, as on the edit page.
-        abort_if($rowsToSave->contains(fn ($row) => filled($row['id'] ?? null)) && ! $request->user()->isAdmin(), 403);
+        $shiftId = (int) ($validated['shift_id'] ?? Shift::defaultShift()->id);
 
-        $savedCount = DB::transaction(function () use ($rowsToSave, $validated, $request) {
+        $savedCount = DB::transaction(function () use ($rowsToSave, $validated, $request, $shiftId) {
             $errors = [];
             $count = 0;
 
             foreach ($rowsToSave as $row) {
                 try {
-                    if (filled($row['id'] ?? null)) {
-                        $reading = PumpCounterReading::findOrFail((int) $row['id']);
-
-                        if ($reading->pump_id !== (int) $row['pump_id'] || $reading->date->toDateString() !== Carbon::parse($validated['date'])->toDateString()) {
-                            throw ValidationException::withMessages(['reading_value' => __('This reading belongs to another pump or day; reload the page.')]);
-                        }
-
-                        $this->updateReading($reading, [...$row, 'date' => $validated['date']], $request->user()->id);
-                    } else {
-                        $this->createReading([...$row, 'date' => $validated['date']], $request->user()->id);
-                    }
-
+                    $this->createReading([...$row, 'date' => $validated['date'], 'shift_id' => $shiftId], $request->user()->id);
                     $count++;
                 } catch (ValidationException $e) {
                     foreach ($e->errors() as $field => $messages) {
@@ -439,23 +423,7 @@ class PumpCounterReadingController extends Controller
 
         $this->flashWithStockCheck($message, $rowsToSave->pluck('tank_id')->map(fn ($id) => (int) $id)->all());
 
-        return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date'], 'entry_date' => $validated['date']]);
-    }
-
-    /**
-     * Whether an entry-table row differs from the saved reading it was prefilled from.
-     *
-     * @param  array<string, mixed>  $row
-     */
-    private function rowChanges(PumpCounterReading $reading, array $row): bool
-    {
-        $liters = fn ($value) => round((float) ($value ?? 0), 3);
-
-        return (int) $reading->reading_value !== (int) ($row['reading_value'] ?? -1)
-            || (int) $reading->tank_id !== (int) ($row['tank_id'] ?? 0)
-            || $liters($reading->governmental_liters) !== $liters($row['governmental_liters'] ?? null)
-            || $liters($reading->return_liters) !== $liters($row['return_liters'] ?? null)
-            || trim((string) $reading->notes) !== trim((string) ($row['notes'] ?? ''));
+        return to_route('pump-counters.index', ['from' => $validated['date'], 'to' => $validated['date'], 'entry_date' => $validated['date'], 'entry_shift' => $shiftId]);
     }
 
     /**
@@ -478,9 +446,11 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        return DB::transaction(function () use ($data, $pump, $tank, $userId) {
-            // A new reading goes after any the pump already has on its day.
-            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date']);
+        $shift = filled($data['shift_id'] ?? null) ? Shift::findOrFail((int) $data['shift_id']) : Shift::defaultShift();
+
+        return DB::transaction(function () use ($data, $pump, $tank, $userId, $shift) {
+            // A new reading goes after any the pump already has in its date + shift.
+            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date'], $shift);
             $this->assertBetweenNeighbours((int) $data['reading_value'], $prevReading, $nextReading);
 
             // A backdated entry lands before a reading that already exists, whose sale was
@@ -497,6 +467,7 @@ class PumpCounterReadingController extends Controller
 
             $reading = PumpCounterReading::create([
                 'pump_id' => $pump->id,
+                'shift_id' => $shift->id,
                 'tank_id' => $tank->id,
                 'date' => $data['date'],
                 'reading_value' => $data['reading_value'],
@@ -525,6 +496,7 @@ class PumpCounterReadingController extends Controller
             'reading' => [
                 'id' => $pumpCounterReading->id,
                 'pump_id' => $pumpCounterReading->pump_id,
+                'shift_id' => $pumpCounterReading->shift_id,
                 'tank_id' => $pumpCounterReading->tank_id,
                 'date' => $pumpCounterReading->date->toDateString(),
                 'reading_value' => (string) $pumpCounterReading->reading_value,
@@ -540,6 +512,7 @@ class PumpCounterReadingController extends Controller
                     'fuel_type_ids' => $pump->fuelTypes->pluck('id'),
                 ]),
             'tanks' => $this->tankOptions(),
+            'shifts' => $this->shiftOptions(),
         ]);
     }
 
@@ -547,6 +520,7 @@ class PumpCounterReadingController extends Controller
     {
         $data = $request->validate([
             'pump_id' => 'required|exists:fuel_pumps,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'tank_id' => 'required|exists:tanks,id',
             'date' => 'required|date',
             'reading_value' => 'required|integer|min:0',
@@ -559,7 +533,7 @@ class PumpCounterReadingController extends Controller
 
         $this->flashWithStockCheck(__('Reading updated.'), [(int) $data['tank_id']]);
 
-        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date']]);
+        return to_route('pump-counters.index', ['from' => $data['date'], 'to' => $data['date'], 'entry_date' => $data['date'], 'entry_shift' => $pumpCounterReading->shift_id]);
     }
 
     /**
@@ -580,11 +554,14 @@ class PumpCounterReadingController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($userId, $data, $pump, $tank, $pumpCounterReading) {
+        // A reading keeps its shift unless the edit moves it to another one.
+        $shift = filled($data['shift_id'] ?? null) ? Shift::findOrFail((int) $data['shift_id']) : ($pumpCounterReading->shift ?? Shift::defaultShift());
+
+        DB::transaction(function () use ($userId, $data, $pump, $tank, $pumpCounterReading, $shift) {
             // The reading after its old place, and the readings around its new place (itself
-            // left out: its row still holds the old date and value).
+            // left out: its row still holds the old date, shift and value).
             $oldNextReading = $this->nextReadingFor($pumpCounterReading);
-            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date'], $pumpCounterReading->id);
+            [$prevReading, $nextReading] = $this->neighbours($pump->id, $data['date'], $shift, $pumpCounterReading->id);
             $this->assertBetweenNeighbours((int) $data['reading_value'], $prevReading, $nextReading);
 
             // Every sale this edit changes is released before any is recreated, so each one
@@ -600,6 +577,7 @@ class PumpCounterReadingController extends Controller
 
             $pumpCounterReading->update([
                 'pump_id' => $pump->id,
+                'shift_id' => $shift->id,
                 'tank_id' => $tank->id,
                 'date' => $data['date'],
                 'reading_value' => $data['reading_value'],
@@ -612,8 +590,8 @@ class PumpCounterReadingController extends Controller
             ]);
 
             // The next reading's liters sold were computed against this one's old value (or
-            // against another reading, if the date moved), so they're recomputed against it. When
-            // the reading moved to another day or pump, the reading that used to follow it now
+            // against another reading, if the date or shift moved), so they're recomputed against
+            // it. When the reading moved to another day, shift or pump, the reading that used to follow it now
             // follows its old predecessor instead. Nothing further out is affected: a reading
             // two or more steps ahead derives its liters from its immediate predecessor.
             if ($nextReading !== null) {
@@ -621,6 +599,7 @@ class PumpCounterReadingController extends Controller
             }
 
             if ($oldNextReading !== null && $oldNextReading->id !== $nextReading?->id) {
+                $oldNextReading->refresh();
                 $this->recomputeReading($oldNextReading, $this->previousReadingFor($oldNextReading));
             }
         });
@@ -668,33 +647,21 @@ class PumpCounterReadingController extends Controller
     }
 
     /**
-     * The pump's readings just before and just after a place in its history: the end of $date
-     * for a new reading, or the place of reading $id (left out of both) on $date. whereDate(),
-     * not where('date', ...): the column stores a full "Y-m-d H:i:s" string, so a bare
-     * comparison against a "Y-m-d" date never matches a same-day row.
+     * The pump's readings just before and just after a place in its history: the end of
+     * $shift on $date for a new reading, or the place of reading $id (left out of both).
+     * Readings run in order of day, shift position, then save order.
      *
      * @return array{0: ?PumpCounterReading, 1: ?PumpCounterReading}
      */
-    private function neighbours(int $pumpId, string $date, ?int $id = null): array
+    private function neighbours(int $pumpId, string $date, Shift $shift, ?int $id = null): array
     {
-        $readings = fn () => PumpCounterReading::where('pump_id', $pumpId)
+        $readings = fn () => PumpCounterReading::where('pump_counter_readings.pump_id', $pumpId)
             ->when($id !== null, fn ($q) => $q->whereKeyNot($id));
 
-        $previous = $readings()
-            ->where(fn ($q) => $q->whereDate('date', '<', $date)
-                ->orWhere(fn ($q2) => $q2->whereDate('date', $date)->when($id !== null, fn ($q3) => $q3->where('id', '<', $id))))
-            ->orderByDesc('date')
-            ->orderByDesc('id')
-            ->first();
-
-        $next = $readings()
-            ->where(fn ($q) => $q->whereDate('date', '>', $date)
-                ->when($id !== null, fn ($q2) => $q2->orWhere(fn ($q3) => $q3->whereDate('date', $date)->where('id', '>', $id))))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->first();
-
-        return [$previous, $next];
+        return [
+            $readings()->before($date, $shift->position, $id)->chronological('desc')->first(),
+            $readings()->after($date, $shift->position, $id)->chronological()->first(),
+        ];
     }
 
     /**
@@ -744,28 +711,17 @@ class PumpCounterReadingController extends Controller
     /** The reading immediately before the given one for the same pump; see nextReadingFor(). */
     private function previousReadingFor(PumpCounterReading $reading): ?PumpCounterReading
     {
-        return PumpCounterReading::where('pump_id', $reading->pump_id)
-            ->where(fn ($q) => $q->where('date', '<', $reading->date)
-                ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '<', $reading->id)))
-            ->orderByDesc('date')
-            ->orderByDesc('id')
-            ->first();
+        return $this->neighbours($reading->pump_id, $reading->date->toDateString(), $reading->shift ?? Shift::defaultShift(), $reading->id)[0];
     }
 
     /**
-     * The reading immediately after the given one chronologically, for the same pump (id only
-     * breaks ties between same-day readings — a pump's meter can log more than one reading a
-     * day when it's shared across tanks) — the only reading whose own liters sold is derived
-     * directly from this one's reading_value.
+     * The reading immediately after the given one, for the same pump (day, then shift, then
+     * save order: a shift can hold more than one reading when the pump switched tank) -- the
+     * only reading whose own liters sold is derived directly from this one's reading_value.
      */
     private function nextReadingFor(PumpCounterReading $reading): ?PumpCounterReading
     {
-        return PumpCounterReading::where('pump_id', $reading->pump_id)
-            ->where(fn ($q) => $q->where('date', '>', $reading->date)
-                ->orWhere(fn ($q2) => $q2->where('date', $reading->date)->where('id', '>', $reading->id)))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->first();
+        return $this->neighbours($reading->pump_id, $reading->date->toDateString(), $reading->shift ?? Shift::defaultShift(), $reading->id)[1];
     }
 
     /**
@@ -920,7 +876,7 @@ class PumpCounterReadingController extends Controller
      */
     private function lastEntry(): ?array
     {
-        $latest = PumpCounterReading::orderByDesc('date')->orderByDesc('id')->first();
+        $latest = PumpCounterReading::query()->chronological('desc')->first();
 
         return $latest ? [
             'date' => $latest->date->toDateString(),
@@ -929,26 +885,22 @@ class PumpCounterReadingController extends Controller
     }
 
     /**
-     * What the entry table needs for the day it's entering: per pump, the readings a new value
-     * must sit between (the last one up to that day, the first one after it) and the reading
-     * already saved on that day, if any, so a past day shows which pumps are done and which
-     * were missed. For a saved reading the bounds are the readings around it.
+     * What the entry table needs for the date + shift it's entering, per pump: the readings a
+     * new value must sit between (the last one up to the end of that shift, the first one after
+     * it) and the readings already saved in that date + shift. Saved readings are never put back
+     * into the inputs: the table shows a check and an edit link for them, and a value typed for
+     * such a pump is an additional reading.
      *
-     * @return array{date: string, requested: bool, pumps: array<int, array<string, mixed>>}
+     * @return array{date: string, shift_id: int, requested: bool, pumps: array<int, array<string, mixed>>}
      */
-    private function entryContext(string $date, bool $requested): array
+    private function entryContext(string $date, Shift $shift, bool $requested): array
     {
         return [
             'date' => $date,
+            'shift_id' => $shift->id,
             'requested' => $requested,
-            'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date) {
-                // A pump shared across tanks can log more than one reading a day; the entry
-                // table shows (and edits) the day's last one, the closing reading.
-                $recorded = PumpCounterReading::where('pump_id', $pump->id)
-                    ->whereDate('date', $date)
-                    ->orderByDesc('id')
-                    ->first();
-                [$previous, $next] = $this->neighbours($pump->id, $date, $recorded?->id);
+            'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date, $shift) {
+                [$previous, $next] = $this->neighbours($pump->id, $date, $shift);
 
                 return [
                     'pump_id' => $pump->id,
@@ -961,17 +913,28 @@ class PumpCounterReadingController extends Controller
                         'reading_value' => $next->reading_value,
                         'date' => $next->date->toDateString(),
                     ] : null,
-                    'recorded' => $recorded ? [
-                        'id' => $recorded->id,
-                        'reading_value' => $recorded->reading_value,
-                        'tank_id' => $recorded->tank_id,
-                        'governmental_liters' => $recorded->governmental_liters !== null ? (float) $recorded->governmental_liters : null,
-                        'return_liters' => $recorded->return_liters !== null ? (float) $recorded->return_liters : null,
-                        'notes' => $recorded->notes,
-                    ] : null,
+                    'recorded' => PumpCounterReading::where('pump_id', $pump->id)
+                        ->whereDate('date', $date)
+                        ->where('shift_id', $shift->id)
+                        ->orderBy('id')
+                        ->get(['id', 'reading_value'])
+                        ->map(fn (PumpCounterReading $reading) => ['id' => $reading->id, 'reading_value' => $reading->reading_value])
+                        ->all(),
                 ];
             })->values()->all(),
         ];
+    }
+
+    /**
+     * The station's shifts for the entry table and edit page, in order. Inactive ones are
+     * included (flagged) so an older reading's shift still shows; the selector offers only
+     * active ones, and none at all on a single-shift station.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function shiftOptions(): array
+    {
+        return Shift::orderBy('position')->get()->map(fn (Shift $shift) => $shift->toOption())->values()->all();
     }
 
     /**

@@ -18,7 +18,7 @@ A database-per-tenant multi-tenant SaaS for managing fuel stations (fuel invento
 ## Arabic / i18n — read this before adding any user-facing string
 
 - **Backend**: `lang/ar.json` is a Laravel JSON translation file. Every `__('Some string')` call in PHP needs a matching entry here or it silently falls back to raw English in Arabic mode — there is no other Arabic translation source for backend strings. PDF exports use a separate, parallel pattern: inline `app()->getLocale() === 'ar' ? [...] : [...]` arrays per controller (do not try to route those through `__()`).
-- **Frontend**: `resources/js/lib/i18n.ts` is a flat dictionary (`en`/`ar` keyed the same way), read via `useTranslation()`'s `t()`. **`t()` does not support interpolation/placeholders** — build dynamic strings by concatenating JSX/string parts around `t()` calls, not by passing a params object.
+- **Frontend**: `t()` from `useTranslation()` (`resources/js/lib/i18n.ts`) reads the same `lang/*.json` files as the backend, in 11 languages (en, ar, fr, es, de, it, tr, ru, ur, hi, ku); a key missing from any of them fails `LocalesTest`. Its type is generated from `en.json`, so a key used in TS must exist there. `t(key, { name: value })` fills `:name` placeholders, like `__()`.
 - **RTL**: use logical Tailwind classes (`start-`/`end-`/`ps-`/`pe-`), never physical (`left-`/`right-`/`pl-`/`pr-`) — physical classes don't flip in RTL and have caused visible layout bugs.
 - `resources/js/lib/format.ts`'s `formatNumber`/`formatDate`/`formatDateTime`/`formatMoney`/`formatSyp`/`formatUsd` all force `'en-US'` explicitly, even in Arabic mode — otherwise a browser set to Arabic renders Arabic-Indic digits, which looks broken next to the rest of the UI.
 - `html[dir='rtl']` gets a larger base `font-size` in `resources/css/app.css` (`@layer base`) — the Latin font has no Arabic glyphs, so the system fallback renders visibly smaller than the rest of the UI otherwise.
@@ -50,13 +50,22 @@ Before considering any change done:
 2. `npx tsc --noEmit`
 3. `npx eslint <changed paths>`
 4. `npx prettier --write <changed paths>`
-5. `php artisan test` — healthy baseline is **36 tests, 20 passed, 16 skipped**
+5. `php artisan test` — healthy baseline is **113 tests, 105 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor)
 6. `npm run build`
 7. If a migration was added: back up the real local tenant SQLite file first (`cp database/tenantXXXX.sqlite database/tenantXXXX.sqlite.bak-$(date +%Y%m%d%H%M%S)`), then `php artisan tenants:migrate`
 8. Live HTTP smoke test against real local data: temp `php artisan serve --port=<free port>` in the background, curl with a cookie jar + XSRF token dance, exercise the actual endpoints, verify DB state directly via a small PHP script, then **clean up any test data created** (and restore from the step-7 backup if something went wrong)
 9. Commit with explicit file paths (never `git add -A`), push, `fly deploy -a patrol-station`
 10. After every deploy: `curl -s -o /dev/null -w "%{http_code}" https://patrol-station.fly.dev/login` should return `200`. Schema migrations run automatically on deploy (via the entrypoint script) — no manual `tenants:migrate` step needed in production, though `fly ssh console -a patrol-station -C "php artisan tenants:migrate"` is a safe way to double check (prints "Nothing to migrate" if already applied).
 11. After adding/changing a route, run `php artisan wayfinder:generate --with-form` to regenerate the typed TS route helpers under `resources/js/routes` and `resources/js/actions`.
+
+## Pump readings and shifts — rules
+
+- **A reading belongs to a date + shift** (`pump_counter_readings.shift_id`, table `shifts`). Readings run in order of **day, then shift position, then save order** — always use the model scopes `chronological()`, `before()` and `after()` (they join `shifts`), never `orderBy('date')->orderBy('id')`. In a query with that join, qualify `pump_counter_readings.id`/`.date`.
+- A reading's liters sold = its value − the reading just before it (previous shift that day, or the previous day's last shift). Adding, editing, moving (day, shift or pump) or deleting a reading recomputes the reading after it (and, when moved, the one that used to follow it). The sales of every affected reading are released **before** any is recreated, so FIFO fuel cost is drawn back in order and totals stay the same.
+- A reading placed before a later one must sit **between** its neighbours (server and client check). The newest reading has no lower limit (meter replacement) — the entry table asks first.
+- **Shifts** (Settings → Shifts, admins): every station has at least one; with a single active shift **no shift selector or column appears anywhere**. Positions never change: new shifts are appended, a shift with readings can only be deactivated, the last active one can't be turned off. Times are optional and **only choose the default shift** in the entry form; a night shift past midnight stays on the day it started. Readings created without a shift go to the first active one (`Shift::defaultShift()`).
+- Several readings per pump in one shift are allowed (tank switch).
+- **Entry table** (`pump-counters/index.tsx`, `components/pump-counters/entry-row.tsx`): inputs always start empty — saved readings are never prefilled. A pump with a reading in the selected date + shift shows a green check on its badge and (admins) a pencil linking to the edit page. A value typed for such a pump is an additional reading, after asking "هذه المضخة لها قراءة في هذه الوردية، هل تريد إضافة قراءة أخرى؟" (Cancel leaves that pump out). On past dates, pumps with nothing in that date + shift get amber inputs and the date shows a small "تاريخ سابق" badge. Validation messages show only after leaving a field or on save; counter values are shown with thousands separators (`MoneyInput`). The sales chips show liters and government liters per fuel type (each in its colour), and hide a chip whose value is 0.
 
 ## Patterns worth reusing
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Settings\CurrencyController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\ShiftController;
 use App\Http\Controllers\Settings\StationDataController;
 use App\Http\Middleware\RequireActiveStation;
 use App\Http\Middleware\RequireTenant;
@@ -41,6 +42,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::post('settings/currencies', [CurrencyController::class, 'store'])->name('currencies.store');
         Route::patch('settings/currencies/{code}', [CurrencyController::class, 'update'])->name('currencies.update');
         Route::post('settings/currencies/{code}/primary', [CurrencyController::class, 'makePrimary'])->name('currencies.primary');
+        Route::get('settings/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('settings/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::patch('settings/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
+        Route::delete('settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
         // POST with the admin's password (checked server-side) rather than a plain link.
         Route::post('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup')->middleware('throttle:6,1');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');

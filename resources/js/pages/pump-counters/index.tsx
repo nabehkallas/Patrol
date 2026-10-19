@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
-    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -29,10 +28,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
-import { formatDateTime, formatNumber, todayInStation } from '@/lib/format';
+import {
+    formatDateTime,
+    formatNumber,
+    nowTimeInStation,
+    todayInStation,
+} from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
+import type { ShiftOption } from '@/lib/shifts';
+import { currentShift } from '@/lib/shifts';
 import { selectableTanks } from '@/lib/tanks';
 import { cn } from '@/lib/utils';
 import {
@@ -66,7 +79,13 @@ type PageProps = {
     auth: Auth;
     pumps: PumpSummary[];
     lastEntry: EntryStamp | null;
-    entry: { date: string; requested: boolean; pumps: EntryPump[] };
+    entry: {
+        date: string;
+        shift_id: number;
+        requested: boolean;
+        pumps: EntryPump[];
+    };
+    shifts: ShiftOption[];
     tanks: TankOption[];
     readings: PumpCounterReading[];
     fuelTypeTotals: FuelTypeTotal[];
@@ -123,52 +142,20 @@ function isPast(entry: Entry): boolean {
     return entry.date < todayInStation();
 }
 
-// One row per pump. On a past day a pump's saved reading comes back prefilled (with its id, so
-// saving updates it); every other row starts empty.
-function buildRows(
-    pumpList: PumpSummary[],
-    tanks: TankOption[],
-    entry: Entry,
-): BulkRow[] {
-    const byPump = new Map(entry.pumps.map((row) => [row.pump_id, row]));
-    const past = isPast(entry);
-
-    return pumpList.map((pump) => {
-        const saved = past ? (byPump.get(pump.id)?.recorded ?? null) : null;
-        const defaultTank = String(defaultTankFor(pump, tanksFor(pump, tanks)));
-
-        return saved
-            ? {
-                  id: saved.id,
-                  pump_id: pump.id,
-                  tank_id:
-                      saved.tank_id !== null
-                          ? String(saved.tank_id)
-                          : defaultTank,
-                  reading_value: String(saved.reading_value),
-                  governmental_liters:
-                      saved.governmental_liters !== null
-                          ? String(saved.governmental_liters)
-                          : '',
-                  return_liters:
-                      saved.return_liters !== null
-                          ? String(saved.return_liters)
-                          : '',
-                  notes: saved.notes ?? '',
-              }
-            : {
-                  id: null,
-                  pump_id: pump.id,
-                  tank_id: defaultTank,
-                  reading_value: '',
-                  governmental_liters: '',
-                  return_liters: '',
-                  notes: '',
-              };
-    });
+// One empty row per pump. Saved readings are never put back into the inputs: a pump that has
+// one in the date + shift shows a check (and an edit link) instead.
+function buildRows(pumpList: PumpSummary[], tanks: TankOption[]): BulkRow[] {
+    return pumpList.map((pump) => ({
+        pump_id: pump.id,
+        tank_id: String(defaultTankFor(pump, tanksFor(pump, tanks))),
+        reading_value: '',
+        governmental_liters: '',
+        return_liters: '',
+        notes: '',
+    }));
 }
 
-// A saved reading keeps its own tank in the list, even one that's since been deactivated.
+// The row's tank stays in the list even if it's since been deactivated.
 function rowTanks(
     pump: PumpSummary,
     row: BulkRow,
@@ -186,6 +173,7 @@ export default function PumpCountersIndex() {
         pumps,
         lastEntry,
         entry,
+        shifts,
         tanks,
         readings,
         fuelTypeTotals,
@@ -240,10 +228,32 @@ export default function PumpCountersIndex() {
         [entry.pumps],
     );
 
+    // A station with a single active shift never sees the selector.
+    const activeShifts = shifts.filter((shift) => shift.is_active);
+    const showShifts = activeShifts.length > 1;
+
+    // The default date + shift: after saving, the one just saved; otherwise the shift whose
+    // times cover now. A night shift's hours after midnight belong to the day it started.
+    const [initialDate, initialShift] = useMemo(() => {
+        if (entry.requested) {
+            return [entry.date, entry.shift_id];
+        }
+
+        const now = currentShift(activeShifts, nowTimeInStation());
+        const date =
+            now?.previousDay && defaultEntryDate === todayInStation()
+                ? todayInStation(-1)
+                : defaultEntryDate;
+
+        return [date, now?.shift.id ?? entry.shift_id];
+        // Only for the first render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const form = useForm({
-        // After saving a past day the page comes back on that day, not on today.
-        date: entry.requested ? entry.date : defaultEntryDate,
-        readings: buildRows(sortedPumps, tanks, entry),
+        date: initialDate,
+        shift_id: initialShift,
+        readings: buildRows(sortedPumps, tanks),
     });
 
     function updateRow(pumpId: number, patch: Partial<BulkRow>) {
@@ -270,80 +280,110 @@ export default function PumpCountersIndex() {
         );
     }
 
-    // The hints and bounds below are for the day being entered: reload them when it changes.
+    // What's saved and the bounds are for the date + shift being entered: reload them when
+    // either changes. Typed values stay.
     const entryDate = form.data.date;
+    const entryShift = form.data.shift_id;
 
     useEffect(() => {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(entryDate) && entryDate !== entry.date) {
-            router.reload({ data: { entry_date: entryDate }, only: ['entry'] });
+        if (
+            /^\d{4}-\d{2}-\d{2}$/.test(entryDate) &&
+            (entryDate !== entry.date || entryShift !== entry.shift_id)
+        ) {
+            router.reload({
+                data: { entry_date: entryDate, entry_shift: entryShift },
+                only: ['entry'],
+            });
         }
-    }, [entryDate, entry.date]);
+    }, [entryDate, entryShift, entry.date, entry.shift_id]);
 
-    // A past day: saved readings are prefilled and editable, missed pumps are marked.
-    const isPastDay = entry.date === entryDate && isPast(entry);
+    // A past day: pumps with nothing saved in that date + shift are marked.
+    const isPastDay =
+        entry.date === entryDate &&
+        entry.shift_id === entryShift &&
+        isPast(entry);
 
-    // Rows follow the day being entered: rebuilt (prefilled) whenever that day's context loads.
-    useEffect(() => {
-        form.setData('readings', buildRows(sortedPumps, tanks, entry));
-        // Only on a new day; typing must never be reset by a re-render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [entry.date]);
+    const filledRows = (skip: number[]) =>
+        form.data.readings.filter(
+            (row) => row.reading_value !== '' && !skip.includes(row.pump_id),
+        );
+    const pumpName = (pumpId: number) => pumpsById.get(pumpId)?.name ?? '';
 
-    // The newest reading may be lower than the one before it only when the meter was replaced:
-    // ask before saving it.
-    const [lowerPumps, setLowerPumps] = useState<string[] | null>(null);
+    // Two questions before saving, in turn: a value for a pump already recorded in this date +
+    // shift is an additional reading (a tank switch) -- cancelling leaves that pump out; and a
+    // newest reading lower than the previous one means the meter was replaced -- cancelling
+    // saves nothing.
+    const [confirm, setConfirm] = useState<{
+        kind: 'additional' | 'lower';
+        pumpIds: number[];
+        skip: number[];
+    } | null>(null);
 
-    function lowerThanPrevious(): string[] {
-        return form.data.readings
+    function askAdditional() {
+        const pumpIds = filledRows([])
+            .filter(
+                (row) =>
+                    (entryByPump.get(row.pump_id)?.recorded.length ?? 0) > 0,
+            )
+            .map((row) => row.pump_id);
+
+        if (pumpIds.length > 0) {
+            setConfirm({ kind: 'additional', pumpIds, skip: [] });
+
+            return;
+        }
+
+        askLower([]);
+    }
+
+    function askLower(skip: number[]) {
+        const pumpIds = filledRows(skip)
             .filter((row) => {
                 const context = entryByPump.get(row.pump_id);
 
-                if (
-                    row.reading_value === '' ||
-                    !context?.previous ||
-                    context.next
-                ) {
-                    return false;
-                }
-
-                const value = Number(row.reading_value);
-                const unchanged =
-                    row.id !== null &&
-                    context.recorded?.reading_value === value;
-
-                return !unchanged && value < context.previous.reading_value;
+                return (
+                    !!context?.previous &&
+                    !context.next &&
+                    Number(row.reading_value) < context.previous.reading_value
+                );
             })
-            .map((row) => pumpsById.get(row.pump_id)?.name ?? '');
+            .map((row) => row.pump_id);
+
+        if (pumpIds.length > 0) {
+            setConfirm({ kind: 'lower', pumpIds, skip });
+
+            return;
+        }
+
+        save(skip);
     }
 
-    function save() {
-        setLowerPumps(null);
+    function save(skip: number[]) {
+        setConfirm(null);
+
+        if (filledRows(skip).length === 0) {
+            return;
+        }
+
+        // Skipped pumps are sent blank (rows keep their place, so errors still point at them).
+        form.transform((data) => ({
+            ...data,
+            readings: data.readings.map((row) =>
+                skip.includes(row.pump_id)
+                    ? { ...row, reading_value: '' }
+                    : row,
+            ),
+        }));
         form.post(storeBulk.url(), {
             preserveScroll: true,
-            onSuccess: (page) => {
-                form.setData(
-                    'readings',
-                    buildRows(
-                        sortedPumps,
-                        tanks,
-                        (page.props as unknown as PageProps).entry,
-                    ),
-                );
-            },
+            onSuccess: () =>
+                form.setData('readings', buildRows(sortedPumps, tanks)),
         });
     }
 
     function submitAll(event: FormEvent) {
         event.preventDefault();
-        const lower = lowerThanPrevious();
-
-        if (lower.length > 0) {
-            setLowerPumps(lower);
-
-            return;
-        }
-
-        save();
+        askAdditional();
     }
 
     const exportFuelTypes = useMemo(() => {
@@ -364,7 +404,11 @@ export default function PumpCountersIndex() {
         // resets back to blank.
         router.get(
             index(),
-            { ...range, entry_date: form.data.date },
+            {
+                ...range,
+                entry_date: form.data.date,
+                entry_shift: form.data.shift_id,
+            },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -373,9 +417,10 @@ export default function PumpCountersIndex() {
     }
 
     const isSingleDay = filters.from === filters.to;
-    const governmentalLiters = governmentalTotals.reduce(
-        (sum, total) => sum + total.liters_sold,
-        0,
+    // Chips with nothing in them are left out.
+    const litersChips = fuelTypeTotals.filter((total) => total.liters_sold > 0);
+    const governmentalChips = governmentalTotals.filter(
+        (total) => total.liters_sold > 0,
     );
 
     function removeReading(reading: PumpCounterReading) {
@@ -406,6 +451,37 @@ export default function PumpCountersIndex() {
                                         form.setData('date', e.target.value)
                                     }
                                 />
+                                {showShifts && (
+                                    <Select
+                                        value={String(form.data.shift_id)}
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'shift_id',
+                                                Number(value),
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            className="h-9 w-auto min-w-[8rem] border-slate-300 dark:border-slate-700"
+                                            aria-label={t(
+                                                'pump_counters.shift',
+                                            )}
+                                            data-test="shift-select"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {activeShifts.map((shift) => (
+                                                <SelectItem
+                                                    key={shift.id}
+                                                    value={String(shift.id)}
+                                                >
+                                                    {shift.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                                 {isPastDay && (
                                     <span
                                         className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
@@ -415,8 +491,8 @@ export default function PumpCountersIndex() {
                                     </span>
                                 )}
                                 <InputError message={form.errors.date} />
-                                {(fuelTypeTotals.length > 0 ||
-                                    governmentalTotals.length > 0) && (
+                                {(litersChips.length > 0 ||
+                                    governmentalChips.length > 0) && (
                                     <div
                                         className="flex flex-wrap items-center gap-2"
                                         title={
@@ -430,7 +506,7 @@ export default function PumpCountersIndex() {
                                         }
                                         data-test="sales-badges"
                                     >
-                                        {fuelTypeTotals.map((total) => (
+                                        {litersChips.map((total) => (
                                             <span
                                                 key={total.fuel_type_id}
                                                 className={cn(
@@ -455,28 +531,37 @@ export default function PumpCountersIndex() {
                                                 </bdi>
                                             </span>
                                         ))}
-                                        {governmentalTotals.length > 0 && (
+                                        {governmentalChips.map((total) => (
                                             <span
+                                                key={`gov-${total.fuel_type_id}`}
                                                 className={cn(
                                                     TOTAL_BADGE,
-                                                    'bg-green-50 text-green-900 ring-green-300 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/40',
+                                                    fuelColors.byId(
+                                                        total.fuel_type_id,
+                                                    ).badge,
                                                 )}
+                                                data-test="governmental-chip"
                                             >
-                                                {t(
-                                                    'pump_counters.governmental_total',
-                                                )}
+                                                <bdi>
+                                                    {t(
+                                                        'pump_counters.governmental_fuel',
+                                                        {
+                                                            fuel: total.fuel_type_name,
+                                                        },
+                                                    )}
+                                                </bdi>
                                                 :
                                                 <bdi
                                                     dir="ltr"
                                                     className="font-bold tabular-nums"
                                                 >
                                                     {formatNumber(
-                                                        governmentalLiters,
+                                                        total.liters_sold,
                                                     )}{' '}
                                                     L
                                                 </bdi>
                                             </span>
-                                        )}
+                                        ))}
                                     </div>
                                 )}
                                 <div className="ms-auto flex flex-wrap items-center gap-3">
@@ -592,35 +677,65 @@ export default function PumpCountersIndex() {
                                 </table>
                             </div>
                         </form>
+                        {/* Closing the dialog (X, Escape, outside click) saves nothing. */}
                         <Dialog
-                            open={lowerPumps !== null}
-                            onOpenChange={(open) =>
-                                !open && setLowerPumps(null)
-                            }
+                            open={confirm !== null}
+                            onOpenChange={(open) => !open && setConfirm(null)}
                         >
                             <DialogContent
                                 className="sm:max-w-md"
-                                data-test="meter-replaced-dialog"
+                                data-test={
+                                    confirm?.kind === 'additional'
+                                        ? 'additional-reading-dialog'
+                                        : 'meter-replaced-dialog'
+                                }
                             >
                                 <DialogTitle>
-                                    {t('pump_counters.meter_replaced_title')}
+                                    {confirm?.kind === 'additional'
+                                        ? t('pump_counters.additional_title')
+                                        : t(
+                                              'pump_counters.meter_replaced_title',
+                                          )}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    {t('pump_counters.meter_replaced_confirm')}
-                                    {lowerPumps && lowerPumps.length > 0 && (
+                                    {confirm?.kind === 'additional'
+                                        ? t('pump_counters.additional_confirm')
+                                        : t(
+                                              'pump_counters.meter_replaced_confirm',
+                                          )}
+                                    {confirm && (
                                         <bdi className="mt-2 block font-medium">
-                                            {lowerPumps.join('، ')}
+                                            {confirm.pumpIds
+                                                .map(pumpName)
+                                                .join('، ')}
                                         </bdi>
                                     )}
                                 </DialogDescription>
                                 <DialogFooter className="gap-2">
-                                    <DialogClose asChild>
-                                        <Button variant="outline">
-                                            {t('common.cancel')}
-                                        </Button>
-                                    </DialogClose>
-                                    <Button onClick={save}>
-                                        {t('pump_counters.meter_replaced_yes')}
+                                    {/* Cancel on "another reading" leaves those pumps out and
+                                        goes on with the rest; on "meter replaced" it stops. */}
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            confirm?.kind === 'additional'
+                                                ? askLower(confirm.pumpIds)
+                                                : setConfirm(null)
+                                        }
+                                    >
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button
+                                        onClick={() =>
+                                            confirm?.kind === 'additional'
+                                                ? askLower(confirm.skip)
+                                                : save(confirm?.skip ?? [])
+                                        }
+                                    >
+                                        {confirm?.kind === 'additional'
+                                            ? t('pump_counters.additional_yes')
+                                            : t(
+                                                  'pump_counters.meter_replaced_yes',
+                                              )}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>

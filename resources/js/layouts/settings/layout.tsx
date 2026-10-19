@@ -12,6 +12,7 @@ import { edit as editData } from '@/routes/data';
 import { edit as editPreferences } from '@/routes/preferences';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { index as shiftsIndex } from '@/routes/shifts';
 import type { Auth, NavItem } from '@/types';
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
@@ -49,6 +50,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                   {
                       title: t('settings.nav.currencies'),
                       href: currenciesIndex(),
+                      icon: null,
+                  },
+                  {
+                      title: t('settings.nav.shifts'),
+                      href: shiftsIndex(),
                       icon: null,
                   },
                   {
