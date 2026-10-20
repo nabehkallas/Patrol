@@ -881,5 +881,10 @@
     "This shift has readings, so it can only be deactivated.": "This shift has readings, so it can only be deactivated.",
     "Shift deleted.": "Shift deleted.",
     "Enter at least one counter value.": "Enter at least one counter value.",
-    "pump_counters.sold_quantity": "Quantity sold"
+    "pump_counters.sold_quantity": "Quantity sold",
+    "pump_counters.unsaved_title": "Unsaved readings",
+    "pump_counters.unsaved_message": "You have unsaved readings for :place",
+    "pump_counters.save_and_switch": "Save, then switch",
+    "pump_counters.discard": "Discard",
+    "pump_counters.leave_confirm": "You have unsaved readings. Leave this page and lose them?"
 }

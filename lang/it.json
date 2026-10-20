@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "Questo turno ha letture, si può solo disattivare.",
     "Shift deleted.": "Turno eliminato.",
     "Enter at least one counter value.": "Inserisci almeno una lettura.",
-    "pump_counters.sold_quantity": "Quantità venduta"
+    "pump_counters.sold_quantity": "Quantità venduta",
+    "pump_counters.unsaved_title": "Letture non salvate",
+    "pump_counters.unsaved_message": "Hai letture non salvate per il :place",
+    "pump_counters.save_and_switch": "Salva e cambia",
+    "pump_counters.discard": "Scarta",
+    "pump_counters.leave_confirm": "Hai letture non salvate. Lasciare la pagina e perderle?"
 }

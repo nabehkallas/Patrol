@@ -1,6 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import {
+    formatDate,
     formatDateTime,
     formatNumber,
     nowTimeInStation,
@@ -44,6 +45,7 @@ import {
 } from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
+import { setLeaveGuard } from '@/lib/leave-guard';
 import type { ShiftOption } from '@/lib/shifts';
 import { currentShift } from '@/lib/shifts';
 import { selectableTanks } from '@/lib/tanks';
@@ -137,6 +139,8 @@ const NEUTRAL_BADGE =
 
 type BulkRow = EntryRowData;
 type Entry = PageProps['entry'];
+/** A date + shift in the entry table. */
+type Place = { date: string; shift_id: number };
 
 /** Whether the entry context is for a day before today (station time). */
 function isPast(entry: Entry): boolean {
@@ -271,9 +275,119 @@ export default function PumpCountersIndex() {
         );
     }
 
+    // Typed values belong to the date + shift they were typed for, so they never carry over to
+    // another one: switching with unsaved values asks first -- save them there and switch,
+    // discard them and switch, or stay. (A tank choice alone isn't an unsaved value.)
+    const hasUnsaved = form.data.readings.some(
+        (row) =>
+            row.reading_value !== '' ||
+            row.governmental_liters !== '' ||
+            row.return_liters !== '' ||
+            row.notes !== '',
+    );
+    const [pendingSwitch, setPendingSwitch] = useState<Place | null>(null);
+    // "Save, then switch" under way: the switch happens once the save has succeeded.
+    const switchAfterSave = useRef<Place | null>(null);
+    // A date being typed in the field, until it's a whole date.
+    const [dateDraft, setDateDraft] = useState<string | null>(null);
+
+    // Where the typed values belong, for the question: "16/10/2026 - مسائية" (the date alone
+    // on a single-shift station).
+    const entryPlace = [
+        formatDate(form.data.date),
+        showShifts
+            ? shifts.find((shift) => shift.id === form.data.shift_id)?.name
+            : null,
+    ]
+        .filter(Boolean)
+        .join(' - ');
+
+    function switchTo(place: Place) {
+        form.clearErrors();
+        form.setData((data) => ({
+            ...data,
+            ...place,
+            readings: buildRows(sortedPumps, tanks),
+        }));
+    }
+
+    function requestSwitch(place: Place) {
+        if (
+            place.date === form.data.date &&
+            place.shift_id === form.data.shift_id
+        ) {
+            return;
+        }
+
+        if (hasUnsaved) {
+            setPendingSwitch(place);
+
+            return;
+        }
+
+        form.setData((data) => ({ ...data, ...place }));
+    }
+
+    function changeDate(value: string) {
+        // Typing a year goes through 0002, 0020, ...: only a whole date switches.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value) && value >= '2000-01-01') {
+            setDateDraft(null);
+            requestSwitch({ date: value, shift_id: form.data.shift_id });
+
+            return;
+        }
+
+        setDateDraft(value);
+    }
+
+    function saveThenSwitch() {
+        switchAfterSave.current = pendingSwitch;
+        setPendingSwitch(null);
+        askAdditional();
+    }
+
+    function discardThenSwitch() {
+        if (pendingSwitch) {
+            switchTo(pendingSwitch);
+        }
+
+        setPendingSwitch(null);
+    }
+
+    // Leaving the page with unsaved values asks first: closing or reloading the tab, a link
+    // (the sidebar), or the browser's back/forward. Reloading this page's own data doesn't.
+    useEffect(() => {
+        if (!hasUnsaved) {
+            return;
+        }
+
+        const message = t('pump_counters.leave_confirm');
+        const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+        const off = router.on('before', (event) => {
+            const visit = event.detail.visit;
+
+            if (
+                visit.method === 'get' &&
+                visit.preserveState !== true &&
+                !window.confirm(message)
+            ) {
+                event.preventDefault();
+            }
+        });
+        const offBack = setLeaveGuard(() => window.confirm(message));
+
+        window.addEventListener('beforeunload', warn);
+
+        return () => {
+            window.removeEventListener('beforeunload', warn);
+            off();
+            offBack();
+        };
+    }, [hasUnsaved, t]);
+
     // What's saved, the bounds and the chips are for the date + shift being entered: reload
     // them when either changes. A new date also sets the history below to that one day (a range
-    // picked there afterwards stays until the date changes again). Typed values stay.
+    // picked there afterwards stays until the date changes again).
     const entryDate = form.data.date;
     const entryShift = form.data.shift_id;
 
@@ -357,10 +471,22 @@ export default function PumpCountersIndex() {
         save(skip);
     }
 
+    // Closing a question (or cancelling "meter replaced") saves nothing, and stays put.
+    function cancelConfirm() {
+        switchAfterSave.current = null;
+        setConfirm(null);
+    }
+
     function save(skip: number[]) {
         setConfirm(null);
 
         if (filledRows(skip).length === 0) {
+            // Nothing left to save (every pump was left out): go on with the switch.
+            if (switchAfterSave.current) {
+                switchTo(switchAfterSave.current);
+                switchAfterSave.current = null;
+            }
+
             return;
         }
 
@@ -373,10 +499,23 @@ export default function PumpCountersIndex() {
                     : row,
             ),
         }));
+        // Saved to the date + shift in the form, i.e. where they were typed; a switch waiting
+        // on this save happens only once it succeeded (with errors, everything stays).
         form.post(storeBulk.url(), {
             preserveScroll: true,
-            onSuccess: () =>
-                form.setData('readings', buildRows(sortedPumps, tanks)),
+            onSuccess: () => {
+                const next = switchAfterSave.current;
+                switchAfterSave.current = null;
+
+                if (next) {
+                    switchTo(next);
+                } else {
+                    form.setData('readings', buildRows(sortedPumps, tanks));
+                }
+            },
+            onError: () => {
+                switchAfterSave.current = null;
+            },
         });
     }
 
@@ -479,19 +618,25 @@ export default function PumpCountersIndex() {
                                     id="date"
                                     type="date"
                                     className="h-9 w-auto border-slate-300 dark:border-slate-700"
-                                    value={form.data.date}
-                                    onChange={(e) =>
-                                        form.setData('date', e.target.value)
+                                    value={
+                                        pendingSwitch?.date ??
+                                        dateDraft ??
+                                        form.data.date
                                     }
+                                    onChange={(e) => changeDate(e.target.value)}
+                                    onBlur={() => setDateDraft(null)}
                                 />
                                 {showShifts && (
                                     <Select
-                                        value={String(form.data.shift_id)}
+                                        value={String(
+                                            pendingSwitch?.shift_id ??
+                                                form.data.shift_id,
+                                        )}
                                         onValueChange={(value) =>
-                                            form.setData(
-                                                'shift_id',
-                                                Number(value),
-                                            )
+                                            requestSwitch({
+                                                date: form.data.date,
+                                                shift_id: Number(value),
+                                            })
                                         }
                                     >
                                         <SelectTrigger
@@ -716,7 +861,7 @@ export default function PumpCountersIndex() {
                         {/* Closing the dialog (X, Escape, outside click) saves nothing. */}
                         <Dialog
                             open={confirm !== null}
-                            onOpenChange={(open) => !open && setConfirm(null)}
+                            onOpenChange={(open) => !open && cancelConfirm()}
                         >
                             <DialogContent
                                 className="sm:max-w-md"
@@ -755,7 +900,7 @@ export default function PumpCountersIndex() {
                                         onClick={() =>
                                             confirm?.kind === 'additional'
                                                 ? askLower(confirm.pumpIds)
-                                                : setConfirm(null)
+                                                : cancelConfirm()
                                         }
                                     >
                                         {t('common.cancel')}
@@ -772,6 +917,44 @@ export default function PumpCountersIndex() {
                                             : t(
                                                   'pump_counters.meter_replaced_yes',
                                               )}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                        {/* Switching date or shift with unsaved values. Closing it = cancel. */}
+                        <Dialog
+                            open={pendingSwitch !== null}
+                            onOpenChange={(open) =>
+                                !open && setPendingSwitch(null)
+                            }
+                        >
+                            <DialogContent
+                                className="sm:max-w-md"
+                                data-test="unsaved-switch-dialog"
+                            >
+                                <DialogTitle>
+                                    {t('pump_counters.unsaved_title')}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {t('pump_counters.unsaved_message', {
+                                        place: entryPlace,
+                                    })}
+                                </DialogDescription>
+                                <DialogFooter className="gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setPendingSwitch(null)}
+                                    >
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={discardThenSwitch}
+                                    >
+                                        {t('pump_counters.discard')}
+                                    </Button>
+                                    <Button onClick={saveThenSwitch}>
+                                        {t('pump_counters.save_and_switch')}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>

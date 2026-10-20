@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "Cette équipe a des relevés : elle peut seulement être désactivée.",
     "Shift deleted.": "Équipe supprimée.",
     "Enter at least one counter value.": "Saisissez au moins un relevé.",
-    "pump_counters.sold_quantity": "Quantité vendue"
+    "pump_counters.sold_quantity": "Quantité vendue",
+    "pump_counters.unsaved_title": "Relevés non enregistrés",
+    "pump_counters.unsaved_message": "Vous avez des relevés non enregistrés pour le :place",
+    "pump_counters.save_and_switch": "Enregistrer puis changer",
+    "pump_counters.discard": "Ignorer",
+    "pump_counters.leave_confirm": "Vous avez des relevés non enregistrés. Quitter la page et les perdre ?"
 }

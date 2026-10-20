@@ -283,6 +283,32 @@ class ShiftReadingTest extends TestCase
         $this->assertSame(0.0, $context()['totals'][0]['governmental_liters']);
     }
 
+    /**
+     * "Save, then switch" in the entry table saves the typed values to the date + shift they
+     * were typed for -- the one in the form, not today or the default shift -- and comes back
+     * there; the table then moves on to the new date + shift with empty inputs.
+     */
+    public function test_saving_before_a_switch_goes_to_the_date_and_shift_the_values_were_typed_for(): void
+    {
+        $response = app(PumpCounterReadingController::class)->storeBulk($this->request([
+            'date' => '2026-10-15', 'shift_id' => $this->shifts[2]->id,
+            'readings' => [['pump_id' => $this->pumpId, 'tank_id' => $this->tankId, 'reading_value' => 1000, 'notes' => 'مسائية']],
+        ]));
+
+        $saved = PumpCounterReading::sole();
+        $this->assertSame('2026-10-15', $saved->date->toDateString());
+        $this->assertSame($this->shifts[2]->id, $saved->shift_id);
+        parse_str((string) parse_url($response->getTargetUrl(), PHP_URL_QUERY), $query);
+        $this->assertSame(['from' => '2026-10-15', 'to' => '2026-10-15', 'entry_date' => '2026-10-15', 'entry_shift' => (string) $this->shifts[2]->id], $query);
+
+        // The day it's switched to has nothing of it.
+        $next = (new ReflectionMethod(PumpCounterReadingController::class, 'entryContext'))
+            ->invoke(app(PumpCounterReadingController::class), '2026-10-16', $this->shifts[1], true);
+        $this->assertSame([], $next['pumps'][0]['recorded']);
+        $this->assertSame([], $next['totals']);
+        $this->assertSame(1000, $next['pumps'][0]['previous']['reading_value']);
+    }
+
     public function test_a_reading_saved_without_a_shift_goes_to_the_first_shift(): void
     {
         app(PumpCounterReadingController::class)->store($this->request([

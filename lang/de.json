@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "Diese Schicht hat Stände und kann nur deaktiviert werden.",
     "Shift deleted.": "Schicht gelöscht.",
     "Enter at least one counter value.": "Geben Sie mindestens einen Zählerstand ein.",
-    "pump_counters.sold_quantity": "Verkaufte Menge"
+    "pump_counters.sold_quantity": "Verkaufte Menge",
+    "pump_counters.unsaved_title": "Nicht gespeicherte Stände",
+    "pump_counters.unsaved_message": "Sie haben nicht gespeicherte Stände für :place",
+    "pump_counters.save_and_switch": "Speichern, dann wechseln",
+    "pump_counters.discard": "Verwerfen",
+    "pump_counters.leave_confirm": "Sie haben nicht gespeicherte Stände. Seite verlassen und sie verlieren?"
 }

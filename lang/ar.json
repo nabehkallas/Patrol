@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "لهذه الوردية قراءات، لذا يمكن إيقافها فقط.",
     "Shift deleted.": "تم حذف الوردية.",
     "Enter at least one counter value.": "أدخل قراءة عداد واحدة على الأقل.",
-    "pump_counters.sold_quantity": "الكمية المباعة"
+    "pump_counters.sold_quantity": "الكمية المباعة",
+    "pump_counters.unsaved_title": "قراءات غير محفوظة",
+    "pump_counters.unsaved_message": "لديك قراءات غير محفوظة لتاريخ :place",
+    "pump_counters.save_and_switch": "حفظ ثم انتقال",
+    "pump_counters.discard": "تجاهل",
+    "pump_counters.leave_confirm": "لديك قراءات غير محفوظة. هل تريد مغادرة الصفحة وفقدانها؟"
 }

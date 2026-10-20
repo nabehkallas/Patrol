@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "У смены есть показания, её можно только отключить.",
     "Shift deleted.": "Смена удалена.",
     "Enter at least one counter value.": "Введите хотя бы одно показание.",
-    "pump_counters.sold_quantity": "Продано"
+    "pump_counters.sold_quantity": "Продано",
+    "pump_counters.unsaved_title": "Несохранённые показания",
+    "pump_counters.unsaved_message": "У вас есть несохранённые показания за :place",
+    "pump_counters.save_and_switch": "Сохранить и перейти",
+    "pump_counters.discard": "Отбросить",
+    "pump_counters.leave_confirm": "Есть несохранённые показания. Уйти со страницы и потерять их?"
 }

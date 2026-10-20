@@ -14,8 +14,12 @@ import {
     setPrimaryCurrency,
     setStationTimeZone,
 } from '@/lib/format';
+import { installLeaveGuard } from '@/lib/leave-guard';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Before the router adds its own back/forward handling, so a page can keep unsaved work.
+installLeaveGuard();
 
 // Capture the station timezone from the initial page data before Inertia boots, then keep
 // it in step with every visit (an admin can change it from the preferences page).

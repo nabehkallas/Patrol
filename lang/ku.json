@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "Ev guhertin xwendin hene, tenê dikare neçalak bibe.",
     "Shift deleted.": "Guhertin hate jêbirin.",
     "Enter at least one counter value.": "Herî kêm nirxeke jimarvanê binivîse.",
-    "pump_counters.sold_quantity": "Mîqdara firotî"
+    "pump_counters.sold_quantity": "Mîqdara firotî",
+    "pump_counters.unsaved_title": "Xwendinên neqeydkirî",
+    "pump_counters.unsaved_message": "Xwendinên te yên neqeydkirî ji bo :place hene",
+    "pump_counters.save_and_switch": "Qeyd bike û derbas bibe",
+    "pump_counters.discard": "Paşguh bike",
+    "pump_counters.leave_confirm": "Xwendinên te yên neqeydkirî hene. Ji rûpelê derkevî û wan winda bikî?"
 }

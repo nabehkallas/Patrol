@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "इस शिफ्ट की रीडिंग हैं, इसे केवल निष्क्रिय किया जा सकता है।",
     "Shift deleted.": "शिफ्ट हटाई गई।",
     "Enter at least one counter value.": "कम से कम एक काउंटर रीडिंग दर्ज करें।",
-    "pump_counters.sold_quantity": "बेची गई मात्रा"
+    "pump_counters.sold_quantity": "बेची गई मात्रा",
+    "pump_counters.unsaved_title": "बिना सहेजी रीडिंग",
+    "pump_counters.unsaved_message": "आपकी :place की रीडिंग सहेजी नहीं गई हैं",
+    "pump_counters.save_and_switch": "सहेजें, फिर बदलें",
+    "pump_counters.discard": "छोड़ दें",
+    "pump_counters.leave_confirm": "आपकी रीडिंग सहेजी नहीं गई हैं। पेज छोड़कर उन्हें खो दें?"
 }

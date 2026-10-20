@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "Bu vardiyanın okumaları var, yalnızca pasif yapılabilir.",
     "Shift deleted.": "Vardiya silindi.",
     "Enter at least one counter value.": "En az bir sayaç değeri girin.",
-    "pump_counters.sold_quantity": "Satılan miktar"
+    "pump_counters.sold_quantity": "Satılan miktar",
+    "pump_counters.unsaved_title": "Kaydedilmemiş okumalar",
+    "pump_counters.unsaved_message": ":place için kaydedilmemiş okumalarınız var",
+    "pump_counters.save_and_switch": "Kaydet ve geç",
+    "pump_counters.discard": "Yok say",
+    "pump_counters.leave_confirm": "Kaydedilmemiş okumalarınız var. Sayfadan çıkıp kaybetmek istiyor musunuz?"
 }

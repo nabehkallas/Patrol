@@ -1150,5 +1150,10 @@
     "This shift has readings, so it can only be deactivated.": "اس شفٹ کی ریڈنگز ہیں، اسے صرف غیر فعال کیا جا سکتا ہے۔",
     "Shift deleted.": "شفٹ حذف ہو گئی۔",
     "Enter at least one counter value.": "کم از کم ایک کاؤنٹر ریڈنگ درج کریں۔",
-    "pump_counters.sold_quantity": "فروخت شدہ مقدار"
+    "pump_counters.sold_quantity": "فروخت شدہ مقدار",
+    "pump_counters.unsaved_title": "غیر محفوظ ریڈنگز",
+    "pump_counters.unsaved_message": "آپ کی :place کی ریڈنگز محفوظ نہیں ہوئیں",
+    "pump_counters.save_and_switch": "محفوظ کر کے جائیں",
+    "pump_counters.discard": "نظر انداز کریں",
+    "pump_counters.leave_confirm": "آپ کی ریڈنگز محفوظ نہیں ہوئیں۔ صفحہ چھوڑ کر انہیں کھو دیں؟"
 }
