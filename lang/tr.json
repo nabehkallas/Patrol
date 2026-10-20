@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": ":place için kaydedilmemiş okumalarınız var",
     "pump_counters.save_and_switch": "Kaydet ve geç",
     "pump_counters.discard": "Yok say",
-    "pump_counters.leave_confirm": "Kaydedilmemiş okumalarınız var. Sayfadan çıkıp kaybetmek istiyor musunuz?"
+    "pump_counters.leave_confirm": "Kaydedilmemiş okumalarınız var. Sayfadan çıkıp kaybetmek istiyor musunuz?",
+    "shop.price_currency_hint": "Ürünün fiyatı :currency cinsinden",
+    "transactions.price_currency_hint": "Yakıt fiyatı :currency cinsinden"
 }

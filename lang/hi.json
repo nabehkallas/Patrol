@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "आपकी :place की रीडिंग सहेजी नहीं गई हैं",
     "pump_counters.save_and_switch": "सहेजें, फिर बदलें",
     "pump_counters.discard": "छोड़ दें",
-    "pump_counters.leave_confirm": "आपकी रीडिंग सहेजी नहीं गई हैं। पेज छोड़कर उन्हें खो दें?"
+    "pump_counters.leave_confirm": "आपकी रीडिंग सहेजी नहीं गई हैं। पेज छोड़कर उन्हें खो दें?",
+    "shop.price_currency_hint": "आइटम की कीमत :currency में तय है",
+    "transactions.price_currency_hint": "ईंधन की कीमत :currency में तय है"
 }

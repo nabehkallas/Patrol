@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { SelectItem } from '@/components/ui/select';
+import { useTranslation } from '@/lib/i18n';
 import type { StationCurrency } from '@/types';
 
 /** The station's currencies (shared by the server on every station page). */
@@ -18,6 +19,22 @@ export function useCurrencies(): {
         active: currencies.filter((c) => c.is_active),
         primary: primaryCurrency,
     };
+}
+
+/** A currency's name for hints ("الليرة السورية"): translated if known, else the station's. */
+export function useCurrencyName(): (code: string) => string {
+    const { t } = useTranslation();
+    const { currencies } = useCurrencies();
+    const known: Record<string, string> = {
+        SYP: t('currency.syp'),
+        USD: t('currency.usd'),
+        TRY: t('currency.try'),
+    };
+
+    return (code) =>
+        known[code] ??
+        currencies.find((currency) => currency.code === code)?.name ??
+        code;
 }
 
 /**

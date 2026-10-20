@@ -1,7 +1,10 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { CurrencyOptions } from '@/components/currency-options';
+import {
+    CurrencyOptions,
+    useCurrencyName,
+} from '@/components/currency-options';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
@@ -22,6 +25,7 @@ import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { defaultRate, giveFor, ratePair, receiveFor } from '@/lib/exchange';
 import { formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { priceAmount } from '@/lib/price-amount';
 import { selectableTanks } from '@/lib/tanks';
 import { index, store } from '@/routes/transactions';
 import type {
@@ -44,6 +48,7 @@ type PageProps = {
 export default function TransactionCreate() {
     const { tanks, debtors, exchangeRates } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    const currencyName = useCurrencyName();
     const defaultEntryDate = useDefaultEntryDate();
 
     // Fuel sales are recorded by pump counters, so they aren't a type to pick here.
@@ -114,8 +119,15 @@ export default function TransactionCreate() {
         [tanks, form.data.tank_id],
     );
 
+    // A delivery's price per liter starts as the tank's fuel price, in that price's currency
+    // only: another currency clears it (and the amount) to be typed, never converted, and
+    // switching back fills it again. A price that was typed is never changed.
+    const [priceTyped, setPriceTyped] = useState(false);
+    const tankPrice = selectedTank?.currentPrice ?? null;
+
     function handleTankChange(id: string) {
         const tank = tanks.find((item) => item.id === Number(id));
+        setPriceTyped(false);
 
         form.setData((data) => ({
             ...data,
@@ -162,6 +174,21 @@ export default function TransactionCreate() {
                 to_currency: nextToCurrency,
                 ...(data.type === 'currency_exchange'
                     ? exchangeState(data, currency, nextToCurrency)
+                    : {}),
+                ...(data.type === 'fuel_delivery' && tankPrice && !priceTyped
+                    ? {
+                          price_per_liter:
+                              tankPrice.currency === currency
+                                  ? tankPrice.price_per_liter
+                                  : '',
+                          amount:
+                              priceAmount(
+                                  data.liters,
+                                  tankPrice.price_per_liter,
+                                  tankPrice.currency,
+                                  currency,
+                              ) ?? '',
+                      }
                     : {}),
             };
         });
@@ -403,13 +430,32 @@ export default function TransactionCreate() {
                                         <MoneyInput
                                             id="price_per_liter"
                                             value={form.data.price_per_liter}
-                                            onChange={(value) =>
+                                            onChange={(value) => {
+                                                setPriceTyped(value !== '');
                                                 handleLitersOrPriceChange(
                                                     form.data.liters,
                                                     value,
-                                                )
-                                            }
+                                                );
+                                            }}
                                         />
+                                        {tankPrice &&
+                                            tankPrice.currency !==
+                                                form.data.currency && (
+                                                <p
+                                                    className="text-muted-foreground text-xs"
+                                                    data-test="price-currency-hint"
+                                                >
+                                                    {t(
+                                                        'transactions.price_currency_hint',
+                                                        {
+                                                            currency:
+                                                                currencyName(
+                                                                    tankPrice.currency,
+                                                                ),
+                                                        },
+                                                    )}
+                                                </p>
+                                            )}
                                         <InputError
                                             message={
                                                 form.errors.price_per_liter

@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "Xwendinên te yên neqeydkirî ji bo :place hene",
     "pump_counters.save_and_switch": "Qeyd bike û derbas bibe",
     "pump_counters.discard": "Paşguh bike",
-    "pump_counters.leave_confirm": "Xwendinên te yên neqeydkirî hene. Ji rûpelê derkevî û wan winda bikî?"
+    "pump_counters.leave_confirm": "Xwendinên te yên neqeydkirî hene. Ji rûpelê derkevî û wan winda bikî?",
+    "shop.price_currency_hint": "Bihayê kelûpelê bi :currency hatiye danîn",
+    "transactions.price_currency_hint": "Bihayê sotemeniyê bi :currency hatiye danîn"
 }

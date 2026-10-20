@@ -886,5 +886,7 @@
     "pump_counters.unsaved_message": "You have unsaved readings for :place",
     "pump_counters.save_and_switch": "Save, then switch",
     "pump_counters.discard": "Discard",
-    "pump_counters.leave_confirm": "You have unsaved readings. Leave this page and lose them?"
+    "pump_counters.leave_confirm": "You have unsaved readings. Leave this page and lose them?",
+    "shop.price_currency_hint": "The item's price is set in :currency",
+    "transactions.price_currency_hint": "The fuel price is set in :currency"
 }

@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "آپ کی :place کی ریڈنگز محفوظ نہیں ہوئیں",
     "pump_counters.save_and_switch": "محفوظ کر کے جائیں",
     "pump_counters.discard": "نظر انداز کریں",
-    "pump_counters.leave_confirm": "آپ کی ریڈنگز محفوظ نہیں ہوئیں۔ صفحہ چھوڑ کر انہیں کھو دیں؟"
+    "pump_counters.leave_confirm": "آپ کی ریڈنگز محفوظ نہیں ہوئیں۔ صفحہ چھوڑ کر انہیں کھو دیں؟",
+    "shop.price_currency_hint": "آئٹم کی قیمت :currency میں مقرر ہے",
+    "transactions.price_currency_hint": "ایندھن کی قیمت :currency میں مقرر ہے"
 }

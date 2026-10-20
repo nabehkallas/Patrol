@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "Hai letture non salvate per il :place",
     "pump_counters.save_and_switch": "Salva e cambia",
     "pump_counters.discard": "Scarta",
-    "pump_counters.leave_confirm": "Hai letture non salvate. Lasciare la pagina e perderle?"
+    "pump_counters.leave_confirm": "Hai letture non salvate. Lasciare la pagina e perderle?",
+    "shop.price_currency_hint": "Il prezzo dell'articolo è in :currency",
+    "transactions.price_currency_hint": "Il prezzo del carburante è in :currency"
 }

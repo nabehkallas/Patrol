@@ -1,7 +1,10 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { CurrencyOptions } from '@/components/currency-options';
+import {
+    CurrencyOptions,
+    useCurrencyName,
+} from '@/components/currency-options';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -38,6 +41,7 @@ import {
     trimDecimal,
 } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { refillAmount } from '@/lib/price-amount';
 import { cn } from '@/lib/utils';
 import { index, exportPdf, exportXlsx } from '@/routes/shop';
 import {
@@ -155,6 +159,8 @@ type MovementFormState = {
     amount: string;
     currency: Currency;
     date: string;
+    /** The amount was typed, so the quantity no longer fills it. */
+    amountTyped: boolean;
 };
 
 function movementDefaults(
@@ -166,6 +172,7 @@ function movementDefaults(
         amount: '',
         currency,
         date: entryDate,
+        amountTyped: false,
     };
 }
 
@@ -192,6 +199,7 @@ function CurrencySelect({
 
 function ItemCard({ item }: { item: ShopItem }) {
     const { t } = useTranslation();
+    const currencyName = useCurrencyName();
     const defaultEntryDate = useDefaultEntryDate();
     const [buyOpen, setBuyOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -216,14 +224,29 @@ function ItemCard({ item }: { item: ShopItem }) {
         effective_at: defaultEntryDate,
     });
 
-    function handleSellQuantityChange(quantity: string) {
-        const qty = parseFloat(quantity);
-        const sellPrice = item.sell_price ? parseFloat(item.sell_price) : null;
-        const computed =
-            sellPrice !== null && Number.isFinite(qty) ? qty * sellPrice : null;
+    // A sale is always in the item's currency: the quantity fills the amount from the sell
+    // price, until an amount is typed (clearing it goes back to filling).
+    const [sellAmountTyped, setSellAmountTyped] = useState(false);
 
+    function handleSellQuantityChange(quantity: string) {
         setSellQuantity(quantity);
-        setSellAmount(computed !== null ? computed.toFixed(2) : sellAmount);
+        setSellAmount(
+            refillAmount(
+                {
+                    quantity,
+                    currency: item.currency,
+                    amount: sellAmount,
+                    amountTyped: sellAmountTyped,
+                },
+                item.sell_price,
+                item.currency,
+            ),
+        );
+    }
+
+    function handleSellAmountChange(amount: string) {
+        setSellAmount(amount);
+        setSellAmountTyped(amount !== '');
     }
 
     function submitSell(event: FormEvent) {
@@ -242,6 +265,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                 onSuccess: () => {
                     setSellQuantity('');
                     setSellAmount('');
+                    setSellAmountTyped(false);
                     setSellDate(defaultEntryDate);
                     setSellErrors({});
                 },
@@ -257,16 +281,30 @@ function ItemCard({ item }: { item: ShopItem }) {
         setBuyOpen(true);
     }
 
+    // The amount is filled from the purchase price only in the item's own currency: another
+    // currency clears it to be typed (never converted), switching back fills it again. An
+    // amount that was typed is never changed (clearing it goes back to filling).
     function handlePurchaseQuantityChange(quantity: string) {
-        const qty = parseFloat(quantity);
-        const basePrice = item.base_price ? parseFloat(item.base_price) : null;
-        const computed =
-            basePrice !== null && Number.isFinite(qty) ? qty * basePrice : null;
-
         setPurchase((data) => ({
             ...data,
             quantity,
-            amount: computed !== null ? computed.toFixed(2) : data.amount,
+            amount: refillAmount(
+                { ...data, quantity },
+                item.base_price,
+                item.currency,
+            ),
+        }));
+    }
+
+    function handlePurchaseCurrencyChange(currency: Currency) {
+        setPurchase((data) => ({
+            ...data,
+            currency,
+            amount: refillAmount(
+                { ...data, currency },
+                item.base_price,
+                item.currency,
+            ),
         }));
     }
 
@@ -294,7 +332,13 @@ function ItemCard({ item }: { item: ShopItem }) {
         event.preventDefault();
         router.post(
             storePurchase.url(),
-            { shop_item_id: item.id, ...purchase },
+            {
+                shop_item_id: item.id,
+                quantity: purchase.quantity,
+                amount: purchase.amount,
+                currency: purchase.currency,
+                date: purchase.date,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -368,7 +412,9 @@ function ItemCard({ item }: { item: ShopItem }) {
                             min="0"
                             placeholder={t('common.amount')}
                             value={sellAmount}
-                            onChange={(e) => setSellAmount(e.target.value)}
+                            onChange={(e) =>
+                                handleSellAmountChange(e.target.value)
+                            }
                             className="h-8 flex-1"
                         />
                     </div>
@@ -436,6 +482,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                                         setPurchase((data) => ({
                                             ...data,
                                             amount: value,
+                                            amountTyped: value !== '',
                                         }))
                                     }
                                 />
@@ -448,15 +495,21 @@ function ItemCard({ item }: { item: ShopItem }) {
                                 <CurrencySelect
                                     id={`purchase_currency_${item.id}`}
                                     value={purchase.currency}
-                                    onChange={(value) =>
-                                        setPurchase((data) => ({
-                                            ...data,
-                                            currency: value,
-                                        }))
-                                    }
+                                    onChange={handlePurchaseCurrencyChange}
                                 />
                             </div>
                         </div>
+                        {item.base_price &&
+                            purchase.currency !== item.currency && (
+                                <p
+                                    className="text-muted-foreground -mt-2 text-xs"
+                                    data-test="price-currency-hint"
+                                >
+                                    {t('shop.price_currency_hint', {
+                                        currency: currencyName(item.currency),
+                                    })}
+                                </p>
+                            )}
                         <div className="grid gap-2">
                             <Label htmlFor={`purchase_date_${item.id}`}>
                                 {t('common.date')}

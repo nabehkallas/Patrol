@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "Sie haben nicht gespeicherte Stände für :place",
     "pump_counters.save_and_switch": "Speichern, dann wechseln",
     "pump_counters.discard": "Verwerfen",
-    "pump_counters.leave_confirm": "Sie haben nicht gespeicherte Stände. Seite verlassen und sie verlieren?"
+    "pump_counters.leave_confirm": "Sie haben nicht gespeicherte Stände. Seite verlassen und sie verlieren?",
+    "shop.price_currency_hint": "Der Artikelpreis ist in :currency festgelegt",
+    "transactions.price_currency_hint": "Der Kraftstoffpreis ist in :currency festgelegt"
 }

@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "لديك قراءات غير محفوظة لتاريخ :place",
     "pump_counters.save_and_switch": "حفظ ثم انتقال",
     "pump_counters.discard": "تجاهل",
-    "pump_counters.leave_confirm": "لديك قراءات غير محفوظة. هل تريد مغادرة الصفحة وفقدانها؟"
+    "pump_counters.leave_confirm": "لديك قراءات غير محفوظة. هل تريد مغادرة الصفحة وفقدانها؟",
+    "shop.price_currency_hint": "سعر الصنف محدد ب:currency",
+    "transactions.price_currency_hint": "سعر الوقود محدد ب:currency"
 }

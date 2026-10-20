@@ -1155,5 +1155,7 @@
     "pump_counters.unsaved_message": "Vous avez des relevés non enregistrés pour le :place",
     "pump_counters.save_and_switch": "Enregistrer puis changer",
     "pump_counters.discard": "Ignorer",
-    "pump_counters.leave_confirm": "Vous avez des relevés non enregistrés. Quitter la page et les perdre ?"
+    "pump_counters.leave_confirm": "Vous avez des relevés non enregistrés. Quitter la page et les perdre ?",
+    "shop.price_currency_hint": "Le prix de l'article est fixé en :currency",
+    "transactions.price_currency_hint": "Le prix du carburant est fixé en :currency"
 }
