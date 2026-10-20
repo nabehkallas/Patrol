@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Tevahiya rojane",
     "pump_counters.period_total": "Tevahiya demê",
     "pump_counters.sales_summary_daily": "Kurteya firotina rojane",
-    "pump_counters.sales_summary_period": "Kurteya firotina demê",
     "pump_counters.previous": "Xwendina berê",
     "pump_counters.no_previous": "Xwendina yekem",
     "pump_counters.last_entry_system": "Tomara dawî",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "Divê herî kêm guhertinek çalak bimîne.",
     "This shift has readings, so it can only be deactivated.": "Ev guhertin xwendin hene, tenê dikare neçalak bibe.",
     "Shift deleted.": "Guhertin hate jêbirin.",
-    "Enter at least one counter value.": "Herî kêm nirxeke jimarvanê binivîse."
+    "Enter at least one counter value.": "Herî kêm nirxeke jimarvanê binivîse.",
+    "pump_counters.sold_quantity": "Mîqdara firotî"
 }

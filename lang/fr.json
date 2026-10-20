@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Total du jour",
     "pump_counters.period_total": "Total de la période",
     "pump_counters.sales_summary_daily": "Récapitulatif des ventes du jour",
-    "pump_counters.sales_summary_period": "Récapitulatif des ventes de la période",
     "pump_counters.previous": "Relevé précédent",
     "pump_counters.no_previous": "Premier relevé",
     "pump_counters.last_entry_system": "Dernier relevé",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "Au moins une équipe doit rester active.",
     "This shift has readings, so it can only be deactivated.": "Cette équipe a des relevés : elle peut seulement être désactivée.",
     "Shift deleted.": "Équipe supprimée.",
-    "Enter at least one counter value.": "Saisissez au moins un relevé."
+    "Enter at least one counter value.": "Saisissez au moins un relevé.",
+    "pump_counters.sold_quantity": "Quantité vendue"
 }

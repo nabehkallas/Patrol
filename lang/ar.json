@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "المجموع اليومي",
     "pump_counters.period_total": "مجموع الفترة",
     "pump_counters.sales_summary_daily": "إجمالي المبيعات اليومية",
-    "pump_counters.sales_summary_period": "إجمالي المبيعات للفترة",
     "pump_counters.previous": "القراءة السابقة",
     "pump_counters.no_previous": "أول قراءة",
     "pump_counters.last_entry_system": "آخر تسجيل",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "يجب أن تبقى وردية واحدة على الأقل فعّالة.",
     "This shift has readings, so it can only be deactivated.": "لهذه الوردية قراءات، لذا يمكن إيقافها فقط.",
     "Shift deleted.": "تم حذف الوردية.",
-    "Enter at least one counter value.": "أدخل قراءة عداد واحدة على الأقل."
+    "Enter at least one counter value.": "أدخل قراءة عداد واحدة على الأقل.",
+    "pump_counters.sold_quantity": "الكمية المباعة"
 }

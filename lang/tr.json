@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Günlük toplam",
     "pump_counters.period_total": "Dönem toplamı",
     "pump_counters.sales_summary_daily": "Günlük satış özeti",
-    "pump_counters.sales_summary_period": "Dönem satış özeti",
     "pump_counters.previous": "Önceki değer",
     "pump_counters.no_previous": "İlk değer",
     "pump_counters.last_entry_system": "Son kayıt",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "En az bir vardiya aktif kalmalı.",
     "This shift has readings, so it can only be deactivated.": "Bu vardiyanın okumaları var, yalnızca pasif yapılabilir.",
     "Shift deleted.": "Vardiya silindi.",
-    "Enter at least one counter value.": "En az bir sayaç değeri girin."
+    "Enter at least one counter value.": "En az bir sayaç değeri girin.",
+    "pump_counters.sold_quantity": "Satılan miktar"
 }

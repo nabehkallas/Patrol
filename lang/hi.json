@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "दिन का कुल",
     "pump_counters.period_total": "अवधि का कुल",
     "pump_counters.sales_summary_daily": "दिन की बिक्री का सारांश",
-    "pump_counters.sales_summary_period": "अवधि की बिक्री का सारांश",
     "pump_counters.previous": "पिछली रीडिंग",
     "pump_counters.no_previous": "पहली रीडिंग",
     "pump_counters.last_entry_system": "आख़िरी प्रविष्टि",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "कम से कम एक शिफ्ट सक्रिय रहनी चाहिए।",
     "This shift has readings, so it can only be deactivated.": "इस शिफ्ट की रीडिंग हैं, इसे केवल निष्क्रिय किया जा सकता है।",
     "Shift deleted.": "शिफ्ट हटाई गई।",
-    "Enter at least one counter value.": "कम से कम एक काउंटर रीडिंग दर्ज करें।"
+    "Enter at least one counter value.": "कम से कम एक काउंटर रीडिंग दर्ज करें।",
+    "pump_counters.sold_quantity": "बेची गई मात्रा"
 }

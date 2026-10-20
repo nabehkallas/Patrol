@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Totale del giorno",
     "pump_counters.period_total": "Totale del periodo",
     "pump_counters.sales_summary_daily": "Riepilogo vendite del giorno",
-    "pump_counters.sales_summary_period": "Riepilogo vendite del periodo",
     "pump_counters.previous": "Lettura precedente",
     "pump_counters.no_previous": "Prima lettura",
     "pump_counters.last_entry_system": "Ultima registrazione",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "Almeno un turno deve restare attivo.",
     "This shift has readings, so it can only be deactivated.": "Questo turno ha letture, si può solo disattivare.",
     "Shift deleted.": "Turno eliminato.",
-    "Enter at least one counter value.": "Inserisci almeno una lettura."
+    "Enter at least one counter value.": "Inserisci almeno una lettura.",
+    "pump_counters.sold_quantity": "Quantità venduta"
 }

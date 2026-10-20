@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Итого за день",
     "pump_counters.period_total": "Итого за период",
     "pump_counters.sales_summary_daily": "Сводка продаж за день",
-    "pump_counters.sales_summary_period": "Сводка продаж за период",
     "pump_counters.previous": "Предыдущее показание",
     "pump_counters.no_previous": "Первое показание",
     "pump_counters.last_entry_system": "Последняя запись",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "Хотя бы одна смена должна оставаться активной.",
     "This shift has readings, so it can only be deactivated.": "У смены есть показания, её можно только отключить.",
     "Shift deleted.": "Смена удалена.",
-    "Enter at least one counter value.": "Введите хотя бы одно показание."
+    "Enter at least one counter value.": "Введите хотя бы одно показание.",
+    "pump_counters.sold_quantity": "Продано"
 }

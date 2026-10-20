@@ -70,31 +70,6 @@ class PumpCounterReadingController extends Controller
                 $reading->previous_reading_value = $this->previousReadingFor($reading)?->reading_value;
             });
 
-        // Since a pump's meter can now be shared across several fuel types, "liters sold today
-        // per fuel type" can no longer be read off the pump — it's derived from each reading's
-        // own tank (which is what actually determines the fuel type of that sale).
-        $fuelTypeTotals = $readings
-            ->filter(fn (PumpCounterReading $reading) => $reading->liters_sold !== null && $reading->tank !== null)
-            ->groupBy(fn (PumpCounterReading $reading) => $reading->tank->fuel_type_id)
-            ->map(fn ($group) => [
-                'fuel_type_id' => $group->first()->tank->fuel_type_id,
-                'fuel_type_name' => $group->first()->tank->fuelType?->name,
-                'liters_sold' => round((float) $group->sum('liters_sold'), 3),
-            ])
-            ->sortBy('fuel_type_name')
-            ->values();
-
-        $governmentalTotals = $readings
-            ->filter(fn (PumpCounterReading $reading) => $reading->governmental_liters !== null && $reading->tank !== null)
-            ->groupBy(fn (PumpCounterReading $reading) => $reading->tank->fuel_type_id)
-            ->map(fn ($group) => [
-                'fuel_type_id' => $group->first()->tank->fuel_type_id,
-                'fuel_type_name' => $group->first()->tank->fuelType?->name,
-                'liters_sold' => round((float) $group->sum('governmental_liters'), 3),
-            ])
-            ->sortBy('fuel_type_name')
-            ->values();
-
         return Inertia::render('pump-counters/index', [
             'pumps' => $pumps,
             'lastEntry' => $this->lastEntry(),
@@ -106,8 +81,6 @@ class PumpCounterReadingController extends Controller
             'shifts' => $this->shiftOptions(),
             'tanks' => $this->tankOptions(),
             'readings' => $readings,
-            'fuelTypeTotals' => $fuelTypeTotals,
-            'governmentalTotals' => $governmentalTotals,
             'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
         ]);
     }
@@ -887,19 +860,26 @@ class PumpCounterReadingController extends Controller
     /**
      * What the entry table needs for the date + shift it's entering, per pump: the readings a
      * new value must sit between (the last one up to the end of that shift, the first one after
-     * it) and the readings already saved in that date + shift. Saved readings are never put back
-     * into the inputs: the table shows a check and an edit link for them, and a value typed for
-     * such a pump is an additional reading.
+     * it) and the readings already saved in that date + shift, each with the reading it counts
+     * from. Saved readings are never put back into the inputs: the table shows a check and an
+     * edit link for them, and a value typed for such a pump is an additional reading. Also the
+     * liters sold and governmental liters saved in that date + shift, per fuel type (the chips).
      *
-     * @return array{date: string, shift_id: int, requested: bool, pumps: array<int, array<string, mixed>>}
+     * @return array{date: string, shift_id: int, requested: bool, pumps: array<int, array<string, mixed>>, totals: array<int, array<string, mixed>>}
      */
     private function entryContext(string $date, Shift $shift, bool $requested): array
     {
+        $saved = PumpCounterReading::with(['shift', 'tank.fuelType'])
+            ->whereDate('date', $date)
+            ->where('shift_id', $shift->id)
+            ->orderBy('id')
+            ->get();
+
         return [
             'date' => $date,
             'shift_id' => $shift->id,
             'requested' => $requested,
-            'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date, $shift) {
+            'pumps' => FuelPump::orderBy('name')->get()->map(function (FuelPump $pump) use ($date, $shift, $saved) {
                 [$previous, $next] = $this->neighbours($pump->id, $date, $shift);
 
                 return [
@@ -913,15 +893,26 @@ class PumpCounterReadingController extends Controller
                         'reading_value' => $next->reading_value,
                         'date' => $next->date->toDateString(),
                     ] : null,
-                    'recorded' => PumpCounterReading::where('pump_id', $pump->id)
-                        ->whereDate('date', $date)
-                        ->where('shift_id', $shift->id)
-                        ->orderBy('id')
-                        ->get(['id', 'reading_value'])
-                        ->map(fn (PumpCounterReading $reading) => ['id' => $reading->id, 'reading_value' => $reading->reading_value])
-                        ->all(),
+                    'recorded' => $saved->where('pump_id', $pump->id)
+                        ->map(fn (PumpCounterReading $reading) => [
+                            'id' => $reading->id,
+                            'reading_value' => $reading->reading_value,
+                            'previous_value' => $this->previousReadingFor($reading)?->reading_value,
+                            'liters_sold' => $reading->liters_sold,
+                        ])
+                        ->values()->all(),
                 ];
             })->values()->all(),
+            'totals' => $saved
+                ->filter(fn (PumpCounterReading $reading) => $reading->tank !== null)
+                ->groupBy(fn (PumpCounterReading $reading) => $reading->tank->fuel_type_id)
+                ->map(fn ($group) => [
+                    'fuel_type_id' => $group->first()->tank->fuel_type_id,
+                    'fuel_type_name' => $group->first()->tank->fuelType?->name,
+                    'liters_sold' => round((float) $group->sum('liters_sold'), 3),
+                    'governmental_liters' => round((float) $group->sum('governmental_liters'), 3),
+                ])
+                ->values()->all(),
         ];
     }
 

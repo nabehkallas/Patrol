@@ -247,6 +247,42 @@ class ShiftReadingTest extends TestCase
         $this->assertNull($entry(3)['next']);
     }
 
+    public function test_going_back_to_an_earlier_shift_counts_from_the_reading_just_before_it(): void
+    {
+        $this->enter('2026-10-12', 1, 1000);
+        $this->enter('2026-10-13', 1, 1500);
+        $this->enter('2026-10-20', 1, 5000);
+
+        $context = fn () => (new ReflectionMethod(PumpCounterReadingController::class, 'entryContext'))
+            ->invoke(app(PumpCounterReadingController::class), '2026-10-12', $this->shifts[2], true);
+
+        // The 12 Oct evening shift counts from that morning's 1,000, never the pump's newest 5,000.
+        $this->assertSame(1000, $context()['pumps'][0]['previous']['reading_value']);
+        $this->assertSame(1500, $context()['pumps'][0]['next']['reading_value']);
+        $this->assertSame([], $context()['totals']);
+
+        $this->enter('2026-10-12', 2, 1200);
+
+        // 13 Oct now counts from 1,200.
+        $thirteenth = $this->reading('2026-10-13', 1);
+        $this->assertSame(300.0, (float) $thirteenth->liters_sold);
+        $previousOf = new ReflectionMethod(PumpCounterReadingController::class, 'previousReadingFor');
+        $this->assertSame(1200, $previousOf->invoke(app(PumpCounterReadingController::class), $thirteenth)->reading_value);
+        $this->assertSame(['12/1' => null, '12/2' => 200.0, '13/1' => 300.0, '20/1' => 3500.0], $this->liters());
+        $this->assertSalesMatchReadings();
+
+        // The entry table shows the saved evening reading with what it counted from and sold,
+        // and the chips that shift's sales.
+        $saved = $context()['pumps'][0]['recorded'];
+        $this->assertSame([['reading_value' => 1200, 'previous_value' => 1000, 'liters_sold' => 200.0]], array_map(
+            fn (array $r) => ['reading_value' => $r['reading_value'], 'previous_value' => $r['previous_value'], 'liters_sold' => (float) $r['liters_sold']],
+            $saved,
+        ));
+        $this->assertSame(1200, $context()['pumps'][0]['previous']['reading_value']);
+        $this->assertSame(200.0, $context()['totals'][0]['liters_sold']);
+        $this->assertSame(0.0, $context()['totals'][0]['governmental_liters']);
+    }
+
     public function test_a_reading_saved_without_a_shift_goes_to_the_first_shift(): void
     {
         app(PumpCounterReadingController::class)->store($this->request([

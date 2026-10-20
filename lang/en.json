@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Daily total",
     "pump_counters.period_total": "Total for period",
     "pump_counters.sales_summary_daily": "Daily sales summary",
-    "pump_counters.sales_summary_period": "Sales summary for period",
     "pump_counters.previous": "Previous reading",
     "pump_counters.no_previous": "First reading",
     "pump_counters.last_entry_system": "Last entry",
@@ -881,5 +880,6 @@
     "At least one shift must stay active.": "At least one shift must stay active.",
     "This shift has readings, so it can only be deactivated.": "This shift has readings, so it can only be deactivated.",
     "Shift deleted.": "Shift deleted.",
-    "Enter at least one counter value.": "Enter at least one counter value."
+    "Enter at least one counter value.": "Enter at least one counter value.",
+    "pump_counters.sold_quantity": "Quantity sold"
 }

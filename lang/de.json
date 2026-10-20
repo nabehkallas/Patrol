@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "Tagessumme",
     "pump_counters.period_total": "Summe des Zeitraums",
     "pump_counters.sales_summary_daily": "Tagesverkäufe",
-    "pump_counters.sales_summary_period": "Verkäufe im Zeitraum",
     "pump_counters.previous": "Vorheriger Zählerstand",
     "pump_counters.no_previous": "Erster Zählerstand",
     "pump_counters.last_entry_system": "Letzter Eintrag",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "Mindestens eine Schicht muss aktiv bleiben.",
     "This shift has readings, so it can only be deactivated.": "Diese Schicht hat Stände und kann nur deaktiviert werden.",
     "Shift deleted.": "Schicht gelöscht.",
-    "Enter at least one counter value.": "Geben Sie mindestens einen Zählerstand ein."
+    "Enter at least one counter value.": "Geben Sie mindestens einen Zählerstand ein.",
+    "pump_counters.sold_quantity": "Verkaufte Menge"
 }

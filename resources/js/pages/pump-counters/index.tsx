@@ -60,10 +60,12 @@ import type { Auth, PumpCounterReading, PumpSummary } from '@/types';
 
 type TankOption = EntryTank;
 
+/** Sales saved in the entry date + shift, for one fuel type. */
 type FuelTypeTotal = {
     fuel_type_id: number;
     fuel_type_name: string;
     liters_sold: number;
+    governmental_liters: number;
 };
 
 /**
@@ -84,12 +86,11 @@ type PageProps = {
         shift_id: number;
         requested: boolean;
         pumps: EntryPump[];
+        totals: FuelTypeTotal[];
     };
     shifts: ShiftOption[];
     tanks: TankOption[];
     readings: PumpCounterReading[];
-    fuelTypeTotals: FuelTypeTotal[];
-    governmentalTotals: FuelTypeTotal[];
     filters: { from: string; to: string };
 };
 
@@ -168,18 +169,8 @@ function rowTanks(
 }
 
 export default function PumpCountersIndex() {
-    const {
-        auth,
-        pumps,
-        lastEntry,
-        entry,
-        shifts,
-        tanks,
-        readings,
-        fuelTypeTotals,
-        governmentalTotals,
-        filters,
-    } = usePage<PageProps>().props;
+    const { auth, pumps, lastEntry, entry, shifts, tanks, readings, filters } =
+        usePage<PageProps>().props;
     const { t } = useTranslation();
     const defaultEntryDate = useDefaultEntryDate();
 
@@ -280,19 +271,27 @@ export default function PumpCountersIndex() {
         );
     }
 
-    // What's saved and the bounds are for the date + shift being entered: reload them when
-    // either changes. Typed values stay.
+    // What's saved, the bounds and the chips are for the date + shift being entered: reload
+    // them when either changes. A new date also sets the history below to that one day (a range
+    // picked there afterwards stays until the date changes again). Typed values stay.
     const entryDate = form.data.date;
     const entryShift = form.data.shift_id;
 
     useEffect(() => {
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(entryDate) &&
-            (entryDate !== entry.date || entryShift !== entry.shift_id)
-        ) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(entryDate)) {
+            return;
+        }
+
+        const newDate = entryDate !== entry.date;
+
+        if (newDate || entryShift !== entry.shift_id) {
             router.reload({
-                data: { entry_date: entryDate, entry_shift: entryShift },
-                only: ['entry'],
+                data: {
+                    entry_date: entryDate,
+                    entry_shift: entryShift,
+                    ...(newDate ? { from: entryDate, to: entryDate } : {}),
+                },
+                only: newDate ? ['entry', 'readings', 'filters'] : ['entry'],
             });
         }
     }, [entryDate, entryShift, entry.date, entry.shift_id]);
@@ -416,11 +415,45 @@ export default function PumpCountersIndex() {
         );
     }
 
-    const isSingleDay = filters.from === filters.to;
-    // Chips with nothing in them are left out.
-    const litersChips = fuelTypeTotals.filter((total) => total.liters_sold > 0);
-    const governmentalChips = governmentalTotals.filter(
-        (total) => total.liters_sold > 0,
+    // The chips: what's saved in the entry date + shift, plus what's typed and not saved yet
+    // (liters a typed value sells from its previous reading, and its governmental liters, by
+    // the row's tank). Chips with nothing in them are left out.
+    const chipTotals = useMemo(() => {
+        const totals = new Map<number, FuelTypeTotal>(
+            entry.totals.map((total) => [total.fuel_type_id, { ...total }]),
+        );
+
+        for (const row of form.data.readings) {
+            const previous = entryByPump.get(row.pump_id)?.previous;
+            const tank = tanks.find(
+                (option) => String(option.id) === row.tank_id,
+            );
+
+            if (row.reading_value === '' || !tank) {
+                continue;
+            }
+
+            const total = totals.get(tank.fuel_type_id) ?? {
+                fuel_type_id: tank.fuel_type_id,
+                fuel_type_name: tank.fuel_type_name,
+                liters_sold: 0,
+                governmental_liters: 0,
+            };
+            const sold = previous
+                ? Number(row.reading_value) - previous.reading_value
+                : 0;
+            total.liters_sold += Math.max(sold, 0);
+            total.governmental_liters += Number(row.governmental_liters || 0);
+            totals.set(tank.fuel_type_id, total);
+        }
+
+        return [...totals.values()].sort((a, b) =>
+            a.fuel_type_name.localeCompare(b.fuel_type_name),
+        );
+    }, [entry.totals, form.data.readings, entryByPump, tanks]);
+    const litersChips = chipTotals.filter((total) => total.liters_sold > 0);
+    const governmentalChips = chipTotals.filter(
+        (total) => total.governmental_liters > 0,
     );
 
     function removeReading(reading: PumpCounterReading) {
@@ -495,15 +528,9 @@ export default function PumpCountersIndex() {
                                     governmentalChips.length > 0) && (
                                     <div
                                         className="flex flex-wrap items-center gap-2"
-                                        title={
-                                            isSingleDay
-                                                ? t(
-                                                      'pump_counters.sales_summary_daily',
-                                                  )
-                                                : t(
-                                                      'pump_counters.sales_summary_period',
-                                                  )
-                                        }
+                                        title={t(
+                                            'pump_counters.sales_summary_daily',
+                                        )}
                                         data-test="sales-badges"
                                     >
                                         {litersChips.map((total) => (
@@ -556,7 +583,7 @@ export default function PumpCountersIndex() {
                                                     className="font-bold tabular-nums"
                                                 >
                                                     {formatNumber(
-                                                        total.liters_sold,
+                                                        total.governmental_liters,
                                                     )}{' '}
                                                     L
                                                 </bdi>
@@ -582,28 +609,37 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="w-px whitespace-nowrap px-3 py-2.5 text-center align-top">
+                                            <th className="w-px whitespace-nowrap px-1.5 py-2.5 text-center align-top">
                                                 {t('pump_counters.pump')}
                                             </th>
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            <th className="px-1.5 py-2.5 text-center align-top">
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                                {t('pump_counters.previous')}
+                                            </th>
+                                            <th className="px-1.5 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.reading_value',
                                                 )}
                                             </th>
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                                {t(
+                                                    'pump_counters.sold_quantity',
+                                                )}
+                                            </th>
+                                            <th className="w-20 px-1.5 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.governmental_sale',
                                                 )}
                                             </th>
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            <th className="w-20 px-1.5 py-2.5 text-center align-top">
                                                 {t(
                                                     'pump_counters.return_liters',
                                                 )}
                                             </th>
-                                            <th className="px-3 py-2.5 text-center align-top">
+                                            {/* Notes take whatever width is left; the number columns stay compact. */}
+                                            <th className="w-full px-1.5 py-2.5 text-center align-top">
                                                 {t('common.notes')}
                                             </th>
                                         </tr>

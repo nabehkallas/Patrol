@@ -581,7 +581,6 @@
     "pump_counters.daily_total": "روزانہ کل",
     "pump_counters.period_total": "مدت کا کل",
     "pump_counters.sales_summary_daily": "روزانہ فروخت کا خلاصہ",
-    "pump_counters.sales_summary_period": "مدت کی فروخت کا خلاصہ",
     "pump_counters.previous": "پچھلی ریڈنگ",
     "pump_counters.no_previous": "پہلی ریڈنگ",
     "pump_counters.last_entry_system": "آخری اندراج",
@@ -1150,5 +1149,6 @@
     "At least one shift must stay active.": "کم از کم ایک شفٹ فعال رہنی چاہیے۔",
     "This shift has readings, so it can only be deactivated.": "اس شفٹ کی ریڈنگز ہیں، اسے صرف غیر فعال کیا جا سکتا ہے۔",
     "Shift deleted.": "شفٹ حذف ہو گئی۔",
-    "Enter at least one counter value.": "کم از کم ایک کاؤنٹر ریڈنگ درج کریں۔"
+    "Enter at least one counter value.": "کم از کم ایک کاؤنٹر ریڈنگ درج کریں۔",
+    "pump_counters.sold_quantity": "فروخت شدہ مقدار"
 }
