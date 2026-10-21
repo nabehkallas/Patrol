@@ -31,6 +31,9 @@ This project is developed on Windows via Git-Bash. Two real bugs came from this 
 2. `php -r` / `php artisan` print a harmless `Warning: PHP Startup: Unable to load dynamic library 'sodium'...` to **stdout** (not stderr) on this machine. This corrupts naive `$(php ...)` command substitutions — always pipe through `| tail -1` when capturing PHP output into a shell variable.
 
 Other quirks:
+- **`php artisan tinker <file>` waits for keyboard input once the script is done** unless its input is closed: run it as `... tinker file.php < /dev/null` (`scripts/dev/local-run.sh` does) — this was the "tinker hangs" seen before.
+- Git Bash turns an argument like `/cash-box` into `C:/Program Files/Git/cash-box` (MSYS path conversion); `browser-check.mjs` undoes it, elsewhere prefix `MSYS_NO_PATHCONV=1`.
+- Make code edits with the Edit tool, not `sed`/`node -e` one-liners: Git Bash strips backslashes (PHP namespaces) and mangles quotes in them.
 - Node.js path resolution is unreliable for `/tmp/...`-style paths from the Bash tool. Copy files into `storage/app/` (a real path under the project) before running Node parsing scripts, then delete them afterward.
 - Port 8000 is occupied by an unrelated local project — use another port (8001+) for `php artisan serve` during manual/smoke testing.
 - Fetching an Inertia page via `curl` with `X-Inertia: true` but no matching `X-Inertia-Version` header gets a `409` conflict. Simplest fix: do a plain full-page GET (no `X-Inertia` header) and regex out the `<script data-page="app" type="application/json">...</script>` payload instead of trying to hit the partial-reload endpoint directly.
@@ -42,21 +45,24 @@ Other quirks:
 - To pull the real exception (not just the access-log line) for a 500 in production: `fly ssh console -a patrol-station -C "grep -a 'production.ERROR' /var/www/html/storage/logs/laravel.log"` — `fly logs` only shows the access-log line (`"GET /index.php" 500`) with no exception detail.
 - A `fly ssh console` command's *own* stdout/stderr is genuine even though the process often ends with a spurious `Error: The handle is invalid.` on this Windows client — that trailing line is a PTY-cleanup artifact, not a sign the command itself failed.
 
-## Established verification workflow
+## Checking levels — pick one per change, and tell the user which
 
-Before considering any change done:
+Pick the level from what the change touches; **when unsure, use the higher one**, and name the level used in the report to the user. The scripts are in `scripts/dev/` (see its README).
 
-1. `./vendor/bin/pint --dirty`
-2. `npx tsc --noEmit`
-3. `npx eslint <changed paths>`
-4. `npx prettier --write <changed paths>`
-5. `php artisan test` — healthy baseline is **131 tests, 123 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner, no extra packages; keep what they import free of `@/` imports).
-6. `npm run build`
-7. If a migration was added: back up the real local tenant SQLite file first (`cp database/tenantXXXX.sqlite database/tenantXXXX.sqlite.bak-$(date +%Y%m%d%H%M%S)`), then `php artisan tenants:migrate`
-8. Live HTTP smoke test against real local data: temp `php artisan serve --port=<free port>` in the background, curl with a cookie jar + XSRF token dance, exercise the actual endpoints, verify DB state directly via a small PHP script, then **clean up any test data created** (and restore from the step-7 backup if something went wrong)
-9. Commit with explicit file paths (never `git add -A`), push, `fly deploy -a patrol-station`
-10. After every deploy: `curl -s -o /dev/null -w "%{http_code}" https://patrol-station.fly.dev/login` should return `200`. Schema migrations run automatically on deploy (via the entrypoint script) — no manual `tenants:migrate` step needed in production, though `fly ssh console -a patrol-station -C "php artisan tenants:migrate"` is a safe way to double check (prints "Nothing to migrate" if already applied).
-11. After adding/changing a route, run `php artisan wayfinder:generate --with-form` to regenerate the typed TS route helpers under `resources/js/routes` and `resources/js/actions`.
+| Level | When | Checks |
+|---|---|---|
+| **1 · UI only** | layout, colours, text, translations — nothing that computes, validates or stores | build (+ `tsc`, eslint, prettier on what changed) · `node scripts/dev/browser-check.mjs <pages>` at **1366px** · deploy (`scripts/dev/deploy.sh`) |
+| **2 · Logic** | calculations, validation, flows, what a page shows from data — no schema or stored-data change | level 1 + `php artisan test` and `npm run test:js` (add tests for the change) · browser check of the changed flow · `scripts/dev/deploy.sh --smoke` (login 200 + `prod/smoke.php` on every station) |
+| **3 · Data, money or migration** | a migration, anything that writes or rewrites stored data, money/stock/sales figures | level 2 + `scripts/dev/prod-backup.sh <label>` before deploying · local `scripts/dev/local-db.sh backup` before migrating locally (restore after testing) · before/after comparison: `prod/fingerprint.php` on production before the deploy and after, `fp-compare.php` must show every part identical (`FP_IGNORE` for what the change adds on purpose; if staff added records in between, compare old vs new code on the backup copy instead) · browser check at **1366, 1920 and 2560px** · read-only production check of what changed |
+
+Every level, before committing:
+1. `./vendor/bin/pint --dirty` (PHP changed), `npx tsc --noEmit`, `npx eslint <changed paths>`, `npx prettier --write <changed paths>`; PHPStan when PHP changed: `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT -u AI_AGENT php -d memory_limit=2G vendor/bin/phpstan analyse`.
+2. `php artisan test` healthy baseline: **131 tests, 123 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner; keep what they import free of `@/` imports).
+3. `npm run build`. After adding/changing a route: `php artisan wayfinder:generate --with-form`.
+4. Translations: `php scripts/dev/add-keys.php keys.php` (all 11 languages; refuses to overwrite an existing key or remove one still in use).
+5. Commit with explicit file paths (never `git add -A`), push, then deploy. Production data is never changed without the user's approval (`prod-run.sh --write` only then); production checks are read-only.
+
+Local testing: the app runs with `php artisan serve --port=8001` (port 8000 is another project); the local test station's admin is `dev@local.test`. Test data goes in after `scripts/dev/local-db.sh backup` and comes out with `scripts/dev/local-db.sh restore`.
 
 ## Pump readings and shifts — rules
 
