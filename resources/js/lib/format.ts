@@ -252,6 +252,18 @@ export function formatDayMonthYear(value: string): string {
     });
 }
 
+/** A date and time without the year, e.g. "21 Oct, 02:30", in station time. */
+export function formatShortDateTime(value: string): string {
+    return new Date(value).toLocaleString(dateLocale(), {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone: getStationTimeZone(),
+    });
+}
+
 /** 'HH:MM' (24-hour) of a timestamp, in station time. */
 export function formatTime24(value: string): string {
     return new Date(value).toLocaleTimeString('en-GB', {

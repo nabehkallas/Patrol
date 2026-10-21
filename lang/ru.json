@@ -1179,5 +1179,6 @@
     "Sold (:currency)": "Продано (:currency)",
     "Exchanged (:currency)": "Обмен (:currency)",
     "Expense (:currency)": "Расходы (:currency)",
-    "pump_counters.governmental_short": "Гос. (л)"
+    "pump_counters.governmental_short": "Гос. (л)",
+    "transactions.entered": "Внесено: :time"
 }

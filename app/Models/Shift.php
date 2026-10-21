@@ -62,6 +62,12 @@ class Shift extends Model
             ?? static::create(['position' => 1, 'is_active' => true]);
     }
 
+    /** More than one active shift: only then do shifts show anywhere. */
+    public static function severalActive(): bool
+    {
+        return static::active()->count() > 1;
+    }
+
     /** Its name, or "Shift 2" when none was given. */
     public function label(): string
     {

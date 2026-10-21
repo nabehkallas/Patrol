@@ -10,6 +10,7 @@ use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Debtor;
 use App\Models\ExchangeRate;
+use App\Models\Shift;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,10 +40,15 @@ class TransactionController extends Controller
         $user = $request->user();
 
         $query = $this->filteredQuery($request);
+        $withShift = Shift::severalActive();
 
         return Inertia::render('transactions/index', [
             'transactions' => $query->paginate(25)->withQueryString()
-                ->through(fn (Transaction $transaction) => [...$transaction->toArray(), 'managed_by' => $transaction->managedBy()]),
+                ->through(fn (Transaction $transaction) => [
+                    ...Arr::except($transaction->toArray(), ['pump_counter_reading', 'governmental_reading']),
+                    'managed_by' => $transaction->managedBy(),
+                    'shown' => $transaction->shownTime($withShift),
+                ]),
             'users' => $user->isAdmin() ? User::orderBy('name')->get(['id', 'name']) : [],
             'filters' => [
                 ...$request->only(['type', 'user_id']),
@@ -60,9 +67,9 @@ class TransactionController extends Controller
 
         [$from, $to] = $this->period($request);
 
-        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor', 'sadcopLedgerEntry'])
+        $query = Transaction::with(['user', 'fuelType', 'tank', 'debt.debtor', 'sadcopLedgerEntry', 'pumpCounterReading.shift', 'governmentalReading.shift'])
             ->whereBetween('occurred_at', [$from, $to])
-            ->latest('occurred_at');
+            ->latestShown();
 
         if (! $user->isAdmin()) {
             $query->where('user_id', $user->id);
@@ -105,8 +112,10 @@ class TransactionController extends Controller
                 ->all(),
         ]);
 
+        $withShift = Shift::severalActive();
+
         $rows = $this->filteredQuery($request)->get()->map(fn (Transaction $transaction) => [
-            $transaction->occurred_at->format('Y-m-d H:i'),
+            $this->shownCell($transaction, $withShift),
             $labels['types'][$transaction->type->value] ?? $transaction->type->value,
             collect([$transaction->description ?? $transaction->fuelType->name ?? null, $transaction->originalNote() !== null ? '('.$transaction->originalNote().')' : null])->filter()->implode(' ') ?: null,
             $transaction->liters !== null ? (float) $transaction->liters : null,
@@ -123,6 +132,23 @@ class TransactionController extends Controller
             rows: $rows,
             decimals: [3 => 3, 4 => fn (array $row) => Currency::decimals((string) $row[5])],
         );
+    }
+
+    /**
+     * Transaction::shownTime() as one cell: "2026-10-20 22:15", or for a fuel sale entered on a
+     * later day "2026-10-20 (Entered: 2026-10-21 02:30 · Evening)".
+     */
+    private function shownCell(Transaction $transaction, bool $withShift): string
+    {
+        $shown = $transaction->shownTime($withShift);
+
+        if ($shown['entered'] === null) {
+            return Carbon::parse($shown['at'])->format('Y-m-d H:i');
+        }
+
+        $entered = collect([Carbon::parse($shown['entered']['at'])->format('Y-m-d H:i'), $shown['entered']['shift']])->filter()->implode(' · ');
+
+        return $shown['at'].' ('.__('transactions.entered', ['time' => $entered]).')';
     }
 
     /**

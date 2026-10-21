@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { ShownTime } from '@/components/shown-time';
 import {
     Select,
     SelectContent,
@@ -14,12 +15,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    formatDateTime,
-    formatNumber,
-    formatCurrencyAmount,
-} from '@/lib/format';
+import { formatNumber, formatCurrencyAmount } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { index as pumpCounters } from '@/routes/pump-counters';
 import { index as sadcop } from '@/routes/sadcop';
 import { index as shop } from '@/routes/shop';
@@ -38,6 +36,14 @@ import type {
     TransactionType,
     UserSummary,
 } from '@/types';
+
+/**
+ * Every row is the same height: cells stay on one line, and the row is tall enough for the two
+ * a cell can have (a late fuel sale's "entered" line, a payment's original amount) or the edit
+ * and delete buttons.
+ */
+const ROW = 'h-[3.75rem] border-t';
+const CELL = 'whitespace-nowrap px-3 py-3';
 
 type PageProps = {
     auth: Auth;
@@ -208,46 +214,55 @@ export default function TransactionsIndex() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-start">
-                                <th className="px-4 py-3">
+                                <th className="px-3 py-3">
                                     {t('common.date')}
                                 </th>
-                                <th className="px-4 py-3">
+                                <th className="px-3 py-3">
                                     {t('common.type')}
                                 </th>
-                                <th className="px-4 py-3">
+                                <th className="px-3 py-3">
                                     {t('transactions.detail')}
                                 </th>
-                                <th className="px-4 py-3">
+                                <th className="px-3 py-3">
                                     {t('common.amount')}
                                 </th>
-                                <th className="px-4 py-3">
+                                <th className="min-w-0! px-3 py-3">
                                     {t('transactions.debt_label')}
                                 </th>
                                 {auth.isAdmin && (
-                                    <th className="px-4 py-3">
+                                    <th className="px-3 py-3">
                                         {t('common.employee')}
                                     </th>
                                 )}
                                 {auth.isAdmin && (
-                                    <th className="px-4 py-3"></th>
+                                    <th className="px-3 py-3"></th>
                                 )}
                             </tr>
                         </thead>
                         <tbody>
                             {transactions.data.map((transaction) => (
-                                <tr key={transaction.id} className="border-t">
-                                    <td className="px-4 py-3">
-                                        {formatDateTime(
-                                            transaction.occurred_at,
-                                        )}
+                                <tr key={transaction.id} className={ROW}>
+                                    <td className={CELL}>
+                                        <ShownTime
+                                            {...(transaction.shown ?? {
+                                                at: transaction.occurred_at,
+                                                entered: null,
+                                            })}
+                                        />
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className={CELL}>
                                         {typeLabels[transaction.type]}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        {detailFor(transaction)}
+                                    <td className={CELL}>
+                                        {/* A long description is cut, in full on hover. */}
+                                        <span
+                                            className="block max-w-64 truncate"
+                                            title={detailFor(transaction)}
+                                        >
+                                            {detailFor(transaction)}
+                                        </span>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className={CELL}>
                                         {formatCurrencyAmount(
                                             transaction.amount,
                                             transaction.currency,
@@ -269,21 +284,32 @@ export default function TransactionsIndex() {
                                             }
                                         />
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className={CELL}>
                                         {transaction.debt && (
-                                            <span className="text-xs">
+                                            <span
+                                                className="block max-w-40 truncate text-xs"
+                                                title={
+                                                    transaction.debt.debtor
+                                                        ?.name
+                                                }
+                                            >
                                                 {t('transactions.debt_label')} —{' '}
                                                 {transaction.debt.debtor?.name}
                                             </span>
                                         )}
                                     </td>
                                     {auth.isAdmin && (
-                                        <td className="px-4 py-3">
-                                            {transaction.user?.name}
+                                        <td className={CELL}>
+                                            <span
+                                                className="block max-w-32 truncate"
+                                                title={transaction.user?.name}
+                                            >
+                                                {transaction.user?.name}
+                                            </span>
                                         </td>
                                     )}
                                     {auth.isAdmin && (
-                                        <td className="px-4 py-3 text-end">
+                                        <td className={cn(CELL, 'text-end')}>
                                             <RowActions
                                                 edit={edit.url(transaction.id)}
                                                 remove={destroy.url(

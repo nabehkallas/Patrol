@@ -915,5 +915,6 @@
     "Sold (:currency)": "Sold (:currency)",
     "Exchanged (:currency)": "Exchanged (:currency)",
     "Expense (:currency)": "Expense (:currency)",
-    "pump_counters.governmental_short": "Gov. (L)"
+    "pump_counters.governmental_short": "Gov. (L)",
+    "transactions.entered": "Entered: :time"
 }

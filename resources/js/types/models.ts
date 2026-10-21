@@ -128,6 +128,8 @@ export type Transaction = {
     to_amount: string | null;
     exchange_rate_to_usd: string | null;
     occurred_at: string;
+    /** On the Transactions page: when it shows as having happened. */
+    shown?: ShownTime;
     notes: string | null;
     other_income_category?: OtherIncomeCategory | null;
     user?: UserSummary;
@@ -290,9 +292,20 @@ export type CashBoxHistoryEntryType =
     | 'exchange'
     | 'opening';
 
+/**
+ * When a record shows as having happened (Transaction::shownTime()). `entered` is set for a fuel
+ * sale saved on a later day than its reading's: `at` is then a bare 'YYYY-MM-DD'.
+ */
+export type ShownTime = {
+    at: string;
+    entered: { at: string; shift: string | null } | null;
+};
+
 export type CashBoxHistoryEntry = {
     id: string;
+    /** ShownTime's `at`. */
     date: string;
+    entered: ShownTime['entered'];
     type: CashBoxHistoryEntryType;
     description: string;
     amount: number;

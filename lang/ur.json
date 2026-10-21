@@ -1179,5 +1179,6 @@
     "Sold (:currency)": "فروخت (:currency)",
     "Exchanged (:currency)": "تبادلہ (:currency)",
     "Expense (:currency)": "خرچ (:currency)",
-    "pump_counters.governmental_short": "سرکاری (لیٹر)"
+    "pump_counters.governmental_short": "سرکاری (لیٹر)",
+    "transactions.entered": "درج کی گئی: :time"
 }

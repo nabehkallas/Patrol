@@ -21,6 +21,7 @@ import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import { PageHeader } from '@/components/page-header';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { ShownTime } from '@/components/shown-time';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -30,7 +31,6 @@ import {
 } from '@/components/ui/popover';
 import {
     formatCurrencyAmount,
-    formatDateTime,
     formatNumber,
     formatPrimary,
     formatShortDate,
@@ -399,7 +399,10 @@ function CashBoxHistory({
                             return (
                                 <tr key={entry.id} className="border-t">
                                     <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
-                                        {formatDateTime(entry.date)}
+                                        <ShownTime
+                                            at={entry.date}
+                                            entered={entry.entered}
+                                        />
                                     </td>
                                     <td className="px-4 py-3">
                                         {typeLabels[entry.type]}

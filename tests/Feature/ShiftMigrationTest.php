@@ -146,7 +146,11 @@ class ShiftMigrationTest extends TestCase
     {
         $this->assertFalse(Schema::hasTable('shifts'));
         $rowsBefore = $this->rows();
+        // Today's code asks whether a station has several shifts (for a sale entered late):
+        // an empty table answers "no", as the one shift after the migration does.
+        Schema::create('shifts', fn ($table) => $table->boolean('is_active'));
         $figuresBefore = $this->figures();
+        Schema::drop('shifts');
         $old = $this->oldOrder();
 
         foreach (self::MIGRATIONS as $name) {

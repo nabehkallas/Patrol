@@ -1179,5 +1179,6 @@
     "Sold (:currency)": "बिक्री (:currency)",
     "Exchanged (:currency)": "विनिमय (:currency)",
     "Expense (:currency)": "खर्च (:currency)",
-    "pump_counters.governmental_short": "सरकारी (ली.)"
+    "pump_counters.governmental_short": "सरकारी (ली.)",
+    "transactions.entered": "दर्ज की गई: :time"
 }

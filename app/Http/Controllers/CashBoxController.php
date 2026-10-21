@@ -11,6 +11,7 @@ use App\Models\CashBoxOpening;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Models\DebtPayment;
+use App\Models\Shift;
 use App\Models\Transaction;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
@@ -575,7 +576,7 @@ class CashBoxController extends Controller
      * Fuel deliveries (including Sadcop's) never touch the cash register, so they're excluded
      * entirely, same as in summarize().
      *
-     * @return array<int, array{id: string, date: string, type: string, description: string, amount: float, currency: string, original: array{amount: float, currency: string, rate: float}|null}>
+     * @return array<int, array{id: string, date: string, entered: array{at: string, shift: string|null}|null, type: string, description: string, amount: float, currency: string, original: array{amount: float, currency: string, rate: float}|null}>
      */
     private function historyEntries(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
@@ -596,15 +597,25 @@ class CashBoxController extends Controller
             ->where('occurred_at', '>=', $from)
             ->where('occurred_at', '<=', $to)
             ->when(! $isAdmin, fn ($q) => $q->where('user_id', $userId))
-            ->with(['fuelType', 'debt', 'sadcopLedgerEntry'])
+            ->with(['fuelType', 'debt', 'sadcopLedgerEntry', 'pumpCounterReading', 'governmentalReading'])
             ->get()
             // A transaction with a debt is represented by that debt's payment entries instead
             // (below) — it hasn't moved cash yet if outstanding, and once paid (in full or in
             // part), the payment date(s) — not this transaction's date — are when cash moved.
-            ->reject(fn (Transaction $transaction) => $transaction->debt !== null)
+            ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
+
+        // Shifts are only looked up for a sale entered late (rare, and loaded one by one).
+        $withShift = $transactions->contains(fn (Transaction $transaction) => $transaction->enteredLate())
+            && Shift::severalActive();
+
+        $transactions = $transactions
             ->map(fn (Transaction $transaction) => [
                 'id' => 'transaction-'.$transaction->id,
-                'date' => $transaction->occurred_at->toIso8601String(),
+                // A fuel sale saved on a later day than its reading's: its date only, and when
+                // it was entered (Transaction::shownTime()); last on that date.
+                'date' => $transaction->shownTime()['at'],
+                'entered' => $transaction->shownTime($withShift)['entered'],
+                'sort' => $transaction->shownSortKey(),
                 'type' => match (true) {
                     $transaction->type === TransactionType::CurrencyExchange => 'exchange',
                     $transaction->sadcopLedgerEntry !== null => 'sadcop',
@@ -631,6 +642,8 @@ class CashBoxController extends Controller
             ->map(fn (DebtPayment $payment) => [
                 'id' => 'debt-payment-'.$payment->id,
                 'date' => $payment->paid_at->toIso8601String(),
+                'entered' => null,
+                'sort' => $payment->paid_at->format('Y-m-d H:i:s'),
                 'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
                 'description' => ($payment->debt->debtor->name ?? '—').' — '.$labels['debt_payment'],
                 'amount' => $payment->cashAmount(),
@@ -646,6 +659,8 @@ class CashBoxController extends Controller
             ->map(fn (CashBoxOpening $opening) => [
                 'id' => 'opening-'.$opening->id,
                 'date' => $opening->date->copy()->startOfDay()->toIso8601String(),
+                'entered' => null,
+                'sort' => $opening->date->copy()->startOfDay()->format('Y-m-d H:i:s'),
                 'type' => 'opening',
                 'description' => $opening->notes ?: $labels['opening_cash'],
                 'amount' => (float) $opening->amount,
@@ -654,7 +669,12 @@ class CashBoxController extends Controller
             ]);
 
         return $transactions->concat($debtPayments)->concat($openings)
-            ->sortByDesc('date')
+            ->sortByDesc('sort')
+            ->map(function (array $entry) {
+                unset($entry['sort']);
+
+                return $entry;
+            })
             ->values()
             ->all();
     }
