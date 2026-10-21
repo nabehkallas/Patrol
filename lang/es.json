@@ -721,8 +721,6 @@
     "By fuel type": "Por tipo de combustible",
     "COGS (SYP)": "Coste de lo vendido (SYP)",
     "Cash Box": "Caja",
-    "Cash Box (SYP)": "Caja (SYP)",
-    "Cash Box (USD)": "Caja (USD)",
     "Choose a different currency to exchange into.": "Elige otra moneda de destino.",
     "Confirm email address": "Confirmar correo electrónico",
     "Confirm your email address for :app": "Confirma tu correo para :app",
@@ -762,8 +760,6 @@
     "Entry updated.": "Apunte actualizado.",
     "Exchange Rate": "Tipo de cambio",
     "Exchange rate updated.": "Tipo de cambio actualizado.",
-    "Expense (SYP)": "Gasto (SYP)",
-    "Expense (USD)": "Gasto (USD)",
     "Free Liters": "Litros sin coste",
     "Fuel Type": "Tipo de combustible",
     "Fuel deliveries": "Entregas de combustible",
@@ -881,7 +877,6 @@
     "Sign in": "Iniciar sesión",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "Inicia sesión para configurar tu estación: tipos de combustible, tanques, surtidores y precios.",
     "Sold": "Vendido",
-    "Sold (SYP)": "Vendido (SYP)",
     "Sold Liters": "Litros vendidos",
     "Sold Qty": "Cant. vendida",
     "Station data reset.": "Datos de la estación reiniciados.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Introduzca el tipo de cambio.",
     "Not enough in the :box box (available: :available).": "No hay suficiente en la caja :box (disponible: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "No hay suficiente en la caja :box (disponible: :available). Puede pagar desde la caja :primary con un tipo de cambio.",
-    "The :box box will go negative (available: :available). Continue?": "La caja :box quedará en negativo (disponible: :available). ¿Continuar?"
+    "The :box box will go negative (available: :available). Continue?": "La caja :box quedará en negativo (disponible: :available). ¿Continuar?",
+    "Cash Box (:currency)": "Caja (:currency)",
+    "Sold (:currency)": "Vendido (:currency)",
+    "Exchanged (:currency)": "Cambio (:currency)",
+    "Expense (:currency)": "Gastos (:currency)",
+    "pump_counters.governmental_short": "Gob. (L)"
 }

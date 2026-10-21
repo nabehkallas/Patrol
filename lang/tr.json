@@ -721,8 +721,6 @@
     "By fuel type": "Yakıt türüne göre",
     "COGS (SYP)": "SMM (SYP)",
     "Cash Box": "Kasa",
-    "Cash Box (SYP)": "Kasa (SYP)",
-    "Cash Box (USD)": "Kasa (USD)",
     "Choose a different currency to exchange into.": "Bozdurmak için farklı bir para birimi seçin.",
     "Confirm email address": "E-posta adresini onayla",
     "Confirm your email address for :app": ":app için e-posta adresinizi onaylayın",
@@ -762,8 +760,6 @@
     "Entry updated.": "Kayıt güncellendi.",
     "Exchange Rate": "Döviz kuru",
     "Exchange rate updated.": "Döviz kuru güncellendi.",
-    "Expense (SYP)": "Gider (SYP)",
-    "Expense (USD)": "Gider (USD)",
     "Free Liters": "Ücretsiz litre",
     "Fuel Type": "Yakıt türü",
     "Fuel deliveries": "Yakıt ikmalleri",
@@ -881,7 +877,6 @@
     "Sign in": "Giriş yap",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "İstasyonunuzu kurmak için giriş yapın: yakıt türleri, tanklar, pompalar ve fiyatlar.",
     "Sold": "Satılan",
-    "Sold (SYP)": "Satılan (SYP)",
     "Sold Liters": "Satılan litre",
     "Sold Qty": "Satılan miktar",
     "Station data reset.": "İstasyon verileri sıfırlandı.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Döviz kurunu girin.",
     "Not enough in the :box box (available: :available).": ":box kasasında yeterli yok (mevcut: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": ":box kasasında yeterli yok (mevcut: :available). :primary kasasından döviz kuruyla ödeyebilirsiniz.",
-    "The :box box will go negative (available: :available). Continue?": ":box kasası eksiye düşecek (mevcut: :available). Devam edilsin mi?"
+    "The :box box will go negative (available: :available). Continue?": ":box kasası eksiye düşecek (mevcut: :available). Devam edilsin mi?",
+    "Cash Box (:currency)": "Kasa (:currency)",
+    "Sold (:currency)": "Satılan (:currency)",
+    "Exchanged (:currency)": "Döviz değişimi (:currency)",
+    "Expense (:currency)": "Gider (:currency)",
+    "pump_counters.governmental_short": "Devlet (L)"
 }

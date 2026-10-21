@@ -721,8 +721,6 @@
     "By fuel type": "ईंधन प्रकार के अनुसार",
     "COGS (SYP)": "बिके माल की लागत (SYP)",
     "Cash Box": "कैश बॉक्स",
-    "Cash Box (SYP)": "कैश बॉक्स (SYP)",
-    "Cash Box (USD)": "कैश बॉक्स (USD)",
     "Choose a different currency to exchange into.": "विनिमय के लिए कोई दूसरी मुद्रा चुनें।",
     "Confirm email address": "ईमेल पते की पुष्टि करें",
     "Confirm your email address for :app": ":app के लिए अपने ईमेल पते की पुष्टि करें",
@@ -762,8 +760,6 @@
     "Entry updated.": "प्रविष्टि अपडेट हुई।",
     "Exchange Rate": "विनिमय दर",
     "Exchange rate updated.": "विनिमय दर अपडेट हुई।",
-    "Expense (SYP)": "ख़र्च (SYP)",
-    "Expense (USD)": "ख़र्च (USD)",
     "Free Liters": "मुफ़्त लीटर",
     "Fuel Type": "ईंधन का प्रकार",
     "Fuel deliveries": "ईंधन सप्लाई",
@@ -881,7 +877,6 @@
     "Sign in": "लॉग इन",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "अपना स्टेशन सेट करने के लिए लॉग इन करें: ईंधन के प्रकार, टैंक, पंप और दाम।",
     "Sold": "बिका",
-    "Sold (SYP)": "बिका (SYP)",
     "Sold Liters": "बिके लीटर",
     "Sold Qty": "बिकी मात्रा",
     "Station data reset.": "स्टेशन डेटा रीसेट हुआ।",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "विनिमय दर दर्ज करें।",
     "Not enough in the :box box (available: :available).": ":box बॉक्स में पर्याप्त नहीं (उपलब्ध: :available)।",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": ":box बॉक्स में पर्याप्त नहीं (उपलब्ध: :available)। आप :primary बॉक्स से विनिमय दर पर भुगतान कर सकते हैं।",
-    "The :box box will go negative (available: :available). Continue?": ":box बॉक्स ऋणात्मक हो जाएगा (उपलब्ध: :available)। जारी रखें?"
+    "The :box box will go negative (available: :available). Continue?": ":box बॉक्स ऋणात्मक हो जाएगा (उपलब्ध: :available)। जारी रखें?",
+    "Cash Box (:currency)": "कैश बॉक्स (:currency)",
+    "Sold (:currency)": "बिक्री (:currency)",
+    "Exchanged (:currency)": "विनिमय (:currency)",
+    "Expense (:currency)": "खर्च (:currency)",
+    "pump_counters.governmental_short": "सरकारी (ली.)"
 }

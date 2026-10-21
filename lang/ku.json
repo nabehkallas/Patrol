@@ -721,8 +721,6 @@
     "By fuel type": "Li gorî cureyê sotemeniyê",
     "COGS (SYP)": "Lêçûna kelûpelên firotî (SYP)",
     "Cash Box": "Kasa",
-    "Cash Box (SYP)": "Kasa (SYP)",
-    "Cash Box (USD)": "Kasa (USD)",
     "Choose a different currency to exchange into.": "Ji bo guhertinê diravekî din hilbijêre.",
     "Confirm email address": "Navnîşana e-nameyê piştrast bike",
     "Confirm your email address for :app": "Navnîşana e-nameya xwe ji bo :app piştrast bike",
@@ -762,8 +760,6 @@
     "Entry updated.": "Tomar hate nûkirin.",
     "Exchange Rate": "Rêjeya diravan",
     "Exchange rate updated.": "Rêjeya diravan hate nûkirin.",
-    "Expense (SYP)": "Mesref (SYP)",
-    "Expense (USD)": "Mesref (USD)",
     "Free Liters": "Lîtreyên belaş",
     "Fuel Type": "Cureyê sotemeniyê",
     "Fuel deliveries": "Radestkirinên sotemeniyê",
@@ -881,7 +877,6 @@
     "Sign in": "Têkeve",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "Ji bo sazkirina stasyona xwe têkeve: cureyên sotemeniyê, tank, pompe û biha.",
     "Sold": "Firotî",
-    "Sold (SYP)": "Firotî (SYP)",
     "Sold Liters": "Lîtreyên firotî",
     "Sold Qty": "Hejmara firotî",
     "Station data reset.": "Daneyên stasyonê hatin sifirkirin.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Rêjeya guhertinê binivîse.",
     "Not enough in the :box box (available: :available).": "Di sindoqa :box de bes tune (heyî: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "Di sindoqa :box de bes tune (heyî: :available). Tu dikarî ji sindoqa :primary bi rêjeya guhertinê bidî.",
-    "The :box box will go negative (available: :available). Continue?": "Sindoqa :box dê bibe neyînî (heyî: :available). Bidomîne?"
+    "The :box box will go negative (available: :available). Continue?": "Sindoqa :box dê bibe neyînî (heyî: :available). Bidomîne?",
+    "Cash Box (:currency)": "Sindoq (:currency)",
+    "Sold (:currency)": "Firotî (:currency)",
+    "Exchanged (:currency)": "Guhertina diravan (:currency)",
+    "Expense (:currency)": "Lêçûn (:currency)",
+    "pump_counters.governmental_short": "Hikûmî (L)"
 }

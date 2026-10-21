@@ -218,11 +218,14 @@ class DebtController extends Controller
         ]);
 
         $rows = $this->filteredQuery($request)->get()->map(function (Debt $debt) use ($labels) {
-            $fuelTypeName = $debt->transaction?->fuelType->name ?? $debt->fuelType?->name;
+            // Labelled by fuel only when its transaction is a fuel sale or delivery (expenses
+            // saved before that was fixed still carry a tank's fuel type).
+            $fuelTransaction = in_array($debt->transaction?->type, [TransactionType::FuelSale, TransactionType::FuelDelivery], true);
+            $fuelTypeName = ($fuelTransaction ? $debt->transaction->fuelType?->name : null) ?? $debt->fuelType?->name;
             $liters = $debt->liters ?? $debt->transaction?->liters;
             $whatFor = $fuelTypeName && $liters
                 ? $fuelTypeName.' — '.number_format((float) $liters, 3).' L'
-                : ($fuelTypeName ?? $debt->details);
+                : ($fuelTypeName ?? ($fuelTransaction ? null : $debt->transaction?->description) ?? $debt->details);
 
             return [
                 $debt->date->format('Y-m-d'),

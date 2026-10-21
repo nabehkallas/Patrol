@@ -721,8 +721,6 @@
     "By fuel type": "حسب نوع الوقود",
     "COGS (SYP)": "تكلفة البضاعة (ل.س)",
     "Cash Box": "الصندوق",
-    "Cash Box (SYP)": "الصندوق بالسوري",
-    "Cash Box (USD)": "الصندوق بالدولار",
     "Choose a different currency to exchange into.": "اختر عملة مختلفة للتحويل إليها.",
     "Confirm email address": "تأكيد البريد الإلكتروني",
     "Confirm your email address for :app": "تأكيد بريدك الإلكتروني في :app",
@@ -762,8 +760,6 @@
     "Entry updated.": "تم تحديث القيد.",
     "Exchange Rate": "سعر الصرف",
     "Exchange rate updated.": "تم تحديث سعر الصرف.",
-    "Expense (SYP)": "مصروف سوري",
-    "Expense (USD)": "مصروف دولار",
     "Free Liters": "اللترات المجانية",
     "Fuel Type": "نوع الوقود",
     "Fuel deliveries": "توريدات الوقود",
@@ -881,7 +877,6 @@
     "Sign in": "تسجيل الدخول",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "سجّل الدخول لإعداد محطتك: أنواع الوقود والخزانات والمضخات والأسعار.",
     "Sold": "المباع",
-    "Sold (SYP)": "المباع بالسوري",
     "Sold Liters": "اللترات المباعة",
     "Sold Qty": "الكمية المباعة",
     "Station data reset.": "تمت إعادة تعيين بيانات المحطة.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "أدخل سعر الصرف.",
     "Not enough in the :box box (available: :available).": "رصيد صندوق :box غير كافٍ (المتاح: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "رصيد صندوق :box غير كافٍ (المتاح: :available). يمكنك الدفع من صندوق :primary بسعر صرف.",
-    "The :box box will go negative (available: :available). Continue?": "رصيد صندوق :box سيصبح سالباً (المتاح: :available). هل تريد المتابعة؟"
+    "The :box box will go negative (available: :available). Continue?": "رصيد صندوق :box سيصبح سالباً (المتاح: :available). هل تريد المتابعة؟",
+    "Cash Box (:currency)": "الصندوق (:currency)",
+    "Sold (:currency)": "المباع (:currency)",
+    "Exchanged (:currency)": "تحويل عملة (:currency)",
+    "Expense (:currency)": "المصروف (:currency)",
+    "pump_counters.governmental_short": "حكومي (لتر)"
 }

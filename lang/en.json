@@ -910,5 +910,10 @@
     "Enter the exchange rate.": "Enter the exchange rate.",
     "Not enough in the :box box (available: :available).": "Not enough in the :box box (available: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.",
-    "The :box box will go negative (available: :available). Continue?": "The :box box will go negative (available: :available). Continue?"
+    "The :box box will go negative (available: :available). Continue?": "The :box box will go negative (available: :available). Continue?",
+    "Cash Box (:currency)": "Cash Box (:currency)",
+    "Sold (:currency)": "Sold (:currency)",
+    "Exchanged (:currency)": "Exchanged (:currency)",
+    "Expense (:currency)": "Expense (:currency)",
+    "pump_counters.governmental_short": "Gov. (L)"
 }

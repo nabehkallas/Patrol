@@ -721,8 +721,6 @@
     "By fuel type": "Par type de carburant",
     "COGS (SYP)": "CMV (SYP)",
     "Cash Box": "Caisse",
-    "Cash Box (SYP)": "Caisse (SYP)",
-    "Cash Box (USD)": "Caisse (USD)",
     "Choose a different currency to exchange into.": "Choisissez une autre devise de destination.",
     "Confirm email address": "Confirmer l'adresse e-mail",
     "Confirm your email address for :app": "Confirmez votre adresse e-mail pour :app",
@@ -762,8 +760,6 @@
     "Entry updated.": "Écriture mise à jour.",
     "Exchange Rate": "Taux de change",
     "Exchange rate updated.": "Taux de change mis à jour.",
-    "Expense (SYP)": "Dépense (SYP)",
-    "Expense (USD)": "Dépense (USD)",
     "Free Liters": "Litres gratuits",
     "Fuel Type": "Type de carburant",
     "Fuel deliveries": "Livraisons de carburant",
@@ -881,7 +877,6 @@
     "Sign in": "Se connecter",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "Connectez-vous pour configurer votre station : types de carburant, cuves, pompes et prix.",
     "Sold": "Vendu",
-    "Sold (SYP)": "Vendu (SYP)",
     "Sold Liters": "Litres vendus",
     "Sold Qty": "Qté vendue",
     "Station data reset.": "Données de la station réinitialisées.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Saisissez le taux de change.",
     "Not enough in the :box box (available: :available).": "Pas assez dans la caisse :box (disponible : :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "Pas assez dans la caisse :box (disponible : :available). Vous pouvez payer depuis la caisse :primary à un taux de change.",
-    "The :box box will go negative (available: :available). Continue?": "La caisse :box passera en négatif (disponible : :available). Continuer ?"
+    "The :box box will go negative (available: :available). Continue?": "La caisse :box passera en négatif (disponible : :available). Continuer ?",
+    "Cash Box (:currency)": "Caisse (:currency)",
+    "Sold (:currency)": "Vendu (:currency)",
+    "Exchanged (:currency)": "Change (:currency)",
+    "Expense (:currency)": "Dépenses (:currency)",
+    "pump_counters.governmental_short": "Gouv. (L)"
 }

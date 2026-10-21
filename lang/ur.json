@@ -721,8 +721,6 @@
     "By fuel type": "ایندھن کی قسم کے لحاظ سے",
     "COGS (SYP)": "فروخت شدہ مال کی لاگت (SYP)",
     "Cash Box": "کیش باکس",
-    "Cash Box (SYP)": "کیش باکس (SYP)",
-    "Cash Box (USD)": "کیش باکس (USD)",
     "Choose a different currency to exchange into.": "تبادلے کے لیے کوئی دوسری کرنسی منتخب کریں۔",
     "Confirm email address": "ای میل ایڈریس کی تصدیق کریں",
     "Confirm your email address for :app": ":app کے لیے اپنی ای میل کی تصدیق کریں",
@@ -762,8 +760,6 @@
     "Entry updated.": "اندراج اپ ڈیٹ ہو گیا۔",
     "Exchange Rate": "شرحِ مبادلہ",
     "Exchange rate updated.": "شرحِ مبادلہ اپ ڈیٹ ہو گئی۔",
-    "Expense (SYP)": "خرچ (SYP)",
-    "Expense (USD)": "خرچ (USD)",
     "Free Liters": "مفت لیٹر",
     "Fuel Type": "ایندھن کی قسم",
     "Fuel deliveries": "ایندھن کی سپلائیاں",
@@ -881,7 +877,6 @@
     "Sign in": "لاگ اِن",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "اپنا اسٹیشن سیٹ اپ کرنے کے لیے لاگ اِن کریں: ایندھن کی اقسام، ٹینک، پمپ اور قیمتیں۔",
     "Sold": "فروخت شدہ",
-    "Sold (SYP)": "فروخت شدہ (SYP)",
     "Sold Liters": "فروخت شدہ لیٹر",
     "Sold Qty": "فروخت شدہ مقدار",
     "Station data reset.": "اسٹیشن ڈیٹا ری سیٹ ہو گیا۔",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "شرح تبادلہ درج کریں۔",
     "Not enough in the :box box (available: :available).": ":box کے صندوق میں کافی نہیں (دستیاب: :available)۔",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": ":box کے صندوق میں کافی نہیں (دستیاب: :available)۔ آپ :primary کے صندوق سے شرح تبادلہ پر ادا کر سکتے ہیں۔",
-    "The :box box will go negative (available: :available). Continue?": ":box کا صندوق منفی ہو جائے گا (دستیاب: :available)۔ جاری رکھیں؟"
+    "The :box box will go negative (available: :available). Continue?": ":box کا صندوق منفی ہو جائے گا (دستیاب: :available)۔ جاری رکھیں؟",
+    "Cash Box (:currency)": "صندوق (:currency)",
+    "Sold (:currency)": "فروخت (:currency)",
+    "Exchanged (:currency)": "تبادلہ (:currency)",
+    "Expense (:currency)": "خرچ (:currency)",
+    "pump_counters.governmental_short": "سرکاری (لیٹر)"
 }

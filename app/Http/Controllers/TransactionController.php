@@ -161,9 +161,7 @@ class TransactionController extends Controller
             ? Carbon::parse($data['occurred_at'])->setTimeFrom(now())
             : now();
 
-        if (! empty($data['tank_id'])) {
-            $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
-        }
+        $data = $this->withFuelFields($data);
 
         // Only a currency exchange carries a rate -- the one entered for that exchange. No other
         // record uses or stores one (amounts always stay in their own currency).
@@ -248,9 +246,7 @@ class TransactionController extends Controller
                 : Carbon::parse($data['occurred_at'])->setTimeFrom(now());
         }
 
-        if (! empty($data['tank_id'])) {
-            $data['fuel_type_id'] = Tank::find((int) $data['tank_id'])?->fuel_type_id;
-        }
+        $data = $this->withFuelFields($data);
 
         // Only a currency exchange carries a rate -- the one entered for that exchange. No other
         // record uses or stores one (amounts always stay in their own currency).
@@ -295,6 +291,23 @@ class TransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
 
         return to_route('transactions.index');
+    }
+
+    /**
+     * Only a fuel delivery is about a tank and its fuel: every other type is saved without a
+     * tank, fuel type, liters or price per liter (the form always sends the selected tank,
+     * which used to give expenses that tank's fuel type).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withFuelFields(array $data): array
+    {
+        if ($data['type'] !== TransactionType::FuelDelivery->value) {
+            return [...$data, 'tank_id' => null, 'fuel_type_id' => null, 'liters' => null, 'price_per_liter' => null];
+        }
+
+        return [...$data, 'fuel_type_id' => Tank::find((int) $data['tank_id'])?->fuel_type_id];
     }
 
     /**

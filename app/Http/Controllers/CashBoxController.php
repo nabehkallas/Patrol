@@ -23,6 +23,7 @@ use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class CashBoxController extends Controller
 {
@@ -146,249 +147,203 @@ class CashBoxController extends Controller
     }
 
     /**
-     * One row per day: the running SYP cash balance, that day's SYP sales, Sadcop payments,
-     * government ("smart card") debt collections, the running USD cash balance, and SYP/USD
-     * expenses. Mirrors the hand-kept daily ledger sheet, not the flat metric/value summary the
-     * PDF export uses.
+     * One row per day, mirroring the hand-kept daily ledger sheet (not the flat metric/value
+     * summary the PDF export uses), with every cash box in it. For the primary currency: the
+     * running cash balance, that day's sales, Sadcop payments, government ("smart card")
+     * collections, other income, currency exchanged (signed) and expenses. For each other
+     * currency with anything in it: its running balance, income, exchanged and expenses. Opening
+     * cash entries are rows of their own, on their date, with a note.
      *
-     * Both balance columns are real Excel formulas, carried forward from the *previous* row's
-     * complete activity (same pattern as the Sadcop export's المدور column) — a day's own sales/
-     * payments/expenses appear in its own row but only affect the *next* row's balance. Unlike
-     * Sadcop, this app has no dedicated "opening cash balance" feature for Cash Box — instead the
-     * starting balance is whatever Other Income entry was recorded when the station started using
-     * this, which the first row's seed picks up automatically: the same category totals as every
-     * other row, just summed across all of history strictly before the export's start date rather
-     * than grouped by day.
+     * Every day's figures are the Cash Box's own (summarize() for that day), so the balances run
+     * exactly like the page's. Balance columns are real Excel formulas carried forward from the
+     * *previous* row's complete activity (same pattern as the Sadcop export's المدور column): a
+     * row's own figures appear in it but only affect the *next* row's balance. The first row is
+     * seeded with the balance carried into the sheet.
      *
-     * "Government" ("بطاقة ذكية") is broken out from ordinary SYP sales because it isn't cash in
-     * hand the same day — it's a debt payment received later from the government debtor — while
-     * regular customer debt payments stay folded into ordinary sales, same as the dashboard's
-     * Cash Box totals treat them. An Other Income transaction's own category (see
-     * OtherIncomeCategory) routes it the same way: "cash_box" (or no category, for entries
-     * predating this field) behaves like a fuel sale, "government" joins the Government column,
-     * and "other" gets its own column — still counted in the running balance, but kept out of
-     * Sold so it isn't mistaken for real sales. The Notes column surfaces those government/other
-     * entries' own notes, so a categorized amount stays explained without opening the app.
+     * "Government" is broken out from ordinary sales because it isn't cash in hand the same day
+     * -- it's a debt payment received later from the government debtor (or an Other Income entry
+     * in the "government" category); an Other Income entry in the "other" category gets its own
+     * column, kept out of Sold. The Notes column surfaces those entries' notes.
      */
     public function exportXlsx(Request $request, XlsxTableExporter $exporter): HttpResponse
     {
         $from = $request->date('from') ?? now()->startOfMonth();
         $to = $request->date('to') ?? now();
-
         $user = $request->user();
-        $isAdmin = $user->isAdmin();
-
-        $transactions = Transaction::query()
-            ->where('occurred_at', '>=', $from->copy()->startOfDay())
-            ->where('occurred_at', '<=', $to->copy()->endOfDay())
-            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
-            ->with(['debt', 'sadcopLedgerEntry'])
-            ->get();
-
-        // An Other Income entry's category decides which column it lands in -- "cash_box" (or no
-        // category, for entries recorded before this existed) behaves exactly like a fuel sale;
-        // "government" joins government debt payments in the Government column; "other" gets its
-        // own column and still feeds the running balance, but is kept out of ordinary Sold so it
-        // doesn't get mistaken for real day-to-day sales revenue.
-        $isOtherCategory = fn (Transaction $t, OtherIncomeCategory $category) => $t->type === TransactionType::OtherIncome
-            && $t->other_income_category === $category;
-
-        $incomeTransactions = $transactions
-            ->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $t) => $t->debt !== null)
-            ->reject(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government) || $isOtherCategory($t, OtherIncomeCategory::Other));
-
-        $governmentIncomeTransactions = $transactions
-            ->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government));
-
-        $otherCategoryTransactions = $transactions
-            ->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Other));
-
-        $expenseTransactions = $transactions
-            ->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])
-            ->reject(fn (Transaction $t) => $t->debt !== null);
-
-        $isSadcopPayment = fn (Transaction $t) => $t->sadcopLedgerEntry !== null;
-        $sadcopTransactions = $expenseTransactions->filter($isSadcopPayment);
-        $otherExpenseTransactions = $expenseTransactions->reject($isSadcopPayment);
-
-        $governmentDebtorId = Debtor::government()->id;
-
-        $debtPayments = DebtPayment::query()
-            ->whereDate('paid_at', '>=', $from->toDateString())
-            ->whereDate('paid_at', '<=', $to->toDateString())
-            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
-            ->with('debt')
-            ->get();
-
-        // A payment counts in the box the cash moved in (see DebtPayment::cashCurrency()).
-        $asCash = fn (Collection $payments) => $payments->map(fn (DebtPayment $p) => (object) [
-            'currency' => $p->cashCurrency(),
-            'amount' => $p->cashAmount(),
-            'paid_at' => $p->paid_at,
-        ]);
-
-        $receivablePayments = $debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
-        $payablePayments = $asCash($debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable));
-        $governmentPayments = $asCash($receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
-        $customerReceivablePayments = $asCash($receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
-
-        $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'SYP')->sum('amount');
-        $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'USD')->sum('amount');
-
-        // The seed for row 1: there's no dedicated "opening balance" feature for Cash Box, but a
-        // starting balance recorded as an ordinary Other Income entry (the station's own
-        // workaround) is picked up automatically here, the same way it would be for any other
-        // day -- summing every category below across all of history strictly before $from, using
-        // the identical rules the per-day figures use.
-        $openingTransactions = Transaction::query()
-            ->where('occurred_at', '<', $from->copy()->startOfDay())
-            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $user->id))
-            ->with(['debt', 'sadcopLedgerEntry'])
-            ->get();
-
-        $openingIncome = $openingTransactions->whereIn('type', [TransactionType::FuelSale, TransactionType::OtherIncome])
-            ->reject(fn (Transaction $t) => $t->debt !== null)
-            ->reject(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government) || $isOtherCategory($t, OtherIncomeCategory::Other));
-        $openingGovernmentIncome = $openingTransactions->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Government));
-        $openingOtherCategory = $openingTransactions->filter(fn (Transaction $t) => $isOtherCategory($t, OtherIncomeCategory::Other));
-        $openingExpenseAll = $openingTransactions->whereIn('type', [TransactionType::Expense, TransactionType::Purchase])->reject(fn (Transaction $t) => $t->debt !== null);
-        $openingSadcop = $openingExpenseAll->filter($isSadcopPayment);
-        $openingOtherExpense = $openingExpenseAll->reject($isSadcopPayment);
-
-        $openingDebtPayments = DebtPayment::query()
-            ->whereDate('paid_at', '<', $from->toDateString())
-            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $user->id))
-            ->with('debt')
-            ->get();
-
-        $openingReceivable = $openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
-        $openingPayable = $asCash($openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable));
-        $openingGovernment = $asCash($openingReceivable->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
-        $openingCustomerReceivable = $asCash($openingReceivable->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
-
-        // Opening cash dated before the sheet seeds its first row; one inside it is Other Income
-        // on its day (SYP; this sheet has no USD income column).
-        $openingCashBefore = $isAdmin ? CashBoxOpening::whereDate('date', '<', $from->toDateString())->get() : collect();
-        $openingCashByDay = $isAdmin
-            ? CashBoxOpening::whereDate('date', '>=', $from->toDateString())->whereDate('date', '<=', $to->toDateString())->get()->groupBy(fn (CashBoxOpening $o): string => $o->date->toDateString())
-            : collect();
-
-        $openingSypBalance = $sumSyp($openingIncome, 'currency') + $sumSyp($openingCustomerReceivable, 'currency')
-            - (float) $openingSadcop->sum('amount')
-            + $sumSyp($openingGovernment, 'currency') + $sumSyp($openingGovernmentIncome, 'currency')
-            + $sumSyp($openingOtherCategory, 'currency') + $sumSyp($openingCashBefore, 'currency')
-            - $sumSyp($openingOtherExpense, 'currency') - $sumSyp($openingPayable, 'currency');
-
-        $openingUsdBalance = $sumUsd($openingCashBefore, 'currency')
-            - ($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'currency'));
-
-        $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item): string => $item->{$dateField}->toDateString());
-
-        $incomeByDay = $byDay($incomeTransactions, 'occurred_at');
-        $governmentIncomeByDay = $byDay($governmentIncomeTransactions, 'occurred_at');
-        $otherCategoryByDay = $byDay($otherCategoryTransactions, 'occurred_at');
-        $sadcopByDay = $byDay($sadcopTransactions, 'occurred_at');
-        $otherExpenseTxByDay = $byDay($otherExpenseTransactions, 'occurred_at');
-        $customerReceivableByDay = $byDay($customerReceivablePayments, 'paid_at');
-        $governmentByDay = $byDay($governmentPayments, 'paid_at');
-        $payableByDay = $byDay($payablePayments, 'paid_at');
-
-        $labels = Locales::labels([
-            'title' => 'Cash Box',
-            'date' => 'Date',
-            'cash_syp' => 'Cash Box (SYP)',
-            'sold_syp' => 'Sold (SYP)',
-            'sadcop' => 'Sadcop Payments',
-            'government' => 'Government',
-            'other_income' => 'Other Income',
-            'cash_usd' => 'Cash Box (USD)',
-            'expense_syp' => 'Expense (SYP)',
-            'expense_usd' => 'Expense (USD)',
-            'notes' => 'Notes',
-        ]);
-
-        $headerRow = [
-            $labels['date'], $labels['cash_syp'], $labels['sold_syp'], $labels['sadcop'],
-            $labels['government'], $labels['other_income'], $labels['cash_usd'], $labels['expense_syp'],
-            $labels['expense_usd'], $labels['notes'],
-        ];
-
-        $cashSypCol = 'B';
-        $soldSypCol = 'C';
-        $sadcopCol = 'D';
-        $governmentCol = 'E';
-        $otherIncomeCol = 'F';
-        $cashUsdCol = 'G';
-        $expenseSypCol = 'H';
-        $expenseUsdCol = 'I';
-
-        $rows = [];
-        $firstDataRow = 5; // title, subtitle, blank, header, then data
-
-        foreach (CarbonPeriod::create($from, $to) as $i => $day) {
-            $dayKey = $day->toDateString();
-            $thisRow = $firstDataRow + $i;
-
-            $soldSyp = $sumSyp($incomeByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($customerReceivableByDay->get($dayKey, collect()), 'currency');
-            $sadcopSyp = (float) $sadcopByDay->get($dayKey, collect())->sum('amount');
-            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($governmentIncomeByDay->get($dayKey, collect()), 'currency');
-            $otherIncomeSyp = $sumSyp($otherCategoryByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($openingCashByDay->get($dayKey, collect()), 'currency');
-            $expenseSyp = $sumSyp($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($payableByDay->get($dayKey, collect()), 'currency');
-            $expenseUsd = $sumUsd($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
-                + $sumUsd($payableByDay->get($dayKey, collect()), 'currency');
-
-            $notes = $governmentIncomeByDay->get($dayKey, collect())
-                ->concat($otherCategoryByDay->get($dayKey, collect()))
-                ->pluck('notes')
-                ->filter()
-                ->implode('; ');
-
-            if ($i === 0) {
-                $cashSypCell = round($openingSypBalance, 0);
-                $cashUsdCell = round($openingUsdBalance, 2);
-            } else {
-                $previousRow = $thisRow - 1;
-                $cashSypCell = "={$cashSypCol}{$previousRow}+{$soldSypCol}{$previousRow}-{$sadcopCol}{$previousRow}+{$governmentCol}{$previousRow}+{$otherIncomeCol}{$previousRow}-{$expenseSypCol}{$previousRow}";
-                $cashUsdCell = "={$cashUsdCol}{$previousRow}-{$expenseUsdCol}{$previousRow}";
-            }
-
-            $rows[] = [
-                $dayKey,
-                $cashSypCell,
-                $soldSyp > 0 ? round($soldSyp, 0) : null,
-                $sadcopSyp > 0 ? round($sadcopSyp, 0) : null,
-                $governmentSyp > 0 ? round($governmentSyp, 0) : null,
-                $otherIncomeSyp > 0 ? round($otherIncomeSyp, 0) : null,
-                $cashUsdCell,
-                $expenseSyp > 0 ? round($expenseSyp, 0) : null,
-                $expenseUsd > 0 ? round($expenseUsd, 2) : null,
-                $notes !== '' ? $notes : null,
-            ];
-        }
+        $sheet = $this->ledgerSheet($from, $to, $user->isAdmin(), $user->id);
 
         return $exporter->download(
             filename: 'cash-box-'.$from->toDateString().'-to-'.$to->toDateString().'.xlsx',
-            title: $labels['title'],
+            title: __('Cash Box'),
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: $headerRow,
-            rows: $rows,
+            headers: $sheet['headers'],
+            rows: $sheet['rows'],
             direction: 'ltr',
-            columnFormats: [
-                1 => '#,##0.00', // cash box (SYP)
-                2 => '#,##0.00', // sold (SYP)
-                3 => '#,##0.00', // sadcop payments
-                4 => '#,##0.00', // government
-                5 => '#,##0.00', // other income
-                6 => '#,##0.00', // cash box (USD)
-                7 => '#,##0.00', // expense (SYP)
-                8 => '#,##0.00', // expense (USD)
-            ],
+            columnFormats: $sheet['formats'],
         );
+    }
+
+    /**
+     * The ledger sheet's columns and rows (see exportXlsx()); the first data row is row 5 (title,
+     * subtitle, blank, header).
+     *
+     * @return array{headers: list<string>, rows: list<list<mixed>>, formats: array<int, string>, currencies: list<string>}
+     */
+    public function ledgerSheet(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
+    {
+        $primary = Currency::primary();
+        $from = $from->copy()->startOfDay();
+        $to = $to->copy()->startOfDay();
+
+        // Each day as the Cash Box sums it, and the balance carried into the sheet.
+        $days = [];
+        foreach (CarbonPeriod::create($from, $to) as $day) {
+            $days[$day->toDateString()] = $this->summarize($day->copy()->startOfDay(), $day->copy()->endOfDay(), $isAdmin, $userId);
+        }
+        $seed = $this->summarize(now()->setDate(2000, 1, 1)->startOfDay(), $from->copy()->subSecond(), $isAdmin, $userId)['net'];
+        $openings = ($isAdmin ? $this->openingsBetween($from, $to->copy()->endOfDay()) : collect())
+            ->groupBy(fn (CashBoxOpening $opening): string => $opening->date->toDateString());
+
+        // The primary currency's income split: government and "other" apart from ordinary sales.
+        $transactions = Transaction::query()
+            ->where('type', TransactionType::OtherIncome)
+            ->where('currency', $primary)
+            ->whereIn('other_income_category', [OtherIncomeCategory::Government, OtherIncomeCategory::Other])
+            ->where('occurred_at', '>=', $from)
+            ->where('occurred_at', '<=', $to->copy()->endOfDay())
+            ->when(! $isAdmin, fn ($q) => $q->where('user_id', $userId))
+            ->with('debt')
+            ->get()
+            ->reject(fn (Transaction $t) => $t->debt !== null);
+        $governmentDebtorId = Debtor::government()->id;
+        $governmentPayments = DebtPayment::query()
+            ->whereDate('paid_at', '>=', $from->toDateString())
+            ->whereDate('paid_at', '<=', $to->toDateString())
+            ->when(! $isAdmin, fn ($q) => $q->where('recorded_by_id', $userId))
+            ->whereHas('debt', fn ($q) => $q->where('direction', DebtDirection::Receivable)->where('debtor_id', $governmentDebtorId))
+            ->with('debt')
+            ->get()
+            ->filter(fn (DebtPayment $p) => $p->cashCurrency() === $primary);
+        $byDay = fn (Collection $items, \Closure $date) => $items->groupBy(fn ($item): string => $date($item)->toDateString());
+        $governmentIncomeByDay = $byDay($transactions->where('other_income_category', OtherIncomeCategory::Government), fn (Transaction $t) => $t->occurred_at);
+        $otherCategoryByDay = $byDay($transactions->where('other_income_category', OtherIncomeCategory::Other), fn (Transaction $t) => $t->occurred_at);
+        $governmentPaymentsByDay = $byDay($governmentPayments, fn (DebtPayment $p) => $p->paid_at);
+
+        // Every other currency that has anything in the sheet: a balance, activity or opening cash.
+        $others = collect(array_keys($seed))
+            ->merge(collect($days)->flatMap(fn (array $day) => [...array_keys($day['income']), ...array_keys($day['other_expense']), ...array_keys($day['exchanged'])]))
+            ->merge($openings->flatten()->pluck('currency'))
+            ->filter(fn ($code) => $code !== $primary && (abs($seed[$code] ?? 0) > 0.005 || collect($days)->contains(fn (array $day) => abs($day['income'][$code] ?? 0) + abs($day['other_expense'][$code] ?? 0) + abs($day['exchanged'][$code] ?? 0) > 0.005) || $openings->flatten()->contains('currency', $code)))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        // The columns, by key: [header, letter]. Sadcop is always paid in SYP.
+        $columns = [];
+        $add = function (string $key, string $header) use (&$columns): void {
+            $columns[$key] = [$header, Coordinate::stringFromColumnIndex(count($columns) + 1)];
+        };
+        $add('date', __('Date'));
+        $add("$primary.balance", __('Cash Box (:currency)', ['currency' => $primary]));
+        $add("$primary.sold", __('Sold (:currency)', ['currency' => $primary]));
+        $add('sadcop', __('Sadcop Payments'));
+        $add("$primary.government", __('Government'));
+        $add("$primary.other", __('Other Income'));
+        $add("$primary.exchanged", __('Exchanged (:currency)', ['currency' => $primary]));
+        $add("$primary.expense", __('Expense (:currency)', ['currency' => $primary]));
+        foreach ($others as $code) {
+            $add("$code.balance", __('Cash Box (:currency)', ['currency' => $code]));
+            $add("$code.income", __('Income (:currency)', ['currency' => $code]));
+            $add("$code.exchanged", __('Exchanged (:currency)', ['currency' => $code]));
+            $add("$code.expense", __('Expense (:currency)', ['currency' => $code]));
+        }
+        $add('notes', __('Notes'));
+        $letter = fn (string $key) => $columns[$key][1];
+
+        // A box's balance: the seed on the first row, then the previous row's balance plus what
+        // came in and minus what went out on it.
+        $balanceFormula = function (string $code, int $previous) use ($primary, $letter): string {
+            if ($code === $primary) {
+                $in = ["$code.sold", "$code.government", "$code.other", "$code.exchanged"];
+                $out = ["$code.expense", ...($code === Currency::SYP ? ['sadcop'] : [])];
+            } else {
+                // (Sadcop paid in SYP on a station whose primary currency isn't SYP is already
+                // in that SYP box's expense column.)
+                $in = ["$code.income", "$code.exchanged"];
+                $out = ["$code.expense"];
+            }
+
+            return '='.$letter("$code.balance").$previous
+                .implode('', array_map(fn (string $key) => '+'.$letter($key).$previous, $in))
+                .implode('', array_map(fn (string $key) => '-'.$letter($key).$previous, $out));
+        };
+        $sadcopInPrimary = $primary === Currency::SYP;
+
+        $rows = [];
+        $firstDataRow = 5;
+        $value = fn (float $amount, string $code) => abs($amount) > 0.005 ? round($amount, Currency::decimals($code)) : null;
+        $emit = function (array $cells) use (&$rows, $columns, $primary, $others, $seed, $firstDataRow, $balanceFormula): void {
+            $thisRow = $firstDataRow + count($rows);
+            foreach ([$primary, ...$others] as $code) {
+                $cells["$code.balance"] = $rows === []
+                    ? round($seed[$code] ?? 0.0, Currency::decimals($code))
+                    : $balanceFormula($code, $thisRow - 1);
+            }
+            $rows[] = array_map(fn (string $key) => $cells[$key] ?? null, array_keys($columns));
+        };
+
+        foreach ($days as $dayKey => $day) {
+            // Opening cash on this day: its own row, before the day's activity.
+            foreach ($openings->get($dayKey, collect()) as $opening) {
+                $code = $opening->currency;
+                $emit([
+                    'date' => $dayKey,
+                    ($code === $primary ? "$code.other" : "$code.income") => round((float) $opening->amount, Currency::decimals($code)),
+                    'notes' => trim(__('Opening cash').' ('.$code.') '.($opening->notes ?? '')),
+                ]);
+            }
+
+            $government = (float) $governmentIncomeByDay->get($dayKey, collect())->sum('amount')
+                + (float) $governmentPaymentsByDay->get($dayKey, collect())->sum(fn (DebtPayment $p) => $p->cashAmount());
+            $other = (float) $otherCategoryByDay->get($dayKey, collect())->sum('amount');
+            $sadcop = (float) $day['sadcop_expense_syp'];
+            $cells = [
+                'date' => $dayKey,
+                "$primary.sold" => $value(($day['income'][$primary] ?? 0.0) - $government - $other, $primary),
+                'sadcop' => $value($sadcop, Currency::SYP),
+                "$primary.government" => $value($government, $primary),
+                "$primary.other" => $value($other, $primary),
+                "$primary.exchanged" => $value($day['exchanged'][$primary] ?? 0.0, $primary),
+                "$primary.expense" => $value($day['other_expense'][$primary] ?? 0.0, $primary),
+                'notes' => $governmentIncomeByDay->get($dayKey, collect())->concat($otherCategoryByDay->get($dayKey, collect()))
+                    ->pluck('notes')->filter()->implode('; ') ?: null,
+            ];
+            foreach ($others as $code) {
+                $cells["$code.income"] = $value($day['income'][$code] ?? 0.0, $code);
+                $cells["$code.exchanged"] = $value($day['exchanged'][$code] ?? 0.0, $code);
+                // Sadcop is SYP; on a station whose primary currency isn't SYP it's an SYP expense.
+                $cells["$code.expense"] = $value(($day['other_expense'][$code] ?? 0.0) + ($code === Currency::SYP && ! $sadcopInPrimary ? $sadcop : 0.0), $code);
+            }
+            if (! $sadcopInPrimary) {
+                $cells['sadcop'] = null;
+            }
+            $emit($cells);
+        }
+
+        $formats = [];
+        foreach (array_keys($columns) as $index => $key) {
+            if (! in_array($key, ['date', 'notes'], true)) {
+                $formats[$index] = '#,##0.00';
+            }
+        }
+
+        return [
+            'headers' => array_values(array_map(fn (array $column) => $column[0], $columns)),
+            'rows' => $rows,
+            'formats' => $formats,
+            'currencies' => [$primary, ...$others],
+        ];
     }
 
     /**
@@ -722,7 +677,12 @@ class CashBoxController extends Controller
             return $transaction->notes ?: $labels['sadcop_transfer'];
         }
 
-        return $transaction->fuelType->name ?? $transaction->description ?? $transaction->type->value;
+        // Only a fuel sale or delivery is labelled by its fuel; anything else by its own
+        // description (expenses saved before this was fixed still carry a tank's fuel type).
+        $isFuel = in_array($transaction->type, [TransactionType::FuelSale, TransactionType::FuelDelivery], true);
+
+        return ($isFuel ? $transaction->fuelType?->name : null)
+            ?: ($transaction->description ?: __('transactions.type.'.$transaction->type->value));
     }
 
     /**

@@ -137,6 +137,13 @@ const TOTAL_BADGE =
 const NEUTRAL_BADGE =
     'bg-muted text-foreground ring-border dark:bg-slate-800 dark:ring-slate-700';
 
+/** The history table's header cells (one line) and number cells (one line, left to right). */
+const HISTORY_TH = 'whitespace-nowrap px-3 py-3';
+const HISTORY_NUMBER_TD = 'whitespace-nowrap px-3 py-3 tabular-nums';
+
+/** An entry-table header cell: one line, centred. */
+const ENTRY_TH = 'whitespace-nowrap px-1.5 py-2.5 text-center align-top';
+
 type BulkRow = EntryRowData;
 type Entry = PageProps['entry'];
 /** A date + shift in the entry table. */
@@ -754,37 +761,80 @@ export default function PumpCountersIndex() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/50 text-start">
-                                            <th className="w-px whitespace-nowrap px-1.5 py-2.5 text-center align-top">
+                                            {/* Headers stay on one line. Spare width goes to the five number
+                                                columns (13% each) and the tank (12%); notes is held to 18%
+                                                (about 17rem on a wide screen). At 1366px every column is at
+                                                its minimum and the table fits exactly. */}
+                                            <th
+                                                className={cn(ENTRY_TH, 'w-px')}
+                                            >
                                                 {t('pump_counters.pump')}
                                             </th>
-                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[12%]',
+                                                )}
+                                            >
                                                 {t('common.tank')}
                                             </th>
-                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[13%]',
+                                                )}
+                                            >
                                                 {t('pump_counters.previous')}
                                             </th>
-                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[13%]',
+                                                )}
+                                            >
                                                 {t(
                                                     'pump_counters.reading_value',
                                                 )}
                                             </th>
-                                            <th className="px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[13%]',
+                                                )}
+                                            >
                                                 {t(
                                                     'pump_counters.sold_quantity',
                                                 )}
                                             </th>
-                                            <th className="w-20 px-1.5 py-2.5 text-center align-top">
-                                                {t(
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[13%]',
+                                                )}
+                                                title={t(
                                                     'pump_counters.governmental_sale',
                                                 )}
+                                            >
+                                                {t(
+                                                    'pump_counters.governmental_short',
+                                                )}
                                             </th>
-                                            <th className="w-20 px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[13%]',
+                                                )}
+                                            >
                                                 {t(
                                                     'pump_counters.return_liters',
                                                 )}
                                             </th>
-                                            {/* Notes take whatever width is left; the number columns stay compact. */}
-                                            <th className="w-full px-1.5 py-2.5 text-center align-top">
+                                            <th
+                                                className={cn(
+                                                    ENTRY_TH,
+                                                    'w-[18%]',
+                                                )}
+                                            >
                                                 {t('common.notes')}
                                             </th>
                                         </tr>
@@ -998,34 +1048,41 @@ export default function PumpCountersIndex() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-muted/50 text-start">
-                                    <th className="px-4 py-3">
+                                    {/* As in the entry table: headers on one line, spare width shared by
+                                        the number columns, notes held back. */}
+                                    <th className={cn(HISTORY_TH, 'w-px')}>
                                         {t('pump_counters.time')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[12%]')}>
                                         {t('pump_counters.pump')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('common.tank')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('pump_counters.previous')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('pump_counters.reading_value')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('pump_counters.liters_sold')}
                                     </th>
-                                    <th className="px-4 py-3">
-                                        {t('pump_counters.governmental_sale')}
+                                    <th
+                                        className={cn(HISTORY_TH, 'w-[9%]')}
+                                        title={t(
+                                            'pump_counters.governmental_sale',
+                                        )}
+                                    >
+                                        {t('pump_counters.governmental_short')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('pump_counters.return_liters')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[12%]')}>
                                         {t('common.notes')}
                                     </th>
-                                    <th className="px-4 py-3">
+                                    <th className={cn(HISTORY_TH, 'w-[8%]')}>
                                         {t('common.recorded_by')}
                                     </th>
                                     {auth.isAdmin && (
@@ -1064,36 +1121,46 @@ export default function PumpCountersIndex() {
                                                 '—'
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.previous_reading_value !==
-                                            null
-                                                ? formatNumber(
-                                                      reading.previous_reading_value,
-                                                      0,
-                                                  )
-                                                : '—'}
+                                        <td className={HISTORY_NUMBER_TD}>
+                                            <bdi dir="ltr">
+                                                {reading.previous_reading_value !==
+                                                null
+                                                    ? formatNumber(
+                                                          reading.previous_reading_value,
+                                                          0,
+                                                      )
+                                                    : '—'}
+                                            </bdi>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {formatNumber(
-                                                reading.reading_value,
-                                                0,
-                                            )}
+                                        <td className={HISTORY_NUMBER_TD}>
+                                            <bdi dir="ltr">
+                                                {formatNumber(
+                                                    reading.reading_value,
+                                                    0,
+                                                )}
+                                            </bdi>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.liters_sold !== null
-                                                ? `${formatNumber(reading.liters_sold)} L`
-                                                : '—'}
+                                        <td className={HISTORY_NUMBER_TD}>
+                                            <bdi dir="ltr">
+                                                {reading.liters_sold !== null
+                                                    ? `${formatNumber(reading.liters_sold)} L`
+                                                    : '—'}
+                                            </bdi>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.governmental_liters !==
-                                            null
-                                                ? `${formatNumber(reading.governmental_liters)} L`
-                                                : '—'}
+                                        <td className={HISTORY_NUMBER_TD}>
+                                            <bdi dir="ltr">
+                                                {reading.governmental_liters !==
+                                                null
+                                                    ? `${formatNumber(reading.governmental_liters)} L`
+                                                    : '—'}
+                                            </bdi>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.return_liters !== null
-                                                ? `${formatNumber(reading.return_liters)} L`
-                                                : '—'}
+                                        <td className={HISTORY_NUMBER_TD}>
+                                            <bdi dir="ltr">
+                                                {reading.return_liters !== null
+                                                    ? `${formatNumber(reading.return_liters)} L`
+                                                    : '—'}
+                                            </bdi>
                                         </td>
                                         <td className="px-4 py-3">
                                             {reading.notes}

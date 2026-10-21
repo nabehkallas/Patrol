@@ -57,8 +57,8 @@ const INPUT =
     'w-full border-slate-300 dark:border-slate-700 dark:bg-slate-800/80';
 
 /**
- * A value in the row that can't be typed in: an input's height, muted, never focused. Its
- * width is fixed (a long value is cut short, in full on hover), so it never widens the table.
+ * A value in the row that can't be typed in: an input's height, muted, never focused. It fills
+ * its column; its text never widens the table (a long value is cut short, in full on hover).
  */
 function LockedBox({
     label,
@@ -78,7 +78,8 @@ function LockedBox({
             )}
             {...props}
         >
-            <span className="truncate">{value}</span>
+            {/* No width of its own (w-0 grow): only the box's min-width counts for the table. */}
+            <span className="w-0 min-w-0 grow truncate text-end">{value}</span>
         </div>
     );
 }
@@ -257,7 +258,7 @@ export function EntryRow({
             </td>
             <td className="px-1.5 py-2.5 align-top">
                 <LockedBox
-                    className="w-[6rem]"
+                    className="w-full min-w-[6rem]"
                     label={t('pump_counters.previous')}
                     value={
                         shown.previous !== null
@@ -286,7 +287,7 @@ export function EntryRow({
             </td>
             <td className="px-1.5 py-2.5 align-top">
                 <LockedBox
-                    className={cn('w-[5rem]', soldTone)}
+                    className={cn('w-full min-w-[5rem]', soldTone)}
                     label={t('pump_counters.sold_quantity')}
                     value={
                         shown.sold !== null
@@ -296,8 +297,8 @@ export function EntryRow({
                     data-test="sold-box"
                 />
             </td>
-            <td className="w-20 px-1.5 py-2.5 align-top">
-                <div className="w-full">
+            <td className="px-1.5 py-2.5 align-top">
+                <div className="w-full min-w-[4.5rem]">
                     <Input
                         type="number"
                         step="0.001"
@@ -312,8 +313,8 @@ export function EntryRow({
                     <InputError message={error('governmental_liters')} />
                 </div>
             </td>
-            <td className="w-20 px-1.5 py-2.5 align-top">
-                <div className="w-full">
+            <td className="px-1.5 py-2.5 align-top">
+                <div className="w-full min-w-[4.5rem]">
                     <Input
                         type="number"
                         step="0.001"

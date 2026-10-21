@@ -721,8 +721,6 @@
     "By fuel type": "Nach Kraftstoffsorte",
     "COGS (SYP)": "Wareneinsatz (SYP)",
     "Cash Box": "Kasse",
-    "Cash Box (SYP)": "Kasse (SYP)",
-    "Cash Box (USD)": "Kasse (USD)",
     "Choose a different currency to exchange into.": "Wähle eine andere Zielwährung.",
     "Confirm email address": "E-Mail-Adresse bestätigen",
     "Confirm your email address for :app": "Bestätige deine E-Mail-Adresse für :app",
@@ -762,8 +760,6 @@
     "Entry updated.": "Eintrag aktualisiert.",
     "Exchange Rate": "Wechselkurs",
     "Exchange rate updated.": "Wechselkurs aktualisiert.",
-    "Expense (SYP)": "Ausgabe (SYP)",
-    "Expense (USD)": "Ausgabe (USD)",
     "Free Liters": "Kostenlose Liter",
     "Fuel Type": "Kraftstoffsorte",
     "Fuel deliveries": "Kraftstofflieferungen",
@@ -881,7 +877,6 @@
     "Sign in": "Anmelden",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "Melde dich an, um deine Station einzurichten: Kraftstoffsorten, Tanks, Zapfsäulen und Preise.",
     "Sold": "Verkauft",
-    "Sold (SYP)": "Verkauft (SYP)",
     "Sold Liters": "Verkaufte Liter",
     "Sold Qty": "Verk. Menge",
     "Station data reset.": "Stationsdaten zurückgesetzt.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Geben Sie den Wechselkurs ein.",
     "Not enough in the :box box (available: :available).": "Nicht genug in der Kasse :box (verfügbar: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "Nicht genug in der Kasse :box (verfügbar: :available). Sie können aus der Kasse :primary zu einem Wechselkurs zahlen.",
-    "The :box box will go negative (available: :available). Continue?": "Die Kasse :box wird negativ (verfügbar: :available). Fortfahren?"
+    "The :box box will go negative (available: :available). Continue?": "Die Kasse :box wird negativ (verfügbar: :available). Fortfahren?",
+    "Cash Box (:currency)": "Kasse (:currency)",
+    "Sold (:currency)": "Verkauft (:currency)",
+    "Exchanged (:currency)": "Umtausch (:currency)",
+    "Expense (:currency)": "Ausgaben (:currency)",
+    "pump_counters.governmental_short": "Behörde (L)"
 }

@@ -140,15 +140,27 @@ export default function DebtsIndex() {
     }
 
     function whatFor(debt: Debt): string {
+        // A debt from a transaction is about fuel only when that is a fuel sale or delivery
+        // (older expenses still carry a tank's fuel type); otherwise it's its description.
+        const transaction = debt.transaction;
+        const fuelTransaction =
+            transaction?.type === 'fuel_sale' ||
+            transaction?.type === 'fuel_delivery';
         const fuelTypeName =
-            debt.transaction?.fuel_type?.name ?? debt.fuel_type?.name;
+            (fuelTransaction ? transaction?.fuel_type?.name : null) ??
+            debt.fuel_type?.name;
         const liters = debt.liters ?? debt.transaction?.liters;
 
         if (fuelTypeName && liters) {
             return `${fuelTypeName} — ${formatNumber(liters)} L`;
         }
 
-        return fuelTypeName ?? debt.details ?? '—';
+        return (
+            fuelTypeName ??
+            (fuelTransaction ? null : transaction?.description) ??
+            debt.details ??
+            '—'
+        );
     }
 
     // Paying a debt the station owes takes money out of a box: the primary box may go

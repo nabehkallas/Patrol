@@ -721,8 +721,6 @@
     "By fuel type": "По видам топлива",
     "COGS (SYP)": "Себестоимость продаж (SYP)",
     "Cash Box": "Касса",
-    "Cash Box (SYP)": "Касса (SYP)",
-    "Cash Box (USD)": "Касса (USD)",
     "Choose a different currency to exchange into.": "Выберите другую валюту для обмена.",
     "Confirm email address": "Подтвердить адрес почты",
     "Confirm your email address for :app": "Подтвердите адрес почты для :app",
@@ -762,8 +760,6 @@
     "Entry updated.": "Запись обновлена.",
     "Exchange Rate": "Курс валют",
     "Exchange rate updated.": "Курс обновлён.",
-    "Expense (SYP)": "Расход (SYP)",
-    "Expense (USD)": "Расход (USD)",
     "Free Liters": "Бесплатные литры",
     "Fuel Type": "Вид топлива",
     "Fuel deliveries": "Поставки топлива",
@@ -881,7 +877,6 @@
     "Sign in": "Войти",
     "Sign in to set up your station: fuel types, tanks, pumps and prices.": "Войдите, чтобы настроить АЗС: виды топлива, резервуары, ТРК и цены.",
     "Sold": "Продано",
-    "Sold (SYP)": "Продано (SYP)",
     "Sold Liters": "Продано литров",
     "Sold Qty": "Продано, шт.",
     "Station data reset.": "Данные АЗС сброшены.",
@@ -1179,5 +1174,10 @@
     "Enter the exchange rate.": "Введите курс.",
     "Not enough in the :box box (available: :available).": "В кассе :box недостаточно (доступно: :available).",
     "Not enough in the :box box (available: :available). You can pay from the :primary box at an exchange rate.": "В кассе :box недостаточно (доступно: :available). Можно оплатить из кассы :primary по курсу.",
-    "The :box box will go negative (available: :available). Continue?": "Касса :box уйдёт в минус (доступно: :available). Продолжить?"
+    "The :box box will go negative (available: :available). Continue?": "Касса :box уйдёт в минус (доступно: :available). Продолжить?",
+    "Cash Box (:currency)": "Касса (:currency)",
+    "Sold (:currency)": "Продано (:currency)",
+    "Exchanged (:currency)": "Обмен (:currency)",
+    "Expense (:currency)": "Расходы (:currency)",
+    "pump_counters.governmental_short": "Гос. (л)"
 }
