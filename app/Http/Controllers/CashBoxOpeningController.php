@@ -7,13 +7,23 @@ use App\Support\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * The cash each box already held when the station started using the app: one entry per
- * currency (saving again replaces it), counted by the Cash Box as money in on its date.
+ * Settings > "Cash when you started using the app" (admins): the cash each box already held
+ * before the station recorded anything, one entry per currency (saving again replaces it),
+ * counted by the Cash Box as money in on its date -- never income. Not for cash that was
+ * already recorded as a deposit or income: that would count it twice.
  */
 class CashBoxOpeningController extends Controller
 {
+    public function index(): Response
+    {
+        return Inertia::render('settings/opening-cash', [
+            'openings' => CashBoxOpening::orderBy('currency')->get(['id', 'currency', 'amount', 'date', 'notes']),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([

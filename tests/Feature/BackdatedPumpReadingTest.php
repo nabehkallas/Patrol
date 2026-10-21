@@ -302,6 +302,8 @@ class BackdatedPumpReadingTest extends TestCase
 
         app(PumpCounterReadingController::class)->exportPdf(Request::create('/x', 'GET', ['from' => '2026-10-15', 'to' => '2026-10-18']), $exporter);
 
-        $this->assertSame(['مازوت اساسي'], array_values(array_unique(array_column($rows, 1))));
+        // Columns: date, pump, tank, ...
+        $this->assertSame(['مازوت اساسي'], array_values(array_unique(array_column($rows, 2))));
+        $this->assertSame(['2026-10-18', '2026-10-17', '2026-10-15'], array_values(array_unique(array_column($rows, 0))));
     }
 }

@@ -61,10 +61,10 @@ class PumpCounterReadingController extends Controller
                 ];
             });
 
-        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy', 'shift'])
+        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'shift'])
             ->whereDate('pump_counter_readings.date', '>=', $from)
             ->whereDate('pump_counter_readings.date', '<=', $to)
-            ->chronological('desc')
+            ->latestShown()
             ->get()
             ->each(function (PumpCounterReading $reading) {
                 $reading->previous_reading_value = $this->previousReadingFor($reading)?->reading_value;
@@ -90,38 +90,41 @@ class PumpCounterReadingController extends Controller
         [$from, $to] = $this->historyRange($request);
         $direction = Locales::direction();
 
-        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'recordedBy'])
+        $readings = PumpCounterReading::with(['pump', 'tank.fuelType', 'shift'])
             ->whereDate('pump_counter_readings.date', '>=', $from)
             ->whereDate('pump_counter_readings.date', '<=', $to)
-            ->chronological('desc')
+            ->latestShown()
             ->get();
+        $withShift = Shift::severalActive();
 
         $labels = Locales::labels([
             'title' => 'Pump Counter Readings',
+            'date' => 'Date',
             'pump' => 'Pump',
             'tank' => 'Tank',
             'reading' => 'Counter value',
             'liters_sold' => 'Liters sold',
             'governmental' => 'Governmental sale (L)',
             'return' => 'Return (L)',
-            'recorded_by' => 'Recorded by',
         ]);
 
+        // As in the history: the reading's date (and shift), no time; who saved it and when is
+        // in the audit log only.
         $rows = $readings->map(fn (PumpCounterReading $reading) => [
+            $reading->date->toDateString().($withShift ? ' · '.$reading->shift->label() : ''),
             $reading->pump->name ?? '—',
             $reading->tank->name ?? '—',
             number_format((float) $reading->reading_value, 0),
             $reading->liters_sold !== null ? number_format((float) $reading->liters_sold, 3).' L' : '—',
             $reading->governmental_liters !== null ? number_format((float) $reading->governmental_liters, 3).' L' : '—',
             $reading->return_liters !== null ? number_format((float) $reading->return_liters, 3).' L' : '—',
-            $reading->recordedBy->name ?? '—',
         ])->all();
 
         return $exporter->download(
             filename: 'pump-counters-'.$from->toDateString().($from->equalTo($to) ? '' : '-to-'.$to->toDateString()).'.pdf',
             title: $labels['title'],
             subtitle: $from->equalTo($to) ? $from->toDateString() : $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['pump'], $labels['tank'], $labels['reading'], $labels['liters_sold'], $labels['governmental'], $labels['return'], $labels['recorded_by']],
+            headers: [$labels['date'], $labels['pump'], $labels['tank'], $labels['reading'], $labels['liters_sold'], $labels['governmental'], $labels['return']],
             rows: $rows,
             direction: $direction,
         );

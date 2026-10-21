@@ -129,7 +129,7 @@ export type Transaction = {
     exchange_rate_to_usd: string | null;
     occurred_at: string;
     /** On the Transactions page: when it shows as having happened. */
-    shown?: ShownTime;
+    shown?: ShownDate;
     notes: string | null;
     other_income_category?: OtherIncomeCategory | null;
     user?: UserSummary;
@@ -293,19 +293,19 @@ export type CashBoxHistoryEntryType =
     | 'opening';
 
 /**
- * When a record was saved (Transaction::shownTime()), and a fuel sale's or reading's shift on a
- * station with several. Display only: the record counts on its own date.
+ * What a list shows for an entry (Transaction::shownDate()): the date it counts for
+ * ('YYYY-MM-DD'), and a fuel sale's or reading's shift on a station with several.
  */
-export type ShownTime = {
-    at: string;
+export type ShownDate = {
+    date: string;
     shift: string | null;
 };
 
 export type CashBoxHistoryEntry = {
     id: string;
-    /** When it was saved: ShownTime's `at`. */
+    /** ShownDate's `date`. */
     date: string;
-    shift: ShownTime['shift'];
+    shift: ShownDate['shift'];
     type: CashBoxHistoryEntryType;
     description: string;
     amount: number;

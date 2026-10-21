@@ -594,7 +594,6 @@
     "pump_counters.return_liters": "Devolución al tanque (L)",
     "pump_counters.fuel_type_daily_total": "Litros vendidos hoy",
     "pump_counters.governmental_total": "Venta gubernamental (total)",
-    "pump_counters.time": "Hora",
     "shop.title": "Tienda",
     "shop.description": "Vende artículos de la tienda (agua, aceite, etc.) y gestiona el stock",
     "shop.new_item": "Nombre del nuevo artículo",
@@ -919,7 +918,6 @@
     "This tank has transfer history and cannot be deleted.": "Este tanque tiene historial de traspasos y no se puede eliminar.",
     "This tank's fuel type does not match the pump's fuel type.": "El tipo de combustible de este tanque no coincide con el del surtidor.",
     "This tank's fuel type does not match the selected pump.": "El tipo de combustible de este tanque no coincide con el surtidor elegido.",
-    "Time": "Hora",
     "Today": "Hoy",
     "Top-up Earnings": "Ganancias por litros añadidos",
     "Total": "Total",
@@ -1162,11 +1160,10 @@
     "cash_source.rate": "Tipo de cambio",
     "cash_source.negative_title": "Caja en negativo",
     "cash_source.negative_continue": "Continuar",
-    "cash_box.opening_cash_title": "Efectivo inicial",
     "cash_box.opening_cash_description": "El efectivo que tenía cada caja al empezar a usar la aplicación. Cuenta como entrada en su fecha, no como ingreso.",
     "cash_box.opening_cash_set": "Definir",
     "cash_box.opening_cash_hint": "Un importe por caja; guardar de nuevo lo reemplaza.",
-    "cash_box.opening_cash_remove_confirm": "¿Eliminar este efectivo inicial?",
+    "cash_box.opening_cash_remove_confirm": "¿Eliminar el efectivo inicial de esta caja?",
     "cash_box.history_type.opening": "Efectivo inicial",
     "Opening cash": "Efectivo inicial",
     "Opening cash saved.": "Efectivo inicial guardado.",
@@ -1180,5 +1177,8 @@
     "Exchanged (:currency)": "Cambio (:currency)",
     "Expense (:currency)": "Gastos (:currency)",
     "pump_counters.governmental_short": "Gob. (L)",
-    "pump_counters.gov_return_short": "Gob. / Devol."
+    "pump_counters.gov_return_short": "Gob. / Devol.",
+    "pump_counters.sold_short": "Vendido",
+    "opening_cash.title": "Efectivo al empezar a usar la aplicación",
+    "opening_cash.warning": "Solo para el efectivo que había en las cajas antes de empezar a registrar en la aplicación. No lo introduzca si ya se registró como depósito o ingreso: se contaría dos veces."
 }

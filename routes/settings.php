@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CashBoxOpeningController;
 use App\Http\Controllers\Settings\CurrencyController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -46,6 +47,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::post('settings/shifts', [ShiftController::class, 'store'])->name('shifts.store');
         Route::patch('settings/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
         Route::delete('settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+        Route::get('settings/opening-cash', [CashBoxOpeningController::class, 'index'])->name('opening-cash.index');
+        Route::post('settings/opening-cash', [CashBoxOpeningController::class, 'store'])->name('opening-cash.store');
+        Route::delete('settings/opening-cash/{cashBoxOpening}', [CashBoxOpeningController::class, 'destroy'])->name('opening-cash.destroy');
         // POST with the admin's password (checked server-side) rather than a plain link.
         Route::post('settings/data/backup', [StationDataController::class, 'downloadBackup'])->name('data.backup')->middleware('throttle:6,1');
         Route::delete('settings/data', [StationDataController::class, 'reset'])->name('data.reset');

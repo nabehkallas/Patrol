@@ -36,6 +36,12 @@ class Debt extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['date', 'debtor_id', 'direction'];
+    }
+
     protected function casts(): array
     {
         return [

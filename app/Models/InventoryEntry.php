@@ -14,6 +14,12 @@ class InventoryEntry extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['date', 'tank_id'];
+    }
+
     protected function casts(): array
     {
         return [

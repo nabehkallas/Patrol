@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { PiggyBank } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCurrencies, useCurrencyName } from '@/components/currency-options';
@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatMoney, formatShortDate, todayInStation } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
-import { destroy, store } from '@/routes/cash-box/openings';
+import { destroy, store } from '@/routes/opening-cash';
 
 export type OpeningCash = {
     id: number;
@@ -29,8 +29,9 @@ export type OpeningCash = {
 };
 
 /**
- * The cash each box held when the station started using the app (admins): one amount per
- * currency, counted as money in on its date. Saving again replaces it.
+ * Settings > "Cash when you started using the app" (admins): the cash each box held before the
+ * station recorded anything, one amount per currency, counted as money in on its date (never
+ * income). Saving again replaces it. Not for cash already recorded as a deposit or income.
  */
 export function OpeningCashCard({ openings }: { openings: OpeningCash[] }) {
     const { t } = useTranslation();
@@ -67,17 +68,13 @@ export function OpeningCashCard({ openings }: { openings: OpeningCash[] }) {
     }
 
     return (
-        <div className="rounded-xl border p-4" data-test="opening-cash">
-            <div className="mb-3 flex items-start gap-2">
-                <PiggyBank className="text-muted-foreground mt-0.5 size-5" />
-                <div>
-                    <h3 className="font-semibold">
-                        {t('cash_box.opening_cash_title')}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                        {t('cash_box.opening_cash_description')}
-                    </p>
-                </div>
+        <div className="space-y-4" data-test="opening-cash">
+            <div
+                role="note"
+                className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <p>{t('opening_cash.warning')}</p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {active.map(({ code }) => {
@@ -141,7 +138,7 @@ export function OpeningCashCard({ openings }: { openings: OpeningCash[] }) {
             >
                 <DialogContent className="sm:max-w-md">
                     <DialogTitle>
-                        {t('cash_box.opening_cash_title')} —{' '}
+                        {t('opening_cash.title')} —{' '}
                         {editing ? currencyName(editing) : ''}
                     </DialogTitle>
                     <DialogDescription>

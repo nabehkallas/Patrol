@@ -23,6 +23,12 @@ class PumpCounterReading extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['date', 'shift_id', 'pump_id'];
+    }
+
     protected function casts(): array
     {
         return [
@@ -68,6 +74,22 @@ class PumpCounterReading extends Model
         return $joined ? $query : $query
             ->join('shifts', 'shifts.id', '=', 'pump_counter_readings.shift_id')
             ->select('pump_counter_readings.*');
+    }
+
+    /**
+     * The order the history lists readings in: newest date first, then the last one saved first
+     * (then the higher id), so it never changes between loads. Display only -- which reading
+     * counts from which is always chronological().
+     *
+     * @param  Builder<PumpCounterReading>  $query
+     * @return Builder<PumpCounterReading>
+     */
+    public function scopeLatestShown(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('date(pump_counter_readings.date) DESC')
+            ->orderByDesc('pump_counter_readings.created_at')
+            ->orderByDesc('pump_counter_readings.id');
     }
 
     /**

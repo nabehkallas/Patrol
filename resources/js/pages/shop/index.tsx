@@ -19,6 +19,7 @@ import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { ShownDate } from '@/components/shown-date';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -45,7 +46,6 @@ import {
 import type { CashSourceInput } from '@/lib/cash-source';
 import { cashSourcePayload } from '@/lib/cash-source';
 import {
-    formatDateTime,
     formatNumber,
     todayInStation,
     getPrimaryCurrency,
@@ -88,7 +88,6 @@ type HistoryEntry = {
     /** Paid from the primary box at a rate: what it was for (the record is what left the box). */
     original: { amount: number; currency: Currency; rate: number } | null;
     occurred_at: string;
-    recorded_by: string | null;
     notes: string | null;
 };
 
@@ -1017,7 +1016,7 @@ export default function ShopIndex() {
                             <thead>
                                 <tr className="bg-muted/50 text-start">
                                     <th className="px-4 py-3">
-                                        {t('pump_counters.time')}
+                                        {t('common.date')}
                                     </th>
                                     <th className="px-4 py-3">
                                         {t('common.type')}
@@ -1031,9 +1030,6 @@ export default function ShopIndex() {
                                     <th className="px-4 py-3">
                                         {t('common.amount')}
                                     </th>
-                                    <th className="px-4 py-3">
-                                        {t('common.recorded_by')}
-                                    </th>
                                     {auth.isAdmin && (
                                         <th className="px-4 py-3"></th>
                                     )}
@@ -1043,9 +1039,12 @@ export default function ShopIndex() {
                                 {history.map((entry) => (
                                     <tr key={entry.id} className="border-t">
                                         <td className="whitespace-nowrap px-4 py-3">
-                                            {formatDateTime(entry.occurred_at)}
+                                            <ShownDate
+                                                date={entry.occurred_at}
+                                                shift={null}
+                                            />
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="whitespace-nowrap px-4 py-3">
                                             {entry.type === 'purchase'
                                                 ? t('shop.type.purchase')
                                                 : t('shop.type.sale')}
@@ -1064,9 +1063,6 @@ export default function ShopIndex() {
                                             <OriginalPaymentNote
                                                 original={entry.original}
                                             />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {entry.recorded_by}
                                         </td>
                                         {auth.isAdmin && (
                                             <td className="px-4 py-3 text-end">
@@ -1087,7 +1083,7 @@ export default function ShopIndex() {
                                 {history.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={auth.isAdmin ? 7 : 6}
+                                            colSpan={auth.isAdmin ? 6 : 5}
                                             className="text-muted-foreground px-4 py-6 text-center"
                                         >
                                             {t('common.no_results')}

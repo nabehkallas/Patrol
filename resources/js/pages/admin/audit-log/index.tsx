@@ -59,6 +59,8 @@ const ENTITY_LABELS: Record<string, TranslationKey> = {
     StationCurrency: 'settings.nav.currencies',
     User: 'nav.employees',
     EarningsPassword: 'earnings.password',
+    Shift: 'settings.nav.shifts',
+    CashBoxOpening: 'opening_cash.title',
 };
 
 const ACTION_LABELS: Record<string, TranslationKey> = {
@@ -90,7 +92,10 @@ const FIELD_LABELS: Record<string, TranslationKey> = {
     quantity_liters: 'common.liters',
     date: 'common.date',
     occurred_at: 'common.date',
+    paid_at: 'common.date',
     effective_at: 'common.date',
+    shift_id: 'pump_counters.shift',
+    debt_id: 'nav.debts',
     notes: 'common.notes',
     details: 'common.details',
     description: 'common.details',
@@ -116,9 +121,22 @@ const FIELD_LABELS: Record<string, TranslationKey> = {
     recorded_by_id: 'audit.field.employee',
 };
 
-function show(value: unknown, t: (key: TranslationKey) => string): string {
+// The date a record is entered for: shown as the date only. Their stored time of day isn't one
+// anyone typed (a fuel sale's is noon of its reading's date) -- when the entry was saved is the
+// log entry's own time.
+const DATE_ONLY_FIELDS = new Set(['date', 'occurred_at', 'paid_at']);
+
+function show(
+    value: unknown,
+    t: (key: TranslationKey) => string,
+    key?: string,
+): string {
     if (value === null || value === undefined || value === '') {
         return '—';
+    }
+
+    if (key && DATE_ONLY_FIELDS.has(key) && typeof value === 'string') {
+        return value.slice(0, 10);
     }
 
     if (typeof value === 'boolean') {
@@ -141,12 +159,23 @@ function Changes({ log }: { log: AuditLog }) {
     const { t } = useTranslation();
     const { direction } = useLocale();
     const arrow = direction === 'rtl' ? '←' : '→';
+    // On an edit, a field with the same value on both sides is which record it was (the date
+    // it's entered for, ...), not a change: listed first, as a plain value.
+    const unchanged = (key: string) =>
+        log.old_values !== null &&
+        log.new_values !== null &&
+        key in log.old_values &&
+        key in log.new_values &&
+        JSON.stringify(log.old_values[key]) ===
+            JSON.stringify(log.new_values[key]);
     const keys = Array.from(
         new Set([
             ...Object.keys(log.old_values ?? {}),
             ...Object.keys(log.new_values ?? {}),
         ]),
-    ).filter((key) => key !== 'id');
+    )
+        .filter((key) => key !== 'id')
+        .sort((a, b) => Number(unchanged(b)) - Number(unchanged(a)));
 
     if (keys.length === 0) {
         return <span className="text-muted-foreground">—</span>;
@@ -166,19 +195,29 @@ function Changes({ log }: { log: AuditLog }) {
                 <Fragment key={key}>
                     <dt className="text-muted-foreground">{label(key)}</dt>
                     <dd className="break-words">
-                        {log.old_values && key in log.old_values && (
+                        {unchanged(key) ? (
+                            <bdi className="text-muted-foreground">
+                                {show(log.new_values?.[key], t, key)}
+                            </bdi>
+                        ) : (
                             <>
-                                <bdi className="line-through opacity-70">
-                                    {show(log.old_values[key], t)}
-                                </bdi>{' '}
-                                <span aria-hidden="true">{arrow}</span>{' '}
+                                {log.old_values && key in log.old_values && (
+                                    <>
+                                        <bdi className="line-through opacity-70">
+                                            {show(log.old_values[key], t, key)}
+                                        </bdi>{' '}
+                                        <span aria-hidden="true">
+                                            {arrow}
+                                        </span>{' '}
+                                    </>
+                                )}
+                                <bdi className="font-medium">
+                                    {log.new_values && key in log.new_values
+                                        ? show(log.new_values[key], t, key)
+                                        : '—'}
+                                </bdi>
                             </>
                         )}
-                        <bdi className="font-medium">
-                            {log.new_values && key in log.new_values
-                                ? show(log.new_values[key], t)
-                                : '—'}
-                        </bdi>
                     </dd>
                 </Fragment>
             ))}

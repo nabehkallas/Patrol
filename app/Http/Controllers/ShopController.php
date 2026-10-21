@@ -66,37 +66,34 @@ class ShopController extends Controller
         $direction = Locales::direction();
 
         $entries = $this->logQuery($from, $to, $itemId, $type)
-            ->with(['shopItem', 'user'])
-            ->latest('occurred_at')
-            ->latest('id')
+            ->with('shopItem')
+            ->latestShown()
             ->get();
 
         $labels = Locales::labels([
             'title' => 'Shop History',
-            'time' => 'Time',
+            'date' => 'Date',
             'type' => 'Type',
             'item' => 'Item',
             'quantity' => 'Quantity',
             'amount' => 'Amount',
-            'recorded_by' => 'Recorded by',
             'purchase' => 'Purchase',
             'sale' => 'Sale',
         ]);
 
         $rows = $entries->map(fn (Transaction $transaction) => [
-            $transaction->occurred_at->format('H:i'),
+            $transaction->occurred_at->toDateString(),
             $transaction->type === TransactionType::Purchase ? $labels['purchase'] : $labels['sale'],
             $transaction->shopItem->name ?? '—',
             (string) $transaction->quantity,
             number_format((float) $transaction->amount, 2).' '.$transaction->currency.($transaction->originalNote() !== null ? ' ('.$transaction->originalNote().')' : ''),
-            $transaction->user->name ?? '—',
         ])->all();
 
         return $exporter->download(
             filename: 'shop-'.$from->toDateString().'-to-'.$to->toDateString().'.pdf',
             title: $labels['title'],
             subtitle: $from->toDateString().' — '.$to->toDateString(),
-            headers: [$labels['time'], $labels['type'], $labels['item'], $labels['quantity'], $labels['amount'], $labels['recorded_by']],
+            headers: [$labels['date'], $labels['type'], $labels['item'], $labels['quantity'], $labels['amount']],
             rows: $rows,
             direction: $direction,
         );
@@ -302,9 +299,8 @@ class ShopController extends Controller
     private function historyFor(CarbonInterface $from, CarbonInterface $to, ?int $itemId, ?TransactionType $type): array
     {
         return $this->logQuery($from, $to, $itemId, $type)
-            ->with(['shopItem', 'user'])
-            ->latest('occurred_at')
-            ->latest('id')
+            ->with('shopItem')
+            ->latestShown()
             ->get()
             ->map(fn (Transaction $transaction) => [
                 'id' => $transaction->id,
@@ -316,7 +312,6 @@ class ShopController extends Controller
                 'currency' => $transaction->currency,
                 'original' => $transaction->originalPayment(),
                 'occurred_at' => $transaction->occurred_at,
-                'recorded_by' => $transaction->user?->name,
                 'notes' => $transaction->notes,
             ])
             ->all();

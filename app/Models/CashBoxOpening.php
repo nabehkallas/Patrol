@@ -19,6 +19,12 @@ class CashBoxOpening extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['date', 'currency'];
+    }
+
     protected function casts(): array
     {
         return [

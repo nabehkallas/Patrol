@@ -80,7 +80,7 @@ class CashBoxLedgerExportTest extends TestCase
         // 19th, the USD opening row on the 20th, the 20th, the 21st.
         $this->assertSame(['2026-10-19', '2026-10-20', '2026-10-20', '2026-10-21'], array_column($sheet['rows'], 0));
         $opening = $sheet['rows'][1];
-        $this->assertSame('Opening cash (USD) الدرج', $opening[12]);
+        $this->assertSame('Starting cash (USD) الدرج', $opening[12]);
         $this->assertEquals([200, null, null], [$opening[9], $opening[10], $opening[11]]);
         $this->assertNull($opening[2]);
 

@@ -47,7 +47,7 @@ class TransactionController extends Controller
                 ->through(fn (Transaction $transaction) => [
                     ...Arr::except($transaction->toArray(), ['pump_counter_reading', 'governmental_reading']),
                     'managed_by' => $transaction->managedBy(),
-                    'shown' => $transaction->shownTime($withShift),
+                    'shown' => $transaction->shownDate($withShift),
                 ]),
             'users' => $user->isAdmin() ? User::orderBy('name')->get(['id', 'name']) : [],
             'filters' => [
@@ -106,7 +106,6 @@ class TransactionController extends Controller
             'liters' => 'Liters',
             'amount' => 'Amount',
             'currency' => 'common.currency',
-            'recorded_by' => 'Recorded by',
             'types' => collect(TransactionType::cases())
                 ->mapWithKeys(fn (TransactionType $type) => [$type->value => 'transactions.type.'.$type->value])
                 ->all(),
@@ -121,25 +120,23 @@ class TransactionController extends Controller
             $transaction->liters !== null ? (float) $transaction->liters : null,
             (float) $transaction->amount,
             $transaction->currency,
-            $transaction->user->name ?? null,
         ])->values()->all();
 
+        // Who saved an entry, and when exactly, is in the audit log only.
         return new ExportTable(
             name: 'transactions',
             title: $labels['title'],
             subtitle: $from->format('Y-m-d').' – '.$to->format('Y-m-d'),
-            headers: [$labels['date'], $labels['type'], $labels['description'], $labels['liters'], $labels['amount'], $labels['currency'], $labels['recorded_by']],
+            headers: [$labels['date'], $labels['type'], $labels['description'], $labels['liters'], $labels['amount'], $labels['currency']],
             rows: $rows,
             decimals: [3 => 3, 4 => fn (array $row) => Currency::decimals((string) $row[5])],
         );
     }
 
-    /** Transaction::shownTime() as one cell: "2026-10-21 02:19", or "2026-10-21 02:19 · Morning". */
+    /** Transaction::shownDate() as one cell: "2026-10-20", or "2026-10-20 · Morning". */
     private function shownCell(Transaction $transaction, bool $withShift): string
     {
-        $shown = $transaction->shownTime($withShift);
-
-        return collect([Carbon::parse($shown['at'])->format('Y-m-d H:i'), $shown['shift']])->filter()->implode(' · ');
+        return implode(' · ', array_filter($transaction->shownDate($withShift)));
     }
 
     /**

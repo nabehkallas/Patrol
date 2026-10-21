@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import PaginationLinks from '@/components/pagination-links';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
-import { ShownTime } from '@/components/shown-time';
+import { ShownDate } from '@/components/shown-date';
 import {
     Select,
     SelectContent,
@@ -242,9 +242,9 @@ export default function TransactionsIndex() {
                             {transactions.data.map((transaction) => (
                                 <tr key={transaction.id} className={ROW}>
                                     <td className={CELL}>
-                                        <ShownTime
+                                        <ShownDate
                                             {...(transaction.shown ?? {
-                                                at: transaction.occurred_at,
+                                                date: transaction.occurred_at,
                                                 shift: null,
                                             })}
                                         />

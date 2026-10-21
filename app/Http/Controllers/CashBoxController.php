@@ -604,14 +604,15 @@ class CashBoxController extends Controller
             ->reject(fn (Transaction $transaction) => $transaction->debt !== null);
         $withShift = Shift::severalActive();
 
-        // Every row shows (and sorts by) when it was saved; the period above still picks rows
-        // by the day they count for.
+        // Every row shows the date it counts for (no time) and sorts newest date first, then
+        // the last saved first; the id keeps entries saved in the same second in one order.
+        $sortKey = fn (string $date, ?CarbonInterface $saved, int $id) => $date.' '.($saved?->format('Y-m-d H:i:s') ?? '').' '.str_pad((string) $id, 10, '0', STR_PAD_LEFT);
+
         $transactions = $transactions
             ->map(fn (Transaction $transaction) => [
                 'id' => 'transaction-'.$transaction->id,
-                'date' => $transaction->shownTime()['at'],
-                'shift' => $transaction->shownTime($withShift)['shift'],
-                'sort' => $transaction->shownSortKey(),
+                ...$transaction->shownDate($withShift),
+                'sort' => $sortKey($transaction->occurred_at->toDateString(), $transaction->savedAt(), $transaction->id),
                 'type' => match (true) {
                     $transaction->type === TransactionType::CurrencyExchange => 'exchange',
                     $transaction->sadcopLedgerEntry !== null => 'sadcop',
@@ -637,9 +638,9 @@ class CashBoxController extends Controller
             ->get()
             ->map(fn (DebtPayment $payment) => [
                 'id' => 'debt-payment-'.$payment->id,
-                'date' => ($payment->created_at ?? $payment->paid_at)->toIso8601String(),
+                'date' => $payment->paid_at->toDateString(),
                 'shift' => null,
-                'sort' => ($payment->created_at ?? $payment->paid_at)->format('Y-m-d H:i:s'),
+                'sort' => $sortKey($payment->paid_at->toDateString(), $payment->created_at, $payment->id),
                 'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
                 'description' => ($payment->debt->debtor->name ?? '—').' — '.$labels['debt_payment'],
                 'amount' => $payment->cashAmount(),
@@ -654,9 +655,9 @@ class CashBoxController extends Controller
         $openings = ($isAdmin ? $this->openingsBetween($from, $to) : collect())
             ->map(fn (CashBoxOpening $opening) => [
                 'id' => 'opening-'.$opening->id,
-                'date' => ($opening->created_at ?? $opening->date)->toIso8601String(),
+                'date' => $opening->date->toDateString(),
                 'shift' => null,
-                'sort' => ($opening->created_at ?? $opening->date)->format('Y-m-d H:i:s'),
+                'sort' => $sortKey($opening->date->toDateString(), $opening->created_at, $opening->id),
                 'type' => 'opening',
                 'description' => $opening->notes ?: $labels['opening_cash'],
                 'amount' => (float) $opening->amount,

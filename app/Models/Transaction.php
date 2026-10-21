@@ -46,6 +46,12 @@ class Transaction extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['occurred_at', 'type'];
+    }
+
     protected function casts(): array
     {
         return [
@@ -91,11 +97,10 @@ class Transaction extends Model
     }
 
     /**
-     * When this record was actually saved -- the time shown for it in every list. A fuel sale's
-     * is its reading's (the sale itself is recreated whenever its reading is recalculated); any
-     * other record's is its own created_at. Display only: occurred_at (a fuel sale's is noon of
-     * its reading's date) decides the day it counts for in every total and date filter.
-     * Load pumpCounterReading and governmentalReading first.
+     * When this record was actually saved. Never shown (the exact time and who saved it are in
+     * the audit log); it orders the entries within a day. A fuel sale's is its reading's (the
+     * sale itself is recreated whenever its reading is recalculated); any other record's is its
+     * own created_at. Load pumpCounterReading and governmentalReading first.
      */
     public function savedAt(): CarbonInterface
     {
@@ -103,27 +108,30 @@ class Transaction extends Model
     }
 
     /**
-     * savedAt(), and for a fuel sale on a station with several shifts ($withShift) its reading's
-     * shift. Load pumpCounterReading.shift and governmentalReading.shift first.
+     * What lists show for this record: the date it counts for ('Y-m-d' of occurred_at -- for a
+     * fuel sale its reading's date), and for a fuel sale on a station with several shifts
+     * ($withShift) its reading's shift. Load pumpCounterReading.shift and
+     * governmentalReading.shift first.
      *
-     * @return array{at: string, shift: string|null}
+     * @return array{date: string, shift: string|null}
      */
-    public function shownTime(bool $withShift = false): array
+    public function shownDate(bool $withShift = false): array
     {
         return [
-            'at' => $this->savedAt()->toIso8601String(),
+            'date' => $this->occurred_at->toDateString(),
             'shift' => $withShift ? $this->reading()?->shift->label() : null,
         ];
     }
 
-    /** savedAt() as the same string scopeLatestShown() sorts by in SQL. */
+    /** The string scopeLatestShown() sorts by in SQL: the date, then savedAt(). */
     public function shownSortKey(): string
     {
-        return $this->savedAt()->format('Y-m-d H:i:s');
+        return $this->occurred_at->toDateString().' '.$this->savedAt()->format('Y-m-d H:i:s');
     }
 
     /**
-     * Newest first by savedAt().
+     * Newest date first; within a date, the last one saved first (then the higher id), so the
+     * order never changes between loads.
      *
      * @param  Builder<Transaction>  $query
      * @return Builder<Transaction>
@@ -131,6 +139,7 @@ class Transaction extends Model
     public function scopeLatestShown(Builder $query): Builder
     {
         return $query
+            ->orderByRaw('date(transactions.occurred_at) DESC')
             ->orderByRaw("COALESCE((
                 SELECT r.created_at FROM pump_counter_readings r
                 WHERE transactions.type = 'fuel_sale' AND r.created_at IS NOT NULL

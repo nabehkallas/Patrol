@@ -34,8 +34,15 @@ trait Auditable
                 return;
             }
 
+            // Which record it was (the date it is entered for, ...) even when that didn't
+            // change: on both sides with the same value, so the log shows it unchanged.
+            $context = self::auditable(array_diff_key(
+                array_intersect_key($model->getAttributes(), array_flip(static::auditContext())),
+                $changed,
+            ));
+
             $old = array_intersect_key($model->getOriginal(), $changed);
-            AuditLog::record('updated', static::auditEntityName(), $model->getKey(), self::auditable($old), $changed);
+            AuditLog::record('updated', static::auditEntityName(), $model->getKey(), $context + self::auditable($old), $context + $changed);
         });
 
         static::deleted(function (Model $model) {
@@ -46,6 +53,17 @@ trait Auditable
     public static function auditEntityName(): string
     {
         return class_basename(static::class);
+    }
+
+    /**
+     * Attributes written with every change even when unchanged, so an edit says which record it
+     * was: the date it is entered for and the like. A model overrides this.
+     *
+     * @return list<string>
+     */
+    public static function auditContext(): array
+    {
+        return [];
     }
 
     /**

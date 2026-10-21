@@ -25,6 +25,12 @@ class SadcopLedgerEntry extends Model
     use Auditable;
     use SerializesDatesInAppTimezone;
 
+    /** @return list<string> */
+    public static function auditContext(): array
+    {
+        return ['occurred_at', 'type'];
+    }
+
     protected function casts(): array
     {
         return [

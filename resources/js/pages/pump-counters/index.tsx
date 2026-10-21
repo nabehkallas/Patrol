@@ -18,7 +18,7 @@ import type { EntryStamp } from '@/components/pump-counters/last-entry';
 import { SystemLastEntry } from '@/components/pump-counters/last-entry';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
-import { ShownTime } from '@/components/shown-time';
+import { ShownDate } from '@/components/shown-date';
 import { FuelTypeDot } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -1048,7 +1048,7 @@ export default function PumpCountersIndex() {
                                     {/* As in the entry table: headers on one line, spare width shared by
                                         the number columns, notes held back. */}
                                     <th className={cn(HISTORY_TH, 'w-[18%]')}>
-                                        {t('pump_counters.time')}
+                                        {t('common.date')}
                                     </th>
                                     <th className={cn(HISTORY_TH, 'w-[12%]')}>
                                         {t('pump_counters.pump')}
@@ -1062,8 +1062,11 @@ export default function PumpCountersIndex() {
                                     >
                                         {t('pump_counters.reading_value')}
                                     </th>
-                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
-                                        {t('pump_counters.liters_sold')}
+                                    <th
+                                        className={cn(HISTORY_TH, 'w-[9%]')}
+                                        title={t('pump_counters.liters_sold')}
+                                    >
+                                        {t('pump_counters.sold_short')}
                                     </th>
                                     <th
                                         className={cn(HISTORY_TH, 'w-[14%]')}
@@ -1095,18 +1098,14 @@ export default function PumpCountersIndex() {
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
                                         <td className="whitespace-nowrap px-3 py-3">
-                                            <ShownTime
-                                                at={reading.created_at}
+                                            <ShownDate
+                                                date={reading.date}
                                                 shift={
                                                     showShifts
                                                         ? (shiftNames.get(
                                                               reading.shift_id,
                                                           ) ?? null)
                                                         : null
-                                                }
-                                                // Who recorded it: on hover, as the row has no room left.
-                                                title={
-                                                    reading.recorded_by?.name
                                                 }
                                             />
                                         </td>

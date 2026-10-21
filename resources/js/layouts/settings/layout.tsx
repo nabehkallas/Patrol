@@ -9,6 +9,7 @@ import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { edit as editData } from '@/routes/data';
+import { index as openingCashIndex } from '@/routes/opening-cash';
 import { edit as editPreferences } from '@/routes/preferences';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -55,6 +56,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                   {
                       title: t('settings.nav.shifts'),
                       href: shiftsIndex(),
+                      icon: null,
+                  },
+                  {
+                      title: t('opening_cash.title'),
+                      href: openingCashIndex(),
                       icon: null,
                   },
                   {
