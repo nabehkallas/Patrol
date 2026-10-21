@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\PaysFromCashBox;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
@@ -12,6 +13,7 @@ use App\Models\ExchangeRate;
 use App\Models\Tank;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\CashBox;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
@@ -29,6 +31,8 @@ use Inertia\Response;
 
 class TransactionController extends Controller
 {
+    use PaysFromCashBox;
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -104,7 +108,7 @@ class TransactionController extends Controller
         $rows = $this->filteredQuery($request)->get()->map(fn (Transaction $transaction) => [
             $transaction->occurred_at->format('Y-m-d H:i'),
             $labels['types'][$transaction->type->value] ?? $transaction->type->value,
-            $transaction->description ?? $transaction->fuelType->name ?? null,
+            collect([$transaction->description ?? $transaction->fuelType->name ?? null, $transaction->originalNote() !== null ? '('.$transaction->originalNote().')' : null])->filter()->implode(' ') ?: null,
             $transaction->liters !== null ? (float) $transaction->liters : null,
             (float) $transaction->amount,
             $transaction->currency,
@@ -143,6 +147,7 @@ class TransactionController extends Controller
             'exchangeRates' => collect(Currency::codes())->mapWithKeys(
                 fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
+            ...app(CashBox::class)->formProps(),
         ]);
     }
 
@@ -170,6 +175,7 @@ class TransactionController extends Controller
         $debtDebtorId = $data['debt_debtor_id'] ?? null;
         $debtDirection = $data['debt_direction'] ?? DebtDirection::Receivable->value;
         unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
+        $data = $this->withCashSource($request, $data, $markAsDebt);
 
         DB::transaction(function () use ($data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction = Transaction::create($data);
@@ -211,12 +217,14 @@ class TransactionController extends Controller
                     'occurred_at', 'notes', 'other_income_category',
                 ]),
                 'debt' => $transaction->debt?->only(['debtor_id', 'direction']),
+                'original' => $transaction->originalPayment(),
             ],
             'tanks' => $this->tankOptions(),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'exchangeRates' => collect(Currency::codes())->mapWithKeys(
                 fn (string $currency) => [$currency => ExchangeRate::currentRateFor($currency)]
             ),
+            ...app(CashBox::class)->formProps(),
         ]);
     }
 
@@ -254,6 +262,7 @@ class TransactionController extends Controller
         $debtDebtorId = $data['debt_debtor_id'] ?? null;
         $debtDirection = $data['debt_direction'] ?? DebtDirection::Receivable->value;
         unset($data['mark_as_debt'], $data['debt_debtor_id'], $data['debt_direction']);
+        $data = $this->withCashSource($request, $data, $markAsDebt, $this->takenOutBy($transaction));
 
         DB::transaction(function () use ($transaction, $data, $markAsDebt, $debtDebtorId, $debtDirection) {
             $transaction->update($data);
@@ -286,6 +295,33 @@ class TransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
 
         return to_route('transactions.index');
+    }
+
+    /**
+     * An expense or purchase paid now takes money out of a box (one recorded as a debt doesn't,
+     * until it's paid): checked, and possibly paid from the primary box at a rate -- then it's
+     * stored in the primary currency, with what it was for. A currency exchange gives up the
+     * currency it exchanges, so that box is checked too. See CashBox.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, float>  $giveBack
+     * @return array<string, mixed>
+     */
+    private function withCashSource(Request $request, array $data, bool $markAsDebt, array $giveBack = []): array
+    {
+        unset($data['pay_from'], $data['cash_rate'], $data[CashBox::CONFIRM_FIELD]);
+        $data = [...$data, 'original_amount' => null, 'original_currency' => null, 'original_rate' => null];
+        $type = $data['type'];
+
+        if (! $markAsDebt && in_array($type, [TransactionType::Expense->value, TransactionType::Purchase->value], true)) {
+            return [...$data, ...$this->cashOut($request, (float) $data['amount'], (string) $data['currency'], $giveBack)];
+        }
+
+        if ($type === TransactionType::CurrencyExchange->value) {
+            $this->assertCashFor($request, [(string) $data['currency'] => (float) $data['amount']], $giveBack);
+        }
+
+        return $data;
     }
 
     public function destroy(Transaction $transaction): RedirectResponse

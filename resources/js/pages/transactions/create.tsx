@@ -2,6 +2,11 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
+    CashSourceFields,
+    emptyCashSource,
+    useCashSource,
+} from '@/components/cash-source-fields';
+import {
     CurrencyOptions,
     useCurrencyName,
 } from '@/components/currency-options';
@@ -22,6 +27,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
+import type { CashSourceInput } from '@/lib/cash-source';
+import { cashSourcePayload } from '@/lib/cash-source';
 import { defaultRate, giveFor, ratePair, receiveFor } from '@/lib/exchange';
 import { formatNumber, getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -99,6 +110,32 @@ export default function TransactionCreate() {
         debt_direction: 'receivable' as DebtDirection,
     });
 
+    // An expense or purchase paid now takes money out of a box: in another currency, from that
+    // currency's box or the primary one at a rate (see CashSourceFields). A debt pays nothing yet.
+    const [cash, setCash] = useState<CashSourceInput>(emptyCashSource);
+    const paysOut =
+        (form.data.type === 'expense' || form.data.type === 'purchase') &&
+        !form.data.mark_as_debt;
+    const giveBack: Record<string, number> = {};
+    const cashSourceNow = useCashSource(
+        form.data.amount,
+        form.data.currency,
+        cash,
+        giveBack,
+    );
+    const negativeCash = useNegativeCashConfirm();
+
+    // Sent with the form: where the money comes from, and -- once asked -- that the primary
+    // box may go negative.
+    function sendWithCash(send: () => void, confirmed: boolean) {
+        form.transform((data) => ({
+            ...data,
+            ...(paysOut ? cashSourcePayload(cashSourceNow) : {}),
+            [CONFIRM_FIELD]: confirmed,
+        }));
+        send();
+    }
+
     const isDebt = form.data.mark_as_debt;
     const isExchange = form.data.type === 'currency_exchange';
 
@@ -121,13 +158,11 @@ export default function TransactionCreate() {
 
     // A delivery's price per liter starts as the tank's fuel price, in that price's currency
     // only: another currency clears it (and the amount) to be typed, never converted, and
-    // switching back fills it again. A price that was typed is never changed.
-    const [priceTyped, setPriceTyped] = useState(false);
+    // switching back fills it again -- even over a typed price, which was for the old currency.
     const tankPrice = selectedTank?.currentPrice ?? null;
 
     function handleTankChange(id: string) {
         const tank = tanks.find((item) => item.id === Number(id));
-        setPriceTyped(false);
 
         form.setData((data) => ({
             ...data,
@@ -161,6 +196,9 @@ export default function TransactionCreate() {
     }
 
     function handleCurrencyChange(currency: Currency) {
+        // A new currency: the delivery price is taken from the tank again (or cleared), and
+        // where the money comes from is chosen again.
+        setCash(emptyCashSource);
         form.setData((data) => {
             const nextToCurrency =
                 data.to_currency === currency
@@ -175,7 +213,7 @@ export default function TransactionCreate() {
                 ...(data.type === 'currency_exchange'
                     ? exchangeState(data, currency, nextToCurrency)
                     : {}),
-                ...(data.type === 'fuel_delivery' && tankPrice && !priceTyped
+                ...(data.type === 'fuel_delivery' && tankPrice
                     ? {
                           price_per_liter:
                               tankPrice.currency === currency
@@ -296,8 +334,8 @@ export default function TransactionCreate() {
         }));
     }
 
-    function submit(event: FormEvent) {
-        event.preventDefault();
+    function submit(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
 
         if (
             form.data.type === 'fuel_delivery' &&
@@ -312,7 +350,16 @@ export default function TransactionCreate() {
             return;
         }
 
-        form.post(store.url());
+        sendWithCash(
+            () =>
+                form.post(store.url(), {
+                    onError: (errors) =>
+                        negativeCash.handle(errors, () =>
+                            submit(undefined, true),
+                        ),
+                }),
+            confirmed,
+        );
     }
 
     return (
@@ -322,6 +369,7 @@ export default function TransactionCreate() {
             <div className="max-w-xl space-y-6">
                 <PageHeader title={t('transactions.new')} />
 
+                {negativeCash.dialog}
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="type">{t('common.type')}</Label>
@@ -430,13 +478,12 @@ export default function TransactionCreate() {
                                         <MoneyInput
                                             id="price_per_liter"
                                             value={form.data.price_per_liter}
-                                            onChange={(value) => {
-                                                setPriceTyped(value !== '');
+                                            onChange={(value) =>
                                                 handleLitersOrPriceChange(
                                                     form.data.liters,
                                                     value,
-                                                );
-                                            }}
+                                                )
+                                            }
                                         />
                                         {tankPrice &&
                                             tankPrice.currency !==
@@ -573,6 +620,17 @@ export default function TransactionCreate() {
                             <InputError message={form.errors.currency} />
                         </div>
                     </div>
+
+                    {paysOut && (
+                        <CashSourceFields
+                            amount={form.data.amount}
+                            currency={form.data.currency}
+                            value={cash}
+                            onChange={setCash}
+                            giveBack={giveBack}
+                            errors={form.errors}
+                        />
+                    )}
 
                     {isExchange && (
                         <div className="grid grid-cols-2 gap-4">

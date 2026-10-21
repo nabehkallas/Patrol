@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import { PageHeader } from '@/components/page-header';
@@ -8,6 +9,10 @@ import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
 import { formatBreakdown } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -65,10 +70,34 @@ export default function DebtorsIndex() {
         router.delete(destroy.url(debtor.id));
     }
 
-    function settleAllDebts(debtor: DebtorSummary) {
-        if (confirm(`${t('debtors.confirm_settle_all')} (${debtor.name})`)) {
-            router.patch(settleAll.url(debtor.id));
+    // Paying what the station owes takes it out of the boxes: another currency's box must
+    // hold it (the error says so), the primary one may go negative once confirmed.
+    const negativeCash = useNegativeCashConfirm();
+
+    function settleAllDebts(debtor: DebtorSummary, confirmed = false) {
+        if (
+            !confirmed &&
+            !confirm(`${t('debtors.confirm_settle_all')} (${debtor.name})`)
+        ) {
+            return;
         }
+
+        router.patch(
+            settleAll.url(debtor.id),
+            { [CONFIRM_FIELD]: confirmed },
+            {
+                onError: (errors) => {
+                    if (
+                        !negativeCash.handle(errors, () =>
+                            settleAllDebts(debtor, true),
+                        ) &&
+                        errors.amount
+                    ) {
+                        toast.error(errors.amount);
+                    }
+                },
+            },
+        );
     }
 
     function hasOutstanding(debtor: DebtorSummary): boolean {
@@ -92,6 +121,7 @@ export default function DebtorsIndex() {
     return (
         <>
             <Head title={t('debtors.title')} />
+            {negativeCash.dialog}
 
             <div className="space-y-6">
                 <PageHeader

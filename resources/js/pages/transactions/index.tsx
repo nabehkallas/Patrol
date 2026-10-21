@@ -1,4 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { OriginalPaymentNote } from '@/components/cash-source-fields';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -251,6 +252,22 @@ export default function TransactionsIndex() {
                                             transaction.amount,
                                             transaction.currency,
                                         )}
+                                        <OriginalPaymentNote
+                                            original={
+                                                transaction.original_currency
+                                                    ? {
+                                                          amount:
+                                                              transaction.original_amount ??
+                                                              0,
+                                                          currency:
+                                                              transaction.original_currency,
+                                                          rate:
+                                                              transaction.original_rate ??
+                                                              0,
+                                                      }
+                                                    : null
+                                            }
+                                        />
                                     </td>
                                     <td className="px-4 py-3">
                                         {transaction.debt && (

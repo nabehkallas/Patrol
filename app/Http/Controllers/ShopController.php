@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\PaysFromCashBox;
 use App\Enums\TransactionType;
 use App\Models\ShopItem;
 use App\Models\Transaction;
+use App\Services\CashBox;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
@@ -24,6 +26,8 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class ShopController extends Controller
 {
+    use PaysFromCashBox;
+
     public function index(Request $request): Response
     {
         $from = $request->date('from') ?? now()->startOfMonth();
@@ -50,6 +54,7 @@ class ShopController extends Controller
                 },
             ],
             'summaryType' => $summaryType === TransactionType::Purchase ? 'purchase' : 'sale',
+            ...app(CashBox::class)->formProps(),
         ]);
     }
 
@@ -83,7 +88,7 @@ class ShopController extends Controller
             $transaction->type === TransactionType::Purchase ? $labels['purchase'] : $labels['sale'],
             $transaction->shopItem->name ?? '—',
             (string) $transaction->quantity,
-            number_format((float) $transaction->amount, 2).' '.$transaction->currency,
+            number_format((float) $transaction->amount, 2).' '.$transaction->currency.($transaction->originalNote() !== null ? ' ('.$transaction->originalNote().')' : ''),
             $transaction->user->name ?? '—',
         ])->all();
 
@@ -309,6 +314,7 @@ class ShopController extends Controller
                 'quantity' => $transaction->quantity,
                 'amount' => $transaction->amount,
                 'currency' => $transaction->currency,
+                'original' => $transaction->originalPayment(),
                 'occurred_at' => $transaction->occurred_at,
                 'recorded_by' => $transaction->user?->name,
                 'notes' => $transaction->notes,
@@ -491,7 +497,7 @@ class ShopController extends Controller
 
     public function storePurchase(Request $request): RedirectResponse
     {
-        $data = $this->validateMovement($request);
+        $data = $this->validateMovement($request, paid: true);
 
         $this->recordMovement($request, $data, TransactionType::Purchase);
 
@@ -530,7 +536,8 @@ class ShopController extends Controller
     {
         $this->authorize('update', $transaction);
 
-        $data = $this->validateMovement($request);
+        $isPurchase = $transaction->type === TransactionType::Purchase;
+        $data = $this->validateMovement($request, paid: $isPurchase);
         $item = ShopItem::findOrFail($data['shop_item_id']);
 
         if ($transaction->type === TransactionType::OtherIncome) {
@@ -551,12 +558,17 @@ class ShopController extends Controller
             }
         }
 
+        // A purchase pays out of the box: checked against the box without this record's old
+        // amount, and possibly paid from the primary box at a rate (see CashBox).
+        $money = $isPurchase
+            ? $this->cashOut($request, (float) $data['amount'], (string) $data['currency'], $this->takenOutBy($transaction))
+            : ['amount' => $data['amount'], 'currency' => $data['currency'], 'original_amount' => null, 'original_currency' => null, 'original_rate' => null];
+
         $transaction->update([
             'shop_item_id' => $item->id,
             'quantity' => $data['quantity'],
             'description' => $item->name.' × '.$data['quantity'],
-            'amount' => $data['amount'],
-            'currency' => $data['currency'],
+            ...$money,
             'exchange_rate_to_usd' => null,
             'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
             'notes' => $data['notes'] ?? null,
@@ -570,7 +582,7 @@ class ShopController extends Controller
     /**
      * @return array{shop_item_id: int|string, quantity: int|string, amount: int|float|string, currency: string, date: string, notes?: string|null}
      */
-    private function validateMovement(Request $request): array
+    private function validateMovement(Request $request, bool $paid = false): array
     {
         return $request->validate([
             'shop_item_id' => ['required', 'exists:shop_items,id'],
@@ -579,6 +591,7 @@ class ShopController extends Controller
             'currency' => ['required', Currency::rule()],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
+            ...($paid ? $this->cashSourceRules() : []),
         ]);
     }
 
@@ -590,14 +603,18 @@ class ShopController extends Controller
         $item = ShopItem::findOrFail($data['shop_item_id']);
         $currency = (string) $data['currency'];
 
+        // A purchase pays out of the box (see CashBox); a sale brings cash into its own currency's.
+        $money = $type === TransactionType::Purchase
+            ? $this->cashOut($request, (float) $data['amount'], $currency)
+            : ['amount' => $data['amount'], 'currency' => $currency];
+
         Transaction::create([
             'user_id' => $request->user()->id,
             'type' => $type,
             'shop_item_id' => $item->id,
             'quantity' => $data['quantity'],
             'description' => $item->name.' × '.$data['quantity'],
-            'amount' => $data['amount'],
-            'currency' => $currency,
+            ...$money,
             'exchange_rate_to_usd' => null,
             'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
             'notes' => $data['notes'] ?? null,

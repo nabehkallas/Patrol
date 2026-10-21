@@ -105,14 +105,19 @@ class Debt extends Model
     /**
      * Records a (possibly partial) payment against this debt. Once cumulative payments cover
      * the full amount, the debt is marked settled — the same outcome a one-click "settle" now
-     * produces by simply recording a payment for the whole remaining balance.
+     * produces by simply recording a payment for the whole remaining balance. $cash is what
+     * left the cash box when it wasn't the debt's own currency (paid from the primary box at a
+     * rate: cash_amount, cash_currency, cash_rate); the debt is still paid by $amount.
+     *
+     * @param  array{cash_amount: float, cash_currency: string, cash_rate: float}|null  $cash
      */
-    public function recordPayment(float $amount, int $userId, ?string $notes = null, ?\DateTimeInterface $paidAt = null): DebtPayment
+    public function recordPayment(float $amount, int $userId, ?string $notes = null, ?\DateTimeInterface $paidAt = null, ?array $cash = null): DebtPayment
     {
         $paidAt ??= now();
 
         $payment = $this->payments()->create([
             'amount' => $amount,
+            ...($cash ?? []),
             'paid_at' => $paidAt,
             'recorded_by_id' => $userId,
             'notes' => $notes,

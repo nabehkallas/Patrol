@@ -2,7 +2,13 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { CheckCheck } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import {
+    CashSourceFields,
+    emptyCashSource,
+    useCashSource,
+} from '@/components/cash-source-fields';
 import { CurrencyCard } from '@/components/currency-card';
+import { useCurrencies } from '@/components/currency-options';
 import { DateRangePicker } from '@/components/date-range-picker';
 import type { DebtorCard } from '@/components/debts/debtor-overview';
 import { DebtorOverview } from '@/components/debts/debtor-overview';
@@ -30,6 +36,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
+import type { CashSourceInput } from '@/lib/cash-source';
+import { cashSourcePayload } from '@/lib/cash-source';
 import {
     formatBreakdown,
     formatDate,
@@ -139,30 +151,74 @@ export default function DebtsIndex() {
         return fuelTypeName ?? debt.details ?? '—';
     }
 
+    // Paying a debt the station owes takes money out of a box: the primary box may go
+    // negative once confirmed; another currency's box must hold it, or the payment comes
+    // from the primary box at a rate -- chosen in the payment dialog, which settling such a
+    // debt opens with the whole remaining amount.
+    const { primary } = useCurrencies();
+    const negativeCash = useNegativeCashConfirm();
+
     function settleDebt(debt: Debt) {
-        if (confirm(t('debts.settle_confirm'))) {
-            router.patch(settle.url(debt.id), {}, { preserveScroll: true });
+        if (debt.direction === 'payable' && debt.currency !== primary) {
+            openPartial(debt);
+
+            return;
         }
+
+        if (confirm(t('debts.settle_confirm'))) {
+            patchSettle(debt, false);
+        }
+    }
+
+    function patchSettle(debt: Debt, confirmed: boolean) {
+        router.patch(
+            settle.url(debt.id),
+            { [CONFIRM_FIELD]: confirmed },
+            {
+                preserveScroll: true,
+                onError: (errors) =>
+                    negativeCash.handle(errors, () => patchSettle(debt, true)),
+            },
+        );
     }
 
     const [partialDebt, setPartialDebt] = useState<Debt | null>(null);
     const partialForm = useForm({ amount: '' });
+    const [partialCash, setPartialCash] =
+        useState<CashSourceInput>(emptyCashSource);
+    const partialPaysOut = partialDebt?.direction === 'payable';
+    const partialSource = useCashSource(
+        partialForm.data.amount,
+        partialDebt?.currency ?? primary,
+        partialCash,
+    );
 
     function openPartial(debt: Debt) {
+        partialForm.clearErrors();
+        setPartialCash(emptyCashSource);
         setPartialDebt(debt);
         partialForm.setData('amount', String(debt.remaining_amount));
     }
 
-    function submitPartial(event: FormEvent) {
-        event.preventDefault();
+    function submitPartial(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
 
         if (!partialDebt) {
             return;
         }
 
+        partialForm.transform((data) => ({
+            ...data,
+            ...(partialPaysOut ? cashSourcePayload(partialSource) : {}),
+            [CONFIRM_FIELD]: confirmed,
+        }));
         partialForm.post(storePayment.url(partialDebt.id), {
             preserveScroll: true,
             onSuccess: () => setPartialDebt(null),
+            onError: (errors) =>
+                negativeCash.handle(errors, () =>
+                    submitPartial(undefined, true),
+                ),
         });
     }
 
@@ -208,11 +264,19 @@ export default function DebtsIndex() {
         settleFilteredForm.data.to,
     ]);
 
-    function submitSettleFiltered(event: FormEvent) {
-        event.preventDefault();
+    function submitSettleFiltered(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
+        settleFilteredForm.transform((data) => ({
+            ...data,
+            [CONFIRM_FIELD]: confirmed,
+        }));
         settleFilteredForm.patch(settleFiltered.url({ query: filters }), {
             preserveScroll: true,
             onSuccess: () => setShowSettleFiltered(false),
+            onError: (errors) =>
+                negativeCash.handle(errors, () =>
+                    submitSettleFiltered(undefined, true),
+                ),
         });
     }
 
@@ -682,6 +746,7 @@ export default function DebtsIndex() {
                 </DialogContent>
             </Dialog>
 
+            {negativeCash.dialog}
             <Dialog
                 open={partialDebt !== null}
                 onOpenChange={(open) => !open && setPartialDebt(null)}
@@ -710,6 +775,15 @@ export default function DebtsIndex() {
                             />
                             <InputError message={partialForm.errors.amount} />
                         </div>
+                        {partialPaysOut && partialDebt && (
+                            <CashSourceFields
+                                amount={partialForm.data.amount}
+                                currency={partialDebt.currency}
+                                value={partialCash}
+                                onChange={setPartialCash}
+                                errors={partialForm.errors}
+                            />
+                        )}
 
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
@@ -765,7 +839,13 @@ export default function DebtsIndex() {
                             <InputError
                                 message={
                                     settleFilteredForm.errors.from ??
-                                    settleFilteredForm.errors.to
+                                    settleFilteredForm.errors.to ??
+                                    (
+                                        settleFilteredForm.errors as Record<
+                                            string,
+                                            string | undefined
+                                        >
+                                    ).amount
                                 }
                             />
                         </div>

@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Models\CashBoxOpening;
 use App\Models\Debt;
 use App\Models\Transaction;
 use App\Support\Currency;
@@ -15,7 +16,7 @@ trait GroupsByCurrency
      * figure. Always includes the station's primary currency first (even if zero, for a
      * consistent main figure); other currencies are included only when non-zero.
      *
-     * @template TItem of Transaction|Debt|\stdClass
+     * @template TItem of Transaction|Debt|CashBoxOpening|\stdClass
      *
      * @param  Collection<array-key, TItem>  $items
      * @param  string|\Closure  $amount  Attribute name (default 'amount') or a per-item resolver —

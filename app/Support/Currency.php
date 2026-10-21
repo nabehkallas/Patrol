@@ -81,6 +81,21 @@ final class Currency
         return self::all()[$code]->decimals ?? ($code === self::SYP ? 0 : 2);
     }
 
+    /** A currency's name in the current language ("الدولار الأمريكي"); the station's own otherwise. */
+    public static function label(string $code): string
+    {
+        $key = 'currency.'.strtolower($code);
+        $translated = __($key);
+
+        return $translated !== $key ? $translated : (self::all()[$code]->name ?? $code);
+    }
+
+    /** An amount with its code, in the currency's decimals: "6,950 SYP", "12.50 USD". */
+    public static function format(float $amount, string $code): string
+    {
+        return number_format($amount, self::decimals($code)).' '.$code;
+    }
+
     /** Validation: one of the station's active currencies. */
     public static function rule(): In
     {

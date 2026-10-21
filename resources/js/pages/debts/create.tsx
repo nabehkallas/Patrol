@@ -1,6 +1,11 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+    CashSourceFields,
+    emptyCashSource,
+    useCashSource,
+} from '@/components/cash-source-fields';
 import { CurrencyOptions } from '@/components/currency-options';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -18,6 +23,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
+import type { CashSourceInput } from '@/lib/cash-source';
+import { cashSourcePayload } from '@/lib/cash-source';
 import { getPrimaryCurrency } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
 import { index, store } from '@/routes/debts';
@@ -120,15 +131,32 @@ export default function DebtCreate() {
     }
 
     function handleCurrencyChange(currency: Currency) {
+        setCash(emptyCashSource);
         form.setData((data) => ({
             ...data,
             currency,
         }));
     }
 
-    function submit(event: FormEvent) {
-        event.preventDefault();
-        form.post(store.url());
+    // Cash handed out now (an advance) leaves the box: in another currency, from that
+    // currency's box or the primary one at a rate (see CashSourceFields).
+    const [cash, setCash] = useState<CashSourceInput>(emptyCashSource);
+    const paysOut =
+        form.data.affect_cash_box && form.data.direction === 'receivable';
+    const source = useCashSource(form.data.amount, form.data.currency, cash);
+    const negativeCash = useNegativeCashConfirm();
+
+    function submit(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
+        form.transform((data) => ({
+            ...data,
+            ...(paysOut ? cashSourcePayload(source) : {}),
+            [CONFIRM_FIELD]: confirmed,
+        }));
+        form.post(store.url(), {
+            onError: (errors) =>
+                negativeCash.handle(errors, () => submit(undefined, true)),
+        });
     }
 
     return (
@@ -141,6 +169,7 @@ export default function DebtCreate() {
                     description={t('debts.description')}
                 />
 
+                {negativeCash.dialog}
                 <form onSubmit={submit} className="space-y-6">
                     <h3 className="text-muted-foreground border-b pb-1.5 text-xs font-semibold uppercase tracking-wide">
                         {t('forms.section_who')}
@@ -378,6 +407,16 @@ export default function DebtCreate() {
                                 : t('debts.add_to_cash_box')}
                         </Label>
                     </div>
+
+                    {paysOut && (
+                        <CashSourceFields
+                            amount={form.data.amount}
+                            currency={form.data.currency}
+                            value={cash}
+                            onChange={setCash}
+                            errors={form.errors}
+                        />
+                    )}
 
                     <Button type="submit" disabled={form.processing}>
                         {t('debts.save')}

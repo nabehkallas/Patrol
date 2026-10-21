@@ -2,6 +2,11 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo, useEffect, useState } from 'react';
 import {
+    CashSourceFields,
+    emptyCashSource,
+    useCashSource,
+} from '@/components/cash-source-fields';
+import {
     CurrencyOptions,
     useCurrencyName,
 } from '@/components/currency-options';
@@ -21,6 +26,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
+import type { CashSourceInput } from '@/lib/cash-source';
+import { cashSourcePayload } from '@/lib/cash-source';
 import { defaultRate, giveFor, ratePair, receiveFor } from '@/lib/exchange';
 import { formatNumber, trimDecimal } from '@/lib/format';
 import { useTranslation } from '@/lib/i18n';
@@ -69,8 +80,11 @@ export default function TransactionEdit() {
         liters: trimDecimal(transaction.liters),
         price_per_liter: trimDecimal(transaction.price_per_liter),
         description: transaction.description ?? '',
-        amount: trimDecimal(transaction.amount),
-        currency: transaction.currency as Currency,
+        amount: transaction.original
+            ? trimDecimal(String(transaction.original.amount))
+            : trimDecimal(transaction.amount),
+        currency: (transaction.original?.currency ??
+            transaction.currency) as Currency,
         to_currency: (transaction.to_currency ?? 'USD') as Currency,
         to_amount: trimDecimal(transaction.to_amount),
         exchange_rate_to_usd:
@@ -89,6 +103,44 @@ export default function TransactionEdit() {
         debt_direction: (transaction.debt?.direction ??
             'receivable') as DebtDirection,
     });
+
+    // An expense or purchase paid now takes money out of a box: in another currency, from that
+    // currency's box or the primary one at a rate (see CashSourceFields). A debt pays nothing yet.
+    const [cash, setCash] = useState<CashSourceInput>(
+        transaction.original
+            ? {
+                  pay_from: 'primary',
+                  cash_rate: String(transaction.original.rate),
+              }
+            : emptyCashSource,
+    );
+    const paysOut =
+        (form.data.type === 'expense' || form.data.type === 'purchase') &&
+        !form.data.mark_as_debt;
+    const giveBack: Record<string, number> =
+        // What this record took out when it was saved goes back in while it's checked.
+        transaction.debt == null &&
+        (transaction.type === 'expense' || transaction.type === 'purchase')
+            ? { [transaction.currency]: parseFloat(transaction.amount) }
+            : {};
+    const cashSourceNow = useCashSource(
+        form.data.amount,
+        form.data.currency,
+        cash,
+        giveBack,
+    );
+    const negativeCash = useNegativeCashConfirm();
+
+    // Sent with the form: where the money comes from, and -- once asked -- that the primary
+    // box may go negative.
+    function sendWithCash(send: () => void, confirmed: boolean) {
+        form.transform((data) => ({
+            ...data,
+            ...(paysOut ? cashSourcePayload(cashSourceNow) : {}),
+            [CONFIRM_FIELD]: confirmed,
+        }));
+        send();
+    }
 
     const isDebt = form.data.mark_as_debt;
     const isExchange = form.data.type === 'currency_exchange';
@@ -128,15 +180,13 @@ export default function TransactionEdit() {
     }, [selectedTank, transaction]);
 
     // As on the create page: a price per liter taken from the tank's fuel price only in that
-    // price's currency, never converted. The record's own saved price counts as typed, so a
-    // currency change leaves it; choosing a tank takes that tank's price again.
-    const [priceTyped, setPriceTyped] = useState(true);
+    // price's currency, never converted; a currency change or another tank takes it again
+    // (or clears it), even over the record's own saved price.
     const tankPrice = selectedTank?.currentPrice ?? null;
 
     function handleTankChange(id: string) {
         const tank = tanks.find((item) => item.id === Number(id));
         const price = tank?.currentPrice;
-        setPriceTyped(false);
 
         form.setData((data) => ({
             ...data,
@@ -182,6 +232,9 @@ export default function TransactionEdit() {
     }
 
     function handleCurrencyChange(currency: Currency) {
+        // A new currency: the delivery price is taken from the tank again (or cleared), and
+        // where the money comes from is chosen again.
+        setCash(emptyCashSource);
         form.setData((data) => {
             const nextToCurrency =
                 data.to_currency === currency
@@ -196,7 +249,7 @@ export default function TransactionEdit() {
                 ...(data.type === 'currency_exchange'
                     ? exchangeState(data, currency, nextToCurrency)
                     : {}),
-                ...(data.type === 'fuel_delivery' && tankPrice && !priceTyped
+                ...(data.type === 'fuel_delivery' && tankPrice
                     ? {
                           price_per_liter:
                               tankPrice.currency === currency
@@ -317,8 +370,8 @@ export default function TransactionEdit() {
         }));
     }
 
-    function submit(event: FormEvent) {
-        event.preventDefault();
+    function submit(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
 
         if (
             form.data.type === 'fuel_delivery' &&
@@ -333,7 +386,16 @@ export default function TransactionEdit() {
             return;
         }
 
-        form.put(update.url(transaction.id));
+        sendWithCash(
+            () =>
+                form.put(update.url(transaction.id), {
+                    onError: (errors) =>
+                        negativeCash.handle(errors, () =>
+                            submit(undefined, true),
+                        ),
+                }),
+            confirmed,
+        );
     }
 
     return (
@@ -343,6 +405,7 @@ export default function TransactionEdit() {
             <div className="max-w-xl space-y-6">
                 <PageHeader title={t('transactions.edit')} />
 
+                {negativeCash.dialog}
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
                         <Label htmlFor="type">{t('common.type')}</Label>
@@ -448,13 +511,12 @@ export default function TransactionEdit() {
                                         <MoneyInput
                                             id="price_per_liter"
                                             value={form.data.price_per_liter}
-                                            onChange={(value) => {
-                                                setPriceTyped(value !== '');
+                                            onChange={(value) =>
                                                 handleLitersOrPriceChange(
                                                     String(form.data.liters),
                                                     value,
-                                                );
-                                            }}
+                                                )
+                                            }
                                         />
                                         {tankPrice &&
                                             tankPrice.currency !==
@@ -583,6 +645,17 @@ export default function TransactionEdit() {
                             <InputError message={form.errors.currency} />
                         </div>
                     </div>
+
+                    {paysOut && (
+                        <CashSourceFields
+                            amount={form.data.amount}
+                            currency={form.data.currency}
+                            value={cash}
+                            onChange={setCash}
+                            giveBack={giveBack}
+                            errors={form.errors}
+                        />
+                    )}
 
                     {isExchange && (
                         <div className="grid grid-cols-2 gap-4">

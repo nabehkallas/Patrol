@@ -50,7 +50,7 @@ Before considering any change done:
 2. `npx tsc --noEmit`
 3. `npx eslint <changed paths>`
 4. `npx prettier --write <changed paths>`
-5. `php artisan test` — healthy baseline is **115 tests, 107 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner, no extra packages; keep what they import free of `@/` imports).
+5. `php artisan test` — healthy baseline is **126 tests, 118 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner, no extra packages; keep what they import free of `@/` imports).
 6. `npm run build`
 7. If a migration was added: back up the real local tenant SQLite file first (`cp database/tenantXXXX.sqlite database/tenantXXXX.sqlite.bak-$(date +%Y%m%d%H%M%S)`), then `php artisan tenants:migrate`
 8. Live HTTP smoke test against real local data: temp `php artisan serve --port=<free port>` in the background, curl with a cookie jar + XSRF token dance, exercise the actual endpoints, verify DB state directly via a small PHP script, then **clean up any test data created** (and restore from the step-7 backup if something went wrong)
@@ -71,7 +71,16 @@ Before considering any change done:
 
 ## Amounts filled from a price
 
-- An amount (or price per liter) the app fills from a price — Store buy/sell from the item's prices, a fuel delivery from the tank's fuel price — is filled **only in that price's own currency** (`lib/price-amount.ts`: `priceAmount()`, `refillAmount()`). Choosing another currency clears it and shows "سعر الصنف/الوقود محدد ب…" — never convert it with an exchange rate; switching back fills it again. A value the user typed is never changed by the app (clearing it goes back to filling). Fuel debts don't need this: their currency is locked to the fuel price's.
+- An amount (or price per liter) the app fills from a price — Store buy/sell from the item's prices, a fuel delivery from the tank's fuel price — is filled **only in that price's own currency** (`lib/price-amount.ts`: `priceAmount()`, `refillAmount()`). Choosing another currency clears it and shows "سعر الصنف/الوقود محدد ب…" — never convert it with an exchange rate; switching back fills it again. A typed value stays while the quantity changes, but **a currency change always clears or refills it, even a typed one** (a number typed for one currency must never be saved in another). Fuel debts don't need this: their currency is locked to the fuel price's.
+
+## Cash boxes and paying in another currency — rules
+
+- **One box per currency.** A box's balance is the Cash Box's own sum of everything recorded up to today (`CashBoxController::summarize()`'s `net` from the start; `App\Services\CashBox::balances()`). There is no stored balance.
+- **Money out** — expense/purchase transactions (create and edit, unless recorded as a debt), Store buy and its history edit, a cash advance (receivable debt with "affect cash box"), paying a debt the station owes (payment, settle, bulk settle on Debts and Debtors), and the currency given in an exchange — goes through `CashBox` (controllers use the `PaysFromCashBox` trait; forms use `CashSourceFields` + `useNegativeCashConfirm`). Sadcop transfers are always SYP and are left out.
+- **Another currency than the primary one**: paid from that currency's box only if it holds enough — otherwise blocked ("رصيد صندوق … غير كافٍ") — or from the primary box at a rate the user gives ("1 USD = X SYP", pre-filled with today's saved rate). Then the record is stored **in the primary currency** (what left the box) with `original_amount/original_currency/original_rate` as information only; history shows "6,950 SYP (50 USD @ 139)". A debt payment keeps reducing the debt in its own currency; `debt_payments.cash_amount/cash_currency/cash_rate` say what left the box (`DebtPayment::cashCurrency()/cashAmount()` — use them, not the debt's currency, for anything about cash). The bulk settles only check boxes; they offer no conversion.
+- **The primary box may go negative** (expenses are entered before the day's sales), but only after the user confirms: the server answers `confirm_negative_cash` with "رصيد صندوق … سيصبح سالباً … هل تريد المتابعة؟" and the form resends with the flag. Editing a record checks the box **without its own old amount** (`takenOutBy()` / the `giveBack` prop).
+- **Opening cash** (`cash_box_openings`, one per currency, admins, on the Cash Box page): the cash a box held when the station started; counted by the Cash Box as money in on its date (`opening_cash` in `summarize()`, a history row) — never income, so Earnings, Statistics and the annual summary don't see it.
+- Earnings are unaffected by where a Store purchase was paid from: Store profit costs each sale at the item's purchase price, not at purchase records.
 
 ## Patterns worth reusing
 

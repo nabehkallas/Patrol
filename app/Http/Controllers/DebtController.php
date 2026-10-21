@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\GroupsByCurrency;
+use App\Concerns\PaysFromCashBox;
 use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\TransactionType;
@@ -14,6 +15,7 @@ use App\Models\Debt;
 use App\Models\Debtor;
 use App\Models\FuelType;
 use App\Models\Transaction;
+use App\Services\CashBox;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
@@ -25,6 +27,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -33,6 +36,7 @@ use Inertia\Response;
 class DebtController extends Controller
 {
     use GroupsByCurrency;
+    use PaysFromCashBox;
 
     public function index(Request $request): Response
     {
@@ -47,6 +51,7 @@ class DebtController extends Controller
         });
 
         return Inertia::render('debts/index', [
+            ...app(CashBox::class)->formProps(),
             'debts' => $debts,
             'filters' => $request->only(['search', 'status', 'direction', 'sort', 'sort_dir', 'debtor_id', 'from', 'to']),
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
@@ -292,6 +297,7 @@ class DebtController extends Controller
         return Inertia::render('debts/create', [
             'debtors' => Debtor::orderBy('name')->get(['id', 'name']),
             'fuelTypes' => $this->fuelTypeOptions(),
+            ...app(CashBox::class)->formProps(),
         ]);
     }
 
@@ -317,13 +323,19 @@ class DebtController extends Controller
         $data['exchange_rate_to_usd'] = null;
 
         $affectCashBoxNow = $data['affect_cash_box'] ?? false;
-        unset($data['affect_cash_box']);
+        unset($data['affect_cash_box'], $data['pay_from'], $data['cash_rate'], $data[CashBox::CONFIRM_FIELD]);
 
-        DB::transaction(function () use ($request, $data, $affectCashBoxNow) {
+        // Cash handed out now (an advance) leaves the box: checked, and possibly paid from the
+        // primary box at a rate. Cash borrowed now comes in, in the debt's own currency.
+        $advance = $affectCashBoxNow && $data['direction'] === DebtDirection::Receivable->value
+            ? $this->cashOut($request, (float) $data['amount'], (string) $data['currency'])
+            : null;
+
+        DB::transaction(function () use ($request, $data, $affectCashBoxNow, $advance) {
             $debt = Debt::create($data);
 
             if ($affectCashBoxNow) {
-                $this->recordImmediateCashEffect($debt, $request->user()->id);
+                $this->recordImmediateCashEffect($debt, $request->user()->id, $advance);
             }
         });
 
@@ -339,8 +351,11 @@ class DebtController extends Controller
      * debt's own settlement already produces the "money returns" side (see
      * CashBoxController::historyEntries()); this transaction is the "money leaves/arrives now"
      * side, recorded as an ordinary transaction so it shows up in the Cash Box immediately.
+     * $money is what an advance actually took out of the box (see CashBox::moneyOut()).
+     *
+     * @param  array{amount: float, currency: string, original_amount: float|null, original_currency: string|null, original_rate: float|null}|null  $money
      */
-    private function recordImmediateCashEffect(Debt $debt, int $userId): void
+    private function recordImmediateCashEffect(Debt $debt, int $userId, ?array $money = null): void
     {
         Transaction::create([
             'user_id' => $userId,
@@ -348,6 +363,7 @@ class DebtController extends Controller
             'description' => ($debt->debtor->name ?? '—').' — '.__('cash advance'),
             'amount' => $debt->amount,
             'currency' => $debt->currency,
+            ...($money ?? []),
             'exchange_rate_to_usd' => $debt->exchange_rate_to_usd,
             'occurred_at' => Carbon::parse($debt->date)->setTimeFrom(now()),
             'notes' => $debt->details,
@@ -401,9 +417,11 @@ class DebtController extends Controller
     public function settle(Request $request, Debt $debt): RedirectResponse
     {
         $this->authorize('settle', $debt);
+        $request->validate($this->cashSourceRules());
 
         if ($debt->status !== DebtStatus::Settled) {
-            $debt->recordPayment($debt->remainingAmount(), $request->user()->id);
+            $amount = $debt->remainingAmount();
+            $debt->recordPayment($amount, $request->user()->id, null, null, $this->paymentCash($request, $debt, $amount));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt settled.')]);
@@ -457,6 +475,8 @@ class DebtController extends Controller
             ->whereDate('date', '<=', $data['to'])
             ->get();
 
+        $this->assertCashForPayable($request, $debts);
+
         DB::transaction(function () use ($debts, $paidAt, $request) {
             foreach ($debts as $debt) {
                 // filteredQuery() eager-loads `payments` for the index totals — remainingAmount()
@@ -489,7 +509,7 @@ class DebtController extends Controller
             ]);
         }
 
-        $debt->recordPayment($amount, $request->user()->id);
+        $debt->recordPayment($amount, $request->user()->id, null, null, $this->paymentCash($request, $debt, $amount));
 
         $message = $debt->fresh()->status === DebtStatus::Settled
             ? __('Debt settled.')
@@ -498,6 +518,44 @@ class DebtController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('debts.index');
+    }
+
+    /**
+     * Paying a debt the station owes takes money out of the box (see CashBox): checked, and in
+     * another currency possibly paid from the primary box at a rate -- the debt is still paid
+     * in its own currency, the payment keeps what left the box. A debt owed to the station
+     * brings cash in instead. Returns the payment's cash columns, null when it's the debt's own.
+     *
+     * @return array{cash_amount: float, cash_currency: string, cash_rate: float}|null
+     */
+    private function paymentCash(Request $request, Debt $debt, float $amount): ?array
+    {
+        if ($debt->direction !== DebtDirection::Payable) {
+            return null;
+        }
+
+        $money = $this->cashOut($request, $amount, $debt->currency);
+
+        return $money['original_currency'] !== null
+            ? ['cash_amount' => $money['amount'], 'cash_currency' => $money['currency'], 'cash_rate' => (float) $money['original_rate']]
+            : null;
+    }
+
+    /**
+     * Settling several debts at once: what the ones the station owes take out of each box,
+     * checked per currency (no conversion offered here).
+     *
+     * @param  Collection<int, Debt>  $debts
+     */
+    public function assertCashForPayable(Request $request, $debts): void
+    {
+        $owed = [];
+
+        foreach ($debts->where('direction', DebtDirection::Payable) as $debt) {
+            $owed[$debt->currency] = ($owed[$debt->currency] ?? 0.0) + $debt->remainingAmount();
+        }
+
+        $this->assertCashFor($request, $owed);
     }
 
     public function transfer(TransferDebtRequest $request, Debt $debt): RedirectResponse

@@ -231,11 +231,15 @@ class DebtorController extends Controller
 
     public function settleAll(Request $request, Debtor $debtor): RedirectResponse
     {
-        $debtor->debts()
+        $debts = $debtor->debts()
             ->where('status', DebtStatus::Outstanding)
             ->with('payments')
-            ->get()
-            ->each(fn (Debt $debt) => $debt->recordPayment($debt->remainingAmount(), $request->user()->id));
+            ->get();
+
+        // What the debts the station owes take out of each box (see CashBox).
+        app(DebtController::class)->assertCashForPayable($request, $debts);
+
+        $debts->each(fn (Debt $debt) => $debt->recordPayment($debt->remainingAmount(), $request->user()->id));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('All debts settled.')]);
 

@@ -40,6 +40,10 @@ class StoreTransactionRequest extends FormRequest
             'mark_as_debt' => ['nullable', 'boolean'],
             'debt_debtor_id' => ['nullable', 'required_if:mark_as_debt,1', 'exists:debtors,id'],
             'debt_direction' => ['nullable', new Enum(DebtDirection::class)],
+            // Where money paid out in another currency comes from (see CashBox).
+            'pay_from' => ['nullable', 'in:own,primary'],
+            'cash_rate' => ['nullable', 'numeric', 'gt:0'],
+            'confirm_negative_cash' => ['nullable', 'boolean'],
         ];
     }
 

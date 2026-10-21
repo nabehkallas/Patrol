@@ -33,10 +33,13 @@ class CurrencyExchangeTest extends TestCase
         DB::table('exchange_rates')->insert(['currency' => 'SYP', 'rate_to_usd' => 138, 'set_by_id' => $id, 'effective_at' => now()->subDay(), 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    /** Saves a transaction through the real controller and returns the stored row. */
+    /**
+     * Saves a transaction through the real controller and returns the stored row. The test
+     * station holds no cash, so the SYP box going negative is confirmed (see CashBoxTest).
+     */
     private function store(array $input): Transaction
     {
-        $request = StoreTransactionRequest::create('/transactions', 'POST', $input);
+        $request = StoreTransactionRequest::create('/transactions', 'POST', [...$input, 'confirm_negative_cash' => true]);
         $request->setContainer(app())->setRedirector(app('redirect'));
         $request->setUserResolver(fn () => $this->user);
         $request->validateResolved();

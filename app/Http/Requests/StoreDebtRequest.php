@@ -27,6 +27,10 @@ class StoreDebtRequest extends FormRequest
             'date' => ['required', 'date'],
             'details' => ['nullable', 'string'],
             'affect_cash_box' => ['nullable', 'boolean'],
+            // Where a cash advance paid out now comes from (see CashBox).
+            'pay_from' => ['nullable', 'in:own,primary'],
+            'cash_rate' => ['nullable', 'numeric', 'gt:0'],
+            'confirm_negative_cash' => ['nullable', 'boolean'],
         ];
     }
 }

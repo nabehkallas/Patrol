@@ -41,19 +41,28 @@ test('switching back to the price currency fills it again', () => {
     );
 });
 
-test('a typed amount is never changed', () => {
-    const typed = { amount: '45', amountTyped: true };
+test('a typed amount stays while the quantity changes', () => {
+    assert.equal(
+        refillAmount(
+            form({ amount: '45', amountTyped: true, quantity: '5' }),
+            price,
+            'SYP',
+        ),
+        '45',
+    );
+});
+
+// The Store passes amountTyped: false on a currency change: a number typed for one currency
+// must never be saved in another.
+test('a currency change clears even a typed amount, or fills it again', () => {
+    const typed = { amount: '45', amountTyped: false };
     assert.equal(
         refillAmount(form({ ...typed, currency: 'USD' }), price, 'SYP'),
-        '45',
+        '',
     );
     assert.equal(
         refillAmount(form({ ...typed, currency: 'SYP' }), price, 'SYP'),
-        '45',
-    );
-    assert.equal(
-        refillAmount(form({ ...typed, quantity: '5' }), price, 'SYP'),
-        '45',
+        '1500.00',
     );
 });
 

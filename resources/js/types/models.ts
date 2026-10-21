@@ -118,6 +118,12 @@ export type Transaction = {
     description: string | null;
     amount: string;
     currency: Currency;
+    /** Paid from the primary box at a rate: the amount, currency and rate it was for. */
+    original_amount?: string | null;
+    original_currency?: Currency | null;
+    original_rate?: string | null;
+    /** The same, as the edit page gets it. */
+    original?: { amount: number; currency: Currency; rate: number } | null;
     to_currency: Currency | null;
     to_amount: string | null;
     exchange_rate_to_usd: string | null;
@@ -267,6 +273,8 @@ export type CashBoxSummary = {
     sadcop_expense_syp: number;
     other_expense: CurrencyBreakdown;
     exchanged: Partial<Record<Currency, number>>;
+    /** Opening cash dated in the period (counted in net). */
+    opening_cash: CurrencyBreakdown;
     net: CurrencyBreakdown;
     liters_sold: number;
     liters_sold_by_fuel_type: FuelTypeLiters[];
@@ -279,7 +287,8 @@ export type CashBoxHistoryEntryType =
     | 'expense'
     | 'purchase'
     | 'sadcop'
-    | 'exchange';
+    | 'exchange'
+    | 'opening';
 
 export type CashBoxHistoryEntry = {
     id: string;
@@ -288,6 +297,8 @@ export type CashBoxHistoryEntry = {
     description: string;
     amount: number;
     currency: Currency;
+    /** Paid from the primary box at a rate: what it was for. */
+    original: { amount: number; currency: Currency; rate: number } | null;
 };
 
 export type EarningsTopUpTier = {

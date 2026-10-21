@@ -7,6 +7,7 @@ use App\Enums\DebtDirection;
 use App\Enums\DebtStatus;
 use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
+use App\Models\CashBoxOpening;
 use App\Models\Debt;
 use App\Models\Debtor;
 use App\Models\DebtPayment;
@@ -77,6 +78,8 @@ class CashBoxController extends Controller
             ],
             'cashBox' => $cashBox,
             'openingBalance' => $openingBalance,
+            // The cash each box held when the station started (admins set it).
+            'openingCash' => $isAdmin ? CashBoxOpening::orderBy('currency')->get(['id', 'currency', 'amount', 'date', 'notes']) : [],
             'history' => $this->historyEntries($from->copy()->startOfDay(), $to->copy()->endOfDay(), $isAdmin, $user->id),
         ]);
     }
@@ -218,10 +221,17 @@ class CashBoxController extends Controller
             ->with('debt')
             ->get();
 
+        // A payment counts in the box the cash moved in (see DebtPayment::cashCurrency()).
+        $asCash = fn (Collection $payments) => $payments->map(fn (DebtPayment $p) => (object) [
+            'currency' => $p->cashCurrency(),
+            'amount' => $p->cashAmount(),
+            'paid_at' => $p->paid_at,
+        ]);
+
         $receivablePayments = $debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
-        $payablePayments = $debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable);
-        $governmentPayments = $receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
-        $customerReceivablePayments = $receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+        $payablePayments = $asCash($debtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable));
+        $governmentPayments = $asCash($receivablePayments->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
+        $customerReceivablePayments = $asCash($receivablePayments->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
 
         $sumSyp = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'SYP')->sum('amount');
         $sumUsd = fn (Collection $items, string $currencyPath) => (float) $items->filter(fn ($item) => data_get($item, $currencyPath) === 'USD')->sum('amount');
@@ -253,17 +263,25 @@ class CashBoxController extends Controller
             ->get();
 
         $openingReceivable = $openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Receivable);
-        $openingPayable = $openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable);
-        $openingGovernment = $openingReceivable->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
-        $openingCustomerReceivable = $openingReceivable->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId);
+        $openingPayable = $asCash($openingDebtPayments->filter(fn (DebtPayment $p) => $p->debt->direction === DebtDirection::Payable));
+        $openingGovernment = $asCash($openingReceivable->filter(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
+        $openingCustomerReceivable = $asCash($openingReceivable->reject(fn (DebtPayment $p) => $p->debt->debtor_id === $governmentDebtorId));
 
-        $openingSypBalance = $sumSyp($openingIncome, 'currency') + $sumSyp($openingCustomerReceivable, 'debt.currency')
+        // Opening cash dated before the sheet seeds its first row; one inside it is Other Income
+        // on its day (SYP; this sheet has no USD income column).
+        $openingCashBefore = $isAdmin ? CashBoxOpening::whereDate('date', '<', $from->toDateString())->get() : collect();
+        $openingCashByDay = $isAdmin
+            ? CashBoxOpening::whereDate('date', '>=', $from->toDateString())->whereDate('date', '<=', $to->toDateString())->get()->groupBy(fn (CashBoxOpening $o): string => $o->date->toDateString())
+            : collect();
+
+        $openingSypBalance = $sumSyp($openingIncome, 'currency') + $sumSyp($openingCustomerReceivable, 'currency')
             - (float) $openingSadcop->sum('amount')
-            + $sumSyp($openingGovernment, 'debt.currency') + $sumSyp($openingGovernmentIncome, 'currency')
-            + $sumSyp($openingOtherCategory, 'currency')
-            - $sumSyp($openingOtherExpense, 'currency') - $sumSyp($openingPayable, 'debt.currency');
+            + $sumSyp($openingGovernment, 'currency') + $sumSyp($openingGovernmentIncome, 'currency')
+            + $sumSyp($openingOtherCategory, 'currency') + $sumSyp($openingCashBefore, 'currency')
+            - $sumSyp($openingOtherExpense, 'currency') - $sumSyp($openingPayable, 'currency');
 
-        $openingUsdBalance = -($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'debt.currency'));
+        $openingUsdBalance = $sumUsd($openingCashBefore, 'currency')
+            - ($sumUsd($openingOtherExpense, 'currency') + $sumUsd($openingPayable, 'currency'));
 
         $byDay = fn (Collection $items, string $dateField) => $items->groupBy(fn ($item): string => $item->{$dateField}->toDateString());
 
@@ -313,15 +331,16 @@ class CashBoxController extends Controller
             $thisRow = $firstDataRow + $i;
 
             $soldSyp = $sumSyp($incomeByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($customerReceivableByDay->get($dayKey, collect()), 'debt.currency');
+                + $sumSyp($customerReceivableByDay->get($dayKey, collect()), 'currency');
             $sadcopSyp = (float) $sadcopByDay->get($dayKey, collect())->sum('amount');
-            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'debt.currency')
+            $governmentSyp = $sumSyp($governmentByDay->get($dayKey, collect()), 'currency')
                 + $sumSyp($governmentIncomeByDay->get($dayKey, collect()), 'currency');
-            $otherIncomeSyp = $sumSyp($otherCategoryByDay->get($dayKey, collect()), 'currency');
+            $otherIncomeSyp = $sumSyp($otherCategoryByDay->get($dayKey, collect()), 'currency')
+                + $sumSyp($openingCashByDay->get($dayKey, collect()), 'currency');
             $expenseSyp = $sumSyp($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
-                + $sumSyp($payableByDay->get($dayKey, collect()), 'debt.currency');
+                + $sumSyp($payableByDay->get($dayKey, collect()), 'currency');
             $expenseUsd = $sumUsd($otherExpenseTxByDay->get($dayKey, collect()), 'currency')
-                + $sumUsd($payableByDay->get($dayKey, collect()), 'debt.currency');
+                + $sumUsd($payableByDay->get($dayKey, collect()), 'currency');
 
             $notes = $governmentIncomeByDay->get($dayKey, collect())
                 ->concat($otherCategoryByDay->get($dayKey, collect()))
@@ -380,7 +399,7 @@ class CashBoxController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function summarize(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
+    public function summarize(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
         $transactions = Transaction::query()
             ->where('occurred_at', '>=', $from)
@@ -451,6 +470,10 @@ class CashBoxController extends Controller
         $exchangeTransactions = $transactions->where('type', TransactionType::CurrencyExchange);
         $exchangedBreakdown = $this->exchangedByCurrency($exchangeTransactions);
 
+        // The cash each box already held when the station started (one entry per box, on its
+        // date). A station-wide figure, so a cashier's own view of a period leaves it out.
+        $openingCash = $this->byCurrency($isAdmin ? $this->openingsBetween($from, $to) : collect());
+
         $standaloneDebtLiters = $debts->whereNotNull('liters');
 
         $litersSold = $transactions
@@ -474,7 +497,8 @@ class CashBoxController extends Controller
             'sadcop_expense_syp' => round($sadcopExpenseSyp, 0),
             'other_expense' => $otherExpenseBreakdown,
             'exchanged' => $exchangedBreakdown,
-            'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp, $exchangedBreakdown),
+            'opening_cash' => $openingCash,
+            'net' => $this->netByCurrency($incomeBreakdown, $otherExpenseBreakdown, $sadcopExpenseSyp, $exchangedBreakdown, $openingCash),
             'liters_sold' => round($litersSold, 3),
             'liters_sold_by_fuel_type' => $litersSoldByFuelType,
             'debts' => $this->byCurrency($outstandingDebts, fn (Debt $debt) => $debt->remainingAmount()),
@@ -555,8 +579,21 @@ class CashBoxController extends Controller
     }
 
     /**
-     * Debt payments of the given direction within a window, as plain currency/amount pairs
-     * (a payment has no currency of its own — it's always in its parent debt's currency).
+     * Opening cash entries dated within a window.
+     *
+     * @return Collection<int, CashBoxOpening>
+     */
+    private function openingsBetween(CarbonInterface $from, CarbonInterface $to): Collection
+    {
+        return CashBoxOpening::query()
+            ->whereDate('date', '>=', $from->toDateString())
+            ->whereDate('date', '<=', $to->toDateString())
+            ->get();
+    }
+
+    /**
+     * Debt payments of the given direction within a window, as plain currency/amount pairs of
+     * the cash that moved: the debt's currency, unless it was paid from another box at a rate.
      *
      * @return Collection<int, object{currency: string, amount: float}&\stdClass>
      */
@@ -570,8 +607,8 @@ class CashBoxController extends Controller
             ->with('debt')
             ->get()
             ->map(fn (DebtPayment $payment) => (object) [
-                'currency' => $payment->debt->currency,
-                'amount' => (float) $payment->amount,
+                'currency' => $payment->cashCurrency(),
+                'amount' => $payment->cashAmount(),
             ]);
     }
 
@@ -583,13 +620,14 @@ class CashBoxController extends Controller
      * Fuel deliveries (including Sadcop's) never touch the cash register, so they're excluded
      * entirely, same as in summarize().
      *
-     * @return array<int, array{id: string, date: string, type: string, description: string, amount: float, currency: string}>
+     * @return array<int, array{id: string, date: string, type: string, description: string, amount: float, currency: string, original: array{amount: float, currency: string, rate: float}|null}>
      */
     private function historyEntries(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, int $userId): array
     {
         $labels = Locales::labels([
             'sadcop_transfer' => 'Sadcop transfer',
             'debt_payment' => 'Debt payment',
+            'opening_cash' => 'Opening cash',
         ]);
 
         $transactions = Transaction::query()
@@ -622,6 +660,11 @@ class CashBoxController extends Controller
                 'description' => $this->describeTransaction($transaction, $labels),
                 'amount' => (float) $transaction->amount,
                 'currency' => $transaction->currency,
+                'original' => $transaction->original_currency !== null ? [
+                    'amount' => (float) $transaction->original_amount,
+                    'currency' => $transaction->original_currency,
+                    'rate' => (float) $transaction->original_rate,
+                ] : null,
             ]);
 
         $debtPayments = DebtPayment::query()
@@ -635,11 +678,27 @@ class CashBoxController extends Controller
                 'date' => $payment->paid_at->toIso8601String(),
                 'type' => $payment->debt->direction === DebtDirection::Receivable ? 'income' : 'expense',
                 'description' => ($payment->debt->debtor->name ?? '—').' — '.$labels['debt_payment'],
-                'amount' => (float) $payment->amount,
-                'currency' => $payment->debt->currency,
+                'amount' => $payment->cashAmount(),
+                'currency' => $payment->cashCurrency(),
+                'original' => $payment->cash_currency !== null ? [
+                    'amount' => (float) $payment->amount,
+                    'currency' => $payment->debt->currency,
+                    'rate' => (float) $payment->cash_rate,
+                ] : null,
             ]);
 
-        return $transactions->concat($debtPayments)
+        $openings = ($isAdmin ? $this->openingsBetween($from, $to) : collect())
+            ->map(fn (CashBoxOpening $opening) => [
+                'id' => 'opening-'.$opening->id,
+                'date' => $opening->date->copy()->startOfDay()->toIso8601String(),
+                'type' => 'opening',
+                'description' => $opening->notes ?: $labels['opening_cash'],
+                'amount' => (float) $opening->amount,
+                'currency' => $opening->currency,
+                'original' => null,
+            ]);
+
+        return $transactions->concat($debtPayments)->concat($openings)
             ->sortByDesc('date')
             ->values()
             ->all();
@@ -708,17 +767,19 @@ class CashBoxController extends Controller
      * @param  array<string, float>  $income
      * @param  array<string, float>  $otherExpense
      * @param  array<string, float>  $exchanged
+     * @param  array<string, float>  $openingCash
      * @return array<string, float>
      */
-    private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp, array $exchanged): array
+    private function netByCurrency(array $income, array $otherExpense, float $sadcopExpenseSyp, array $exchanged, array $openingCash = []): array
     {
         $primary = Currency::primary();
-        $currencies = array_unique([$primary, ...array_keys($income), ...array_keys($otherExpense), ...array_keys($exchanged), ...($sadcopExpenseSyp != 0 ? [Currency::SYP] : [])]);
+        $currencies = array_unique([$primary, ...array_keys($income), ...array_keys($otherExpense), ...array_keys($exchanged), ...array_keys($openingCash), ...($sadcopExpenseSyp != 0 ? [Currency::SYP] : [])]);
 
         $result = [];
 
         foreach ($currencies as $currency) {
             $value = ($income[$currency] ?? 0.0)
+                + ($openingCash[$currency] ?? 0.0)
                 - ($otherExpense[$currency] ?? 0.0)
                 + ($exchanged[$currency] ?? 0.0)
                 - ($currency === Currency::SYP ? $sadcopExpenseSyp : 0.0);

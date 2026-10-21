@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { OpeningCashCard } from '@/components/cash-box/opening-cash';
+import type { OpeningCash } from '@/components/cash-box/opening-cash';
+import { OriginalPaymentNote } from '@/components/cash-source-fields';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
@@ -56,7 +59,9 @@ type PageProps = {
     };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
+    openingCash: OpeningCash[];
     history: CashBoxHistoryEntry[];
+    auth: { isAdmin: boolean };
 };
 
 /** Every currency besides the primary one that has activity anywhere in this summary (SYP
@@ -359,6 +364,7 @@ function CashBoxHistory({
         purchase: t('cash_box.history_type.purchase'),
         sadcop: t('cash_box.history_type.sadcop'),
         exchange: t('cash_box.history_type.exchange'),
+        opening: t('cash_box.history_type.opening'),
     };
 
     return (
@@ -386,7 +392,9 @@ function CashBoxHistory({
                                 entry.type === 'expense' ||
                                 entry.type === 'purchase' ||
                                 entry.type === 'sadcop';
-                            const isPositive = entry.type === 'income';
+                            const isPositive =
+                                entry.type === 'income' ||
+                                entry.type === 'opening';
 
                             return (
                                 <tr key={entry.id} className="border-t">
@@ -417,6 +425,9 @@ function CashBoxHistory({
                                             entry.amount,
                                             entry.currency,
                                         )}
+                                        <OriginalPaymentNote
+                                            original={entry.original}
+                                        />
                                     </td>
                                 </tr>
                             );
@@ -443,7 +454,9 @@ export default function CashBoxIndex() {
         filters,
         cashBox: totals,
         openingBalance,
+        openingCash = [],
         history,
+        auth,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
     // The main row of cards shows the station's primary currency; others get their own boxes.
@@ -779,6 +792,8 @@ export default function CashBoxIndex() {
                         {t('cash_box.cash_out')}
                     </Button>
                 </div>
+
+                {auth.isAdmin && <OpeningCashCard openings={openingCash} />}
 
                 <CashBoxHistory entries={history} t={t} />
             </div>

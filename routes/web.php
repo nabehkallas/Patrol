@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\TankController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnnualSummaryAccessController;
 use App\Http\Controllers\CashBoxController;
+use App\Http\Controllers\CashBoxOpeningController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\ForcePasswordChangeController;
@@ -96,6 +97,8 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
         Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
         Route::get('cash-box/export-xlsx', [CashBoxController::class, 'exportXlsx'])->name('cash-box.export-xlsx');
+        Route::post('cash-box/openings', [CashBoxOpeningController::class, 'store'])->name('cash-box.openings.store')->middleware('role:admin');
+        Route::delete('cash-box/openings/{cashBoxOpening}', [CashBoxOpeningController::class, 'destroy'])->name('cash-box.openings.destroy')->middleware('role:admin');
 
         Route::resource('transactions', TransactionController::class)->except('show');
         Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');

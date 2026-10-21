@@ -2,6 +2,12 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import {
+    CashSourceFields,
+    emptyCashSource,
+    OriginalPaymentNote,
+    useCashSource,
+} from '@/components/cash-source-fields';
+import {
     CurrencyOptions,
     useCurrencyName,
 } from '@/components/currency-options';
@@ -32,6 +38,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
+import {
+    CONFIRM_FIELD,
+    useNegativeCashConfirm,
+} from '@/hooks/use-negative-cash-confirm';
+import type { CashSourceInput } from '@/lib/cash-source';
+import { cashSourcePayload } from '@/lib/cash-source';
 import {
     formatDateTime,
     formatNumber,
@@ -73,6 +85,8 @@ type HistoryEntry = {
     quantity: number;
     amount: string;
     currency: Currency;
+    /** Paid from the primary box at a rate: what it was for (the record is what left the box). */
+    original: { amount: number; currency: Currency; rate: number } | null;
     occurred_at: string;
     recorded_by: string | null;
     notes: string | null;
@@ -277,13 +291,15 @@ function ItemCard({ item }: { item: ShopItem }) {
 
     function openBuy() {
         setPurchase(movementDefaults(item.currency, defaultEntryDate));
+        setPurchaseCash(emptyCashSource);
         setPurchaseErrors({});
         setBuyOpen(true);
     }
 
     // The amount is filled from the purchase price only in the item's own currency: another
-    // currency clears it to be typed (never converted), switching back fills it again. An
-    // amount that was typed is never changed (clearing it goes back to filling).
+    // currency clears it to be typed (never converted), switching back fills it again. A typed
+    // amount stays while the quantity changes, but a currency change always clears or refills
+    // it -- a number typed for one currency must never be saved in another.
     function handlePurchaseQuantityChange(quantity: string) {
         setPurchase((data) => ({
             ...data,
@@ -301,12 +317,24 @@ function ItemCard({ item }: { item: ShopItem }) {
             ...data,
             currency,
             amount: refillAmount(
-                { ...data, currency },
+                { ...data, currency, amountTyped: false },
                 item.base_price,
                 item.currency,
             ),
+            amountTyped: false,
         }));
+        setPurchaseCash(emptyCashSource);
     }
+
+    // Where a purchase in another currency is paid from (see CashSourceFields).
+    const [purchaseCash, setPurchaseCash] =
+        useState<CashSourceInput>(emptyCashSource);
+    const purchaseSource = useCashSource(
+        purchase.amount,
+        purchase.currency,
+        purchaseCash,
+    );
+    const negativeCash = useNegativeCashConfirm();
 
     function openEdit() {
         editForm.setData({
@@ -328,8 +356,8 @@ function ItemCard({ item }: { item: ShopItem }) {
         });
     }
 
-    function submitPurchase(event: FormEvent) {
-        event.preventDefault();
+    function submitPurchase(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
         router.post(
             storePurchase.url(),
             {
@@ -338,6 +366,8 @@ function ItemCard({ item }: { item: ShopItem }) {
                 amount: purchase.amount,
                 currency: purchase.currency,
                 date: purchase.date,
+                ...cashSourcePayload(purchaseSource),
+                [CONFIRM_FIELD]: confirmed,
             },
             {
                 preserveScroll: true,
@@ -345,8 +375,15 @@ function ItemCard({ item }: { item: ShopItem }) {
                     setBuyOpen(false);
                     setPurchaseErrors({});
                 },
-                onError: (errors) =>
-                    setPurchaseErrors(errors as Record<string, string>),
+                onError: (errors) => {
+                    if (
+                        !negativeCash.handle(errors, () =>
+                            submitPurchase(undefined, true),
+                        )
+                    ) {
+                        setPurchaseErrors(errors as Record<string, string>);
+                    }
+                },
             },
         );
     }
@@ -447,6 +484,7 @@ function ItemCard({ item }: { item: ShopItem }) {
                 </form>
             </CardContent>
 
+            {negativeCash.dialog}
             <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
                 <DialogContent>
                     <DialogTitle>
@@ -510,6 +548,13 @@ function ItemCard({ item }: { item: ShopItem }) {
                                     })}
                                 </p>
                             )}
+                        <CashSourceFields
+                            amount={purchase.amount}
+                            currency={purchase.currency}
+                            value={purchaseCash}
+                            onChange={setPurchaseCash}
+                            errors={purchaseErrors}
+                        />
                         <div className="grid gap-2">
                             <Label htmlFor={`purchase_date_${item.id}`}>
                                 {t('common.date')}
@@ -728,27 +773,65 @@ export default function ShopIndex() {
         date: '',
     });
 
+    // A purchase paid from the primary box at a rate is edited as it was entered: its original
+    // currency and amount, from the primary box at its rate. Its own old amount counts as
+    // available again while it's checked.
+    const [entryCash, setEntryCash] =
+        useState<CashSourceInput>(emptyCashSource);
+    const entryIsPurchase = editingEntry?.type === 'purchase';
+    const entryGiveBack: Record<string, number> =
+        editingEntry && entryIsPurchase
+            ? { [editingEntry.currency]: parseFloat(editingEntry.amount) }
+            : {};
+    const entrySource = useCashSource(
+        editEntryForm.data.amount,
+        editEntryForm.data.currency,
+        entryCash,
+        entryGiveBack,
+    );
+    const entryNegativeCash = useNegativeCashConfirm();
+
     function openEditEntry(entry: HistoryEntry) {
+        editEntryForm.clearErrors();
         editEntryForm.setData({
             shop_item_id: entry.shop_item_id,
             quantity: String(entry.quantity),
-            amount: trimDecimal(entry.amount),
-            currency: entry.currency,
+            amount: entry.original
+                ? trimDecimal(String(entry.original.amount))
+                : trimDecimal(entry.amount),
+            currency: entry.original?.currency ?? entry.currency,
             date: entry.occurred_at.slice(0, 10),
         });
+        setEntryCash(
+            entry.original
+                ? {
+                      pay_from: 'primary',
+                      cash_rate: String(entry.original.rate),
+                  }
+                : emptyCashSource,
+        );
         setEditingEntry(entry);
     }
 
-    function submitEditEntry(event: FormEvent) {
-        event.preventDefault();
+    function submitEditEntry(event?: FormEvent, confirmed = false) {
+        event?.preventDefault();
 
         if (!editingEntry) {
             return;
         }
 
+        editEntryForm.transform((data) => ({
+            ...data,
+            ...(entryIsPurchase ? cashSourcePayload(entrySource) : {}),
+            [CONFIRM_FIELD]: confirmed,
+        }));
         editEntryForm.patch(updateTransaction.url(editingEntry.id), {
             preserveScroll: true,
             onSuccess: () => setEditingEntry(null),
+            onError: (errors) =>
+                entryNegativeCash.handle(errors, () =>
+                    submitEditEntry(undefined, true),
+                ),
         });
     }
 
@@ -978,6 +1061,9 @@ export default function ShopIndex() {
                                                 entry.amount,
                                                 entry.currency,
                                             )}
+                                            <OriginalPaymentNote
+                                                original={entry.original}
+                                            />
                                         </td>
                                         <td className="px-4 py-3">
                                             {entry.recorded_by}
@@ -1114,6 +1200,7 @@ export default function ShopIndex() {
                 </DialogContent>
             </Dialog>
 
+            {entryNegativeCash.dialog}
             <Dialog
                 open={editingEntry !== null}
                 onOpenChange={(open) => !open && setEditingEntry(null)}
@@ -1201,9 +1288,13 @@ export default function ShopIndex() {
                                 <CurrencySelect
                                     id="edit_entry_currency"
                                     value={editEntryForm.data.currency}
-                                    onChange={(value) =>
-                                        editEntryForm.setData('currency', value)
-                                    }
+                                    onChange={(value) => {
+                                        editEntryForm.setData(
+                                            'currency',
+                                            value,
+                                        );
+                                        setEntryCash(emptyCashSource);
+                                    }}
                                 />
                                 <InputError
                                     message={editEntryForm.errors.currency}
@@ -1229,6 +1320,16 @@ export default function ShopIndex() {
                                 />
                             </div>
                         </div>
+                        {entryIsPurchase && (
+                            <CashSourceFields
+                                amount={editEntryForm.data.amount}
+                                currency={editEntryForm.data.currency}
+                                value={entryCash}
+                                onChange={setEntryCash}
+                                giveBack={entryGiveBack}
+                                errors={editEntryForm.errors}
+                            />
+                        )}
 
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
