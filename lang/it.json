@@ -1180,5 +1180,6 @@
     "pump_counters.gov_return_short": "Gov. / Reso",
     "pump_counters.sold_short": "Venduto",
     "opening_cash.title": "Contanti all'inizio dell'uso dell'app",
-    "opening_cash.warning": "Solo per i contanti presenti nelle casse prima di iniziare a registrare nell'app. Non inserirli se sono già stati registrati come deposito o entrata: verrebbero contati due volte."
+    "opening_cash.warning": "Solo per i contanti presenti nelle casse prima di iniziare a registrare nell'app. Non inserirli se sono già stati registrati come deposito o entrata: verrebbero contati due volte.",
+    "This item has no sell price on that date. An admin needs to set one.": "Questo articolo non ha un prezzo di vendita in quella data. Un amministratore deve impostarlo."
 }

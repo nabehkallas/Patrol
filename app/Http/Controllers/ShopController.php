@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -402,6 +403,8 @@ class ShopController extends Controller
             }
 
             $effectiveAt = $this->resolveEffectiveAt($data['effective_at'] ?? null, now());
+            // Picked before the new price exists: only sales still at their old list price follow it.
+            $atListPrice = $this->salesAtListPrice($shopItem, $effectiveAt);
 
             $shopItem->prices()->create([
                 'base_price' => $data['base_price'],
@@ -411,7 +414,7 @@ class ShopController extends Controller
                 'effective_at' => $effectiveAt,
             ]);
 
-            $repriced = $this->repriceShopSales($shopItem, $effectiveAt);
+            $repriced = $this->repriceShopSales($shopItem, $atListPrice);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $this->withRepriceNote(__('Shop item updated.'), $repriced)]);
@@ -439,29 +442,48 @@ class ShopController extends Controller
     }
 
     /**
-     * Rewrites amount on every sale (never purchase -- see ShopItem's docs) of $shopItem
-     * occurring on or after $from, to match whatever sell price is correctly effective as of
-     * each sale's own date. Mirrors FuelPriceController::repriceTransactions() exactly: quantity
-     * never changes, so this updates rows in place rather than deleting/recreating them.
+     * The sales (never purchases -- see ShopItem's docs) of $shopItem on or after $from that are
+     * still at their list price: quantity × the sell price effective on their date, in its
+     * currency. A sale an admin recorded at another amount (a discount) is left out, so a later
+     * price change never overwrites it.
+     *
+     * @return Collection<int, Transaction>
      */
-    private function repriceShopSales(ShopItem $shopItem, CarbonInterface $from): int
+    private function salesAtListPrice(ShopItem $shopItem, CarbonInterface $from): Collection
     {
-        $sales = Transaction::where('shop_item_id', $shopItem->id)
+        return Transaction::where('shop_item_id', $shopItem->id)
             ->where('type', TransactionType::OtherIncome)
             ->where('occurred_at', '>=', $from)
-            ->get();
+            ->get()
+            ->filter(function (Transaction $sale) use ($shopItem) {
+                $listed = $shopItem->saleAmountAt((int) $sale->quantity, $sale->occurred_at);
 
+                return $listed !== null
+                    && $listed['currency'] === $sale->currency
+                    && abs($listed['amount'] - (float) $sale->amount) < 0.005;
+            })
+            ->values();
+    }
+
+    /**
+     * Rewrites amount and currency on each of $sales to match the sell price now effective on
+     * its own date. Mirrors FuelPriceController::repriceTransactions(): quantity never changes,
+     * so this updates rows in place rather than deleting/recreating them.
+     *
+     * @param  Collection<int, Transaction>  $sales
+     */
+    private function repriceShopSales(ShopItem $shopItem, Collection $sales): int
+    {
         $repriced = 0;
 
         foreach ($sales as $sale) {
-            $priceAtDate = $shopItem->priceAt($sale->occurred_at);
-            $newAmount = $priceAtDate ? round((float) $sale->quantity * (float) $priceAtDate->sell_price, 2) : 0.0;
+            $listed = $shopItem->saleAmountAt((int) $sale->quantity, $sale->occurred_at);
 
-            if ($newAmount === (float) $sale->amount) {
+            if ($listed === null || ($listed['amount'] === (float) $sale->amount && $listed['currency'] === $sale->currency)) {
                 continue;
             }
 
-            $sale->update(['amount' => $newAmount]);
+            $sale->update(['amount' => $listed['amount'], 'currency' => $listed['currency']]);
             $repriced++;
         }
 
@@ -501,9 +523,14 @@ class ShopController extends Controller
         return to_route('shop.index');
     }
 
+    /**
+     * A sale is priced on the server: quantity × the item's sell price on the sale's date, in
+     * that price's currency. Only an admin may record another amount (a discount); an amount
+     * sent by anyone else is ignored.
+     */
     public function storeSale(Request $request): RedirectResponse
     {
-        $data = $this->validateMovement($request);
+        $data = $this->validateSale($request);
 
         $item = ShopItem::findOrFail($data['shop_item_id']);
         $stock = $item->currentStock();
@@ -514,7 +541,25 @@ class ShopController extends Controller
             ]);
         }
 
-        $this->recordMovement($request, $data, TransactionType::OtherIncome);
+        $listed = $item->saleAmountAt((int) $data['quantity'], $this->occurredAt($data['date']));
+
+        if ($listed === null) {
+            throw ValidationException::withMessages([
+                'amount' => __('This item has no sell price on that date. An admin needs to set one.'),
+            ]);
+        }
+
+        $typed = $data['amount'] ?? null;
+        $discounted = $request->user()->isAdmin() && filled($typed);
+
+        $this->recordMovement($request, [
+            'shop_item_id' => $data['shop_item_id'],
+            'quantity' => $data['quantity'],
+            'amount' => $discounted ? (float) $typed : $listed['amount'],
+            'currency' => $listed['currency'],
+            'date' => $data['date'],
+            'notes' => $data['notes'] ?? null,
+        ], TransactionType::OtherIncome);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Sale recorded.')]);
 
@@ -565,13 +610,28 @@ class ShopController extends Controller
             'description' => $item->name.' × '.$data['quantity'],
             ...$money,
             'exchange_rate_to_usd' => null,
-            'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
+            'occurred_at' => $this->occurredAt($data['date']),
             'notes' => $data['notes'] ?? null,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Transaction updated.')]);
 
         return to_route('shop.index');
+    }
+
+    /**
+     * @return array{shop_item_id: int|string, quantity: int|string, amount?: int|float|string|null, date: string, notes?: string|null}
+     */
+    private function validateSale(Request $request): array
+    {
+        return $request->validate([
+            'shop_item_id' => ['required', 'exists:shop_items,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            // Only an admin's amount (a discount) is used; the currency is always the price's.
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'date' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
     }
 
     /**
@@ -611,8 +671,14 @@ class ShopController extends Controller
             'description' => $item->name.' × '.$data['quantity'],
             ...$money,
             'exchange_rate_to_usd' => null,
-            'occurred_at' => Carbon::parse($data['date'])->setTimeFrom(now()),
+            'occurred_at' => $this->occurredAt($data['date']),
             'notes' => $data['notes'] ?? null,
         ]);
+    }
+
+    /** A movement's date, at the time it is entered (keeps same-day entries in order). */
+    private function occurredAt(string $date): CarbonInterface
+    {
+        return Carbon::parse($date)->setTimeFrom(now());
     }
 }

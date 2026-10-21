@@ -22,7 +22,7 @@ class CreatePlatformAdmin extends Command
     {
         $email = $this->argument('email');
 
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (! is_string($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->error('That does not look like a valid email address.');
 
             return self::FAILURE;

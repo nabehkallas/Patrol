@@ -1180,5 +1180,6 @@
     "pump_counters.gov_return_short": "Hikûmî / Vegerandin",
     "pump_counters.sold_short": "Firotî",
     "opening_cash.title": "Pereyê kaş dema destpêkirina sepanê",
-    "opening_cash.warning": "Tenê ji bo pereyê ku berî destpêkirina tomarkirinê di sepanê de di sindoqan de bû. Heke ev pere berê wekî razandin an dahat hatibe tomarkirin, nekeve — dê du caran were hejmartin."
+    "opening_cash.warning": "Tenê ji bo pereyê ku berî destpêkirina tomarkirinê di sepanê de di sindoqan de bû. Heke ev pere berê wekî razandin an dahat hatibe tomarkirin, nekeve — dê du caran were hejmartin.",
+    "This item has no sell price on that date. An admin needs to set one.": "Ji bo vê tiştê di wê rojê de bihayê firotinê tune. Divê rêveberek wê diyar bike."
 }

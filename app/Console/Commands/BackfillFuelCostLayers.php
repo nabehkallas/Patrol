@@ -47,7 +47,8 @@ class BackfillFuelCostLayers extends Command
 
     public function handle(): int
     {
-        $tenant = Tenant::find($this->argument('tenant'));
+        $tenantId = $this->argument('tenant');
+        $tenant = is_string($tenantId) ? Tenant::find($tenantId) : null;
 
         if (! $tenant) {
             $this->error('No tenant found with that ID.');
@@ -57,7 +58,7 @@ class BackfillFuelCostLayers extends Command
 
         $dryRun = (bool) $this->option('dry-run');
         $fromOption = $this->option('from');
-        $from = $fromOption ? Carbon::parse($fromOption)->startOfDay() : now()->startOfMonth();
+        $from = is_string($fromOption) && $fromOption !== '' ? Carbon::parse($fromOption)->startOfDay() : now()->startOfMonth();
 
         tenancy()->initialize($tenant);
 

@@ -172,8 +172,9 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::get('shop/export-pdf', [ShopController::class, 'exportPdf'])->name('shop.export-pdf');
         Route::get('shop/export-xlsx', [ShopController::class, 'exportXlsx'])->name('shop.export-xlsx');
         Route::post('shop/items', [ShopController::class, 'storeItem'])->name('shop.items.store');
-        Route::patch('shop/items/{shopItem}', [ShopController::class, 'updateItem'])->name('shop.items.update');
-        Route::delete('shop/items/{shopItem}', [ShopController::class, 'destroyItem'])->name('shop.items.destroy');
+        // Changing an item's price (backdated ones reprice past sales) or deleting it is for admins.
+        Route::patch('shop/items/{shopItem}', [ShopController::class, 'updateItem'])->name('shop.items.update')->middleware('role:admin');
+        Route::delete('shop/items/{shopItem}', [ShopController::class, 'destroyItem'])->name('shop.items.destroy')->middleware('role:admin');
         Route::post('shop/purchases', [ShopController::class, 'storePurchase'])->name('shop.purchases.store');
         Route::post('shop/sales', [ShopController::class, 'storeSale'])->name('shop.sales.store');
         Route::patch('shop/transactions/{transaction}', [ShopController::class, 'updateTransaction'])->name('shop.transactions.update');

@@ -55,6 +55,22 @@ class ShopItem extends Model
     }
 
     /**
+     * What selling $quantity on $date comes to at the list price: quantity × the sell price
+     * effective then, in that price's currency. Null when the item has no price by then.
+     *
+     * @return array{amount: float, currency: string}|null
+     */
+    public function saleAmountAt(int $quantity, CarbonInterface $date): ?array
+    {
+        $price = $this->priceAt($date);
+
+        return $price === null ? null : [
+            'amount' => round($quantity * (float) $price->sell_price, 2),
+            'currency' => $price->currency,
+        ];
+    }
+
+    /**
      * Units currently in stock: every unit ever bought in, minus every unit sold out. Mirrors
      * Tank::expectedLiters()'s "derive the current amount from movement history" approach,
      * rather than storing (and risking drift from) a separate running total.

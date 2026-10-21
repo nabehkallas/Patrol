@@ -42,7 +42,8 @@ class FixHistoricalPriceTimestamps extends Command
 
     public function handle(): int
     {
-        $tenant = Tenant::find($this->argument('tenant'));
+        $tenantId = $this->argument('tenant');
+        $tenant = is_string($tenantId) ? Tenant::find($tenantId) : null;
 
         if (! $tenant) {
             $this->error('No tenant found with that ID.');
@@ -55,7 +56,7 @@ class FixHistoricalPriceTimestamps extends Command
 
         tenancy()->initialize($tenant);
 
-        $from = $fromOption ? Carbon::parse($fromOption)->startOfDay() : now()->startOfMonth();
+        $from = is_string($fromOption) && $fromOption !== '' ? Carbon::parse($fromOption)->startOfDay() : now()->startOfMonth();
 
         $this->info(($dryRun ? '[DRY RUN] ' : '').'Fixing historical price timestamps for tenant '.$tenant->id);
 

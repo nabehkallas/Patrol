@@ -39,6 +39,8 @@ class RoleAccessTest extends TestCase
             'admin.fuel-types.index', 'admin.fuel-types.store',
             'inventory.export-topups-pdf', 'inventory.export-tanks-xlsx',
             'tools.tank-volume',
+            // Store item prices (a backdated one reprices past sales) and deleting items
+            'shop.items.update', 'shop.items.destroy',
         ];
 
         foreach ($adminOnly as $name) {

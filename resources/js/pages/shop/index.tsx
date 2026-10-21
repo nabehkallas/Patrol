@@ -210,7 +210,7 @@ function CurrencySelect({
     );
 }
 
-function ItemCard({ item }: { item: ShopItem }) {
+function ItemCard({ item, isAdmin }: { item: ShopItem; isAdmin: boolean }) {
     const { t } = useTranslation();
     const currencyName = useCurrencyName();
     const defaultEntryDate = useDefaultEntryDate();
@@ -238,7 +238,8 @@ function ItemCard({ item }: { item: ShopItem }) {
     });
 
     // A sale is always in the item's currency: the quantity fills the amount from the sell
-    // price, until an amount is typed (clearing it goes back to filling).
+    // price, until an admin types another amount (clearing it goes back to filling). The
+    // server prices the sale itself; only an admin's typed amount (a discount) is sent.
     const [sellAmountTyped, setSellAmountTyped] = useState(false);
 
     function handleSellQuantityChange(quantity: string) {
@@ -269,8 +270,7 @@ function ItemCard({ item }: { item: ShopItem }) {
             {
                 shop_item_id: item.id,
                 quantity: sellQuantity,
-                amount: sellAmount,
-                currency: item.currency,
+                ...(isAdmin && sellAmountTyped ? { amount: sellAmount } : {}),
                 date: sellDate,
             },
             {
@@ -405,9 +405,11 @@ function ItemCard({ item }: { item: ShopItem }) {
                     <span className="min-w-0 [overflow-wrap:anywhere]">
                         {item.name}
                     </span>
-                    <div className="flex items-center gap-1">
-                        <RowActions edit={openEdit} remove={removeItem} />
-                    </div>
+                    {isAdmin && (
+                        <div className="flex items-center gap-1">
+                            <RowActions edit={openEdit} remove={removeItem} />
+                        </div>
+                    )}
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-2 text-sm">
@@ -448,10 +450,15 @@ function ItemCard({ item }: { item: ShopItem }) {
                             min="0"
                             placeholder={t('common.amount')}
                             value={sellAmount}
+                            readOnly={!isAdmin}
+                            tabIndex={isAdmin ? undefined : -1}
                             onChange={(e) =>
                                 handleSellAmountChange(e.target.value)
                             }
-                            className="h-8 flex-1"
+                            className={cn(
+                                'h-8 flex-1',
+                                !isAdmin && 'bg-muted cursor-default',
+                            )}
                         />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -857,7 +864,11 @@ export default function ShopIndex() {
 
                 <div className="panel-grid">
                     {items.map((item) => (
-                        <ItemCard key={item.id} item={item} />
+                        <ItemCard
+                            key={item.id}
+                            item={item}
+                            isAdmin={auth.isAdmin}
+                        />
                     ))}
                     {items.length === 0 && (
                         <p className="text-muted-foreground text-sm">

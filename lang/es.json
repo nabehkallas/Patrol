@@ -1180,5 +1180,6 @@
     "pump_counters.gov_return_short": "Gob. / Devol.",
     "pump_counters.sold_short": "Vendido",
     "opening_cash.title": "Efectivo al empezar a usar la aplicación",
-    "opening_cash.warning": "Solo para el efectivo que había en las cajas antes de empezar a registrar en la aplicación. No lo introduzca si ya se registró como depósito o ingreso: se contaría dos veces."
+    "opening_cash.warning": "Solo para el efectivo que había en las cajas antes de empezar a registrar en la aplicación. No lo introduzca si ya se registró como depósito o ingreso: se contaría dos veces.",
+    "This item has no sell price on that date. An admin needs to set one.": "Este artículo no tiene precio de venta en esa fecha. Un administrador debe fijarlo."
 }

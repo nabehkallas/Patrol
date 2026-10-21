@@ -1180,5 +1180,6 @@
     "pump_counters.gov_return_short": "Gouv. / Retour",
     "pump_counters.sold_short": "Vendu",
     "opening_cash.title": "Espèces au démarrage de l'application",
-    "opening_cash.warning": "Uniquement pour l'argent présent dans les caisses avant de commencer à saisir dans l'application. Ne le saisissez pas s'il a déjà été enregistré comme dépôt ou recette : il serait compté deux fois."
+    "opening_cash.warning": "Uniquement pour l'argent présent dans les caisses avant de commencer à saisir dans l'application. Ne le saisissez pas s'il a déjà été enregistré comme dépôt ou recette : il serait compté deux fois.",
+    "This item has no sell price on that date. An admin needs to set one.": "Cet article n'a pas de prix de vente à cette date. Un administrateur doit en définir un."
 }
