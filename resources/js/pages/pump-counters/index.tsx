@@ -1,10 +1,12 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { StickyNote } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
+import { NoteIcon } from '@/components/note-icon';
 import { PageHeader } from '@/components/page-header';
 import type {
     EntryPump,
@@ -36,6 +38,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
+import { useLocale } from '@/hooks/use-locale';
 import {
     formatDate,
     formatDateTime,
@@ -183,6 +186,8 @@ export default function PumpCountersIndex() {
     const { auth, pumps, lastEntry, entry, shifts, tanks, readings, filters } =
         usePage<PageProps>().props;
     const { t } = useTranslation();
+    // History: previous reading, then the reading, in the direction the text runs.
+    const readingArrow = useLocale().direction === 'rtl' ? '←' : '→';
     const defaultEntryDate = useDefaultEntryDate();
 
     // Fuel types in order of first appearance among the pumps (then tanks), to keep each fuel
@@ -1059,10 +1064,10 @@ export default function PumpCountersIndex() {
                                     <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('common.tank')}
                                     </th>
-                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
-                                        {t('pump_counters.previous')}
-                                    </th>
-                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
+                                    <th
+                                        className={cn(HISTORY_TH, 'w-[18%]')}
+                                        title={`${t('pump_counters.previous')} ${readingArrow} ${t('pump_counters.reading_value')}`}
+                                    >
                                         {t('pump_counters.reading_value')}
                                     </th>
                                     <th className={cn(HISTORY_TH, 'w-[9%]')}>
@@ -1079,8 +1084,20 @@ export default function PumpCountersIndex() {
                                     <th className={cn(HISTORY_TH, 'w-[9%]')}>
                                         {t('pump_counters.return_liters')}
                                     </th>
-                                    <th className={cn(HISTORY_TH, 'w-[12%]')}>
-                                        {t('common.notes')}
+                                    <th
+                                        // Only as wide as the icon: past the 5.5rem every
+                                        // .table-stack header gets.
+                                        className={cn(
+                                            HISTORY_TH,
+                                            'min-w-0! w-px',
+                                        )}
+                                        title={t('common.notes')}
+                                        aria-label={t('common.notes')}
+                                    >
+                                        <StickyNote
+                                            aria-hidden
+                                            className="text-muted-foreground block size-4"
+                                        />
                                     </th>
                                     <th className={cn(HISTORY_TH, 'w-[8%]')}>
                                         {t('common.recorded_by')}
@@ -1122,6 +1139,7 @@ export default function PumpCountersIndex() {
                                             )}
                                         </td>
                                         <td className={HISTORY_NUMBER_TD}>
+                                            {/* Previous reading, then this one, in reading order. */}
                                             <bdi dir="ltr">
                                                 {reading.previous_reading_value !==
                                                 null
@@ -1131,8 +1149,9 @@ export default function PumpCountersIndex() {
                                                       )
                                                     : '—'}
                                             </bdi>
-                                        </td>
-                                        <td className={HISTORY_NUMBER_TD}>
+                                            <span className="text-muted-foreground mx-1.5">
+                                                {readingArrow}
+                                            </span>
                                             <bdi dir="ltr">
                                                 {formatNumber(
                                                     reading.reading_value,
@@ -1162,8 +1181,12 @@ export default function PumpCountersIndex() {
                                                     : '—'}
                                             </bdi>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.notes}
+                                        <td className="px-3 py-3">
+                                            {reading.notes && (
+                                                <NoteIcon
+                                                    note={reading.notes}
+                                                />
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             {reading.recorded_by?.name}
@@ -1183,7 +1206,7 @@ export default function PumpCountersIndex() {
                                 {readings.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={auth.isAdmin ? 11 : 10}
+                                            colSpan={auth.isAdmin ? 10 : 9}
                                             className="text-muted-foreground px-4 py-6 text-center"
                                         >
                                             {t('common.no_results')}
