@@ -38,11 +38,10 @@ import type {
 } from '@/types';
 
 /**
- * Every row is the same height: cells stay on one line, and the row is tall enough for the two
- * a cell can have (a late fuel sale's "entered" line, a payment's original amount) or the edit
- * and delete buttons.
+ * Every row is the same height: cells stay on one line, and the row is as tall as the edit and
+ * delete buttons make theirs.
  */
-const ROW = 'h-[3.75rem] border-t';
+const ROW = 'h-[3.6rem] border-t';
 const CELL = 'whitespace-nowrap px-3 py-3';
 
 type PageProps = {
@@ -246,7 +245,7 @@ export default function TransactionsIndex() {
                                         <ShownTime
                                             {...(transaction.shown ?? {
                                                 at: transaction.occurred_at,
-                                                entered: null,
+                                                shift: null,
                                             })}
                                         />
                                     </td>

@@ -19,9 +19,9 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * A fuel sale counts on its reading's date (stored at noon of it), but shows when its reading
- * was saved: that time when saved on the same day, otherwise the date only with when it was
- * entered (and the shift, on a station with several), sorted at the end of its date.
+ * Every list shows (and sorts by) when a record was saved -- for a fuel sale, when its reading
+ * was saved, with the shift on a station with several. Display only: a sale still counts on its
+ * reading's date (stored at noon of it) in every total and date filter.
  */
 class FuelSaleShownTimeTest extends TestCase
 {
@@ -84,32 +84,30 @@ class FuelSaleShownTimeTest extends TestCase
         $this->travelTo(Carbon::parse('2026-10-20 22:15:00'));
         $this->enter('2026-10-20', 1100);
 
-        DB::table('transactions')->insert(['user_id' => $this->user->id, 'type' => 'expense', 'amount' => 5000, 'currency' => 'SYP', 'description' => 'كهرباء', 'occurred_at' => '2026-10-21 23:00:00', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('transactions')->insert(['user_id' => $this->user->id, 'type' => 'expense', 'amount' => 5000, 'currency' => 'SYP', 'description' => 'كهرباء', 'occurred_at' => '2026-10-21 23:00:00', 'created_at' => '2026-10-21 23:05:00', 'updated_at' => '2026-10-21 23:05:00']);
 
         $this->travelTo(Carbon::parse('2026-10-22 02:30:00'));
         $this->enter('2026-10-21', 1200, 10);
     }
 
-    public function test_a_sale_saved_on_its_reading_date_shows_when_it_was_saved(): void
+    public function test_a_sale_shows_when_its_reading_was_saved(): void
     {
         $this->enterOctober();
-        $sale = $this->sale('2026-10-20');
 
-        $this->assertSame('2026-10-20 12:00:00', $sale->occurred_at->format('Y-m-d H:i:s'));
-        $this->assertSame(['at' => Carbon::parse('2026-10-20 22:15:00')->toIso8601String(), 'entered' => null], $sale->shownTime(true));
+        $this->assertSame(['at' => Carbon::parse('2026-10-20 22:15:00')->toIso8601String(), 'shift' => null], $this->sale('2026-10-20')->shownTime());
+        $this->assertSame(['at' => Carbon::parse('2026-10-22 02:30:00')->toIso8601String(), 'shift' => null], $this->sale('2026-10-21')->shownTime());
     }
 
-    public function test_a_sale_saved_on_a_later_day_shows_its_date_and_when_it_was_entered(): void
+    public function test_a_sale_saved_on_a_later_day_still_counts_on_its_reading_date(): void
     {
         $this->enterOctober();
-        $sale = $this->sale('2026-10-21');
+        $this->assertSame('2026-10-21 12:00:00', $this->sale('2026-10-21')->occurred_at->format('Y-m-d H:i:s'));
 
-        // Still counts on its reading's date.
-        $this->assertSame('2026-10-21 12:00:00', $sale->occurred_at->format('Y-m-d H:i:s'));
-        $this->assertSame([
-            'at' => '2026-10-21',
-            'entered' => ['at' => Carbon::parse('2026-10-22 02:30:00')->toIso8601String(), 'shift' => null],
-        ], $sale->shownTime());
+        $summarize = new ReflectionMethod(CashBoxController::class, 'summarize');
+        $day = fn (string $date) => $summarize->invoke(app(CashBoxController::class), Carbon::parse($date)->startOfDay(), Carbon::parse($date)->endOfDay(), true, $this->user->id);
+
+        $this->assertEquals(100, $day('2026-10-21')['liters_sold']);
+        $this->assertEquals(0, $day('2026-10-22')['liters_sold']);
     }
 
     public function test_the_shift_is_named_only_on_a_station_with_several(): void
@@ -120,10 +118,10 @@ class FuelSaleShownTimeTest extends TestCase
         Shift::create(['position' => 2, 'name' => 'مسائية']);
 
         $this->assertTrue(Shift::severalActive());
-        $this->assertSame('صباحية', $this->sale('2026-10-21')->shownTime(true)['entered']['shift']);
+        $this->assertSame('صباحية', $this->sale('2026-10-21')->shownTime(true)['shift']);
     }
 
-    public function test_a_late_sale_sorts_at_the_end_of_its_date_in_sql_and_in_php(): void
+    public function test_lists_sort_by_saved_time_in_sql_and_in_php(): void
     {
         $this->enterOctober();
         $all = Transaction::with(['pumpCounterReading.shift', 'governmentalReading.shift'])->get();
@@ -150,22 +148,22 @@ class FuelSaleShownTimeTest extends TestCase
             ->invoke(app(CashBoxController::class), Carbon::parse('2026-10-01'), Carbon::parse('2026-10-31 23:59:59'), true, $this->user->id);
 
         $this->assertSame(
-            [['2026-10-21', true], [Carbon::parse('2026-10-21 23:00:00')->toIso8601String(), false], [Carbon::parse('2026-10-20 22:15:00')->toIso8601String(), false]],
-            collect($history)->map(fn (array $entry) => [$entry['date'], $entry['entered'] !== null])->all(),
+            [Carbon::parse('2026-10-22 02:30:00')->toIso8601String(), Carbon::parse('2026-10-21 23:05:00')->toIso8601String(), Carbon::parse('2026-10-20 22:15:00')->toIso8601String()],
+            array_column($history, 'date'),
         );
         $this->assertArrayNotHasKey('sort', $history[0]);
     }
 
-    public function test_the_export_writes_the_entered_time_beside_the_date(): void
+    public function test_the_export_writes_the_saved_time(): void
     {
         $this->enterOctober();
         $table = (new ReflectionMethod(TransactionController::class, 'exportTable'))
             ->invoke(app(TransactionController::class), $this->request('/transactions/export', ['from' => '2026-10-01', 'to' => '2026-10-31'], 'GET'));
 
         $this->assertSame([
-            '2026-10-21 (Entered: 2026-10-22 02:30)',
-            '2026-10-21 (Entered: 2026-10-22 02:30)',
-            '2026-10-21 23:00',
+            '2026-10-22 02:30',
+            '2026-10-22 02:30',
+            '2026-10-21 23:05',
             '2026-10-20 22:15',
         ], array_column((new ReflectionProperty(ExportTable::class, 'rows'))->getValue($table), 0));
     }

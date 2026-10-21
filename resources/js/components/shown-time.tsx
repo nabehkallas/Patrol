@@ -1,44 +1,21 @@
-import { formatDate, formatDateTime, formatShortDateTime } from '@/lib/format';
-import { useTranslation } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/format';
 import type { ShownTime as ShownTimeValue } from '@/types';
 
 type Props = ShownTimeValue & {
-    /** Who recorded it, in the muted line under the time. */
-    by?: string | null;
-    /** Leave out the year when it is the current one (a narrow column). */
-    omitCurrentYear?: boolean;
+    /** Shown on hover, e.g. who recorded it. */
+    title?: string | null;
 };
 
 /**
- * When a record shows as having happened (Transaction::shownTime()): its date and time, or for
- * a fuel sale or reading entered on a later day than its own, its date with when it was entered
- * (and its shift, on a station with several) in a small muted line under it.
+ * When a record was saved (Transaction::savedAt()), on one line: "21 Oct, 02:19", with the
+ * shift on a station with several ("21 Oct, 02:19 · Morning"). The year shows only when it
+ * isn't the current one. Display only: the record still counts on its own date.
  */
-export function ShownTime({ at, entered, by, omitCurrentYear = false }: Props) {
-    const { t } = useTranslation();
-
-    const enteredText = entered
-        ? t('transactions.entered', {
-              time: [formatShortDateTime(entered.at), entered.shift]
-                  .filter(Boolean)
-                  .join(' · '),
-          })
-        : null;
-    const muted = [enteredText, by].filter(Boolean).join(' · ');
-
+export function ShownTime({ at, shift, title }: Props) {
     return (
-        <>
-            {/* The muted line wraps only where the cell allows it. */}
-            <span className="whitespace-nowrap">
-                {entered
-                    ? formatDate(at, omitCurrentYear)
-                    : formatDateTime(at, omitCurrentYear)}
-            </span>
-            {muted && (
-                <span className="text-muted-foreground block text-xs">
-                    {muted}
-                </span>
-            )}
-        </>
+        <span className="whitespace-nowrap" title={title ?? undefined}>
+            {formatDateTime(at, true)}
+            {shift && ` · ${shift}`}
+        </span>
     );
 }

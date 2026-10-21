@@ -1180,6 +1180,5 @@
     "Exchanged (:currency)": "Обмен (:currency)",
     "Expense (:currency)": "Расходы (:currency)",
     "pump_counters.governmental_short": "Гос. (л)",
-    "transactions.entered": "Внесено: :time",
     "pump_counters.gov_return_short": "Гос. / Возврат"
 }

@@ -1180,6 +1180,5 @@
     "Exchanged (:currency)": "Umtausch (:currency)",
     "Expense (:currency)": "Ausgaben (:currency)",
     "pump_counters.governmental_short": "Behörde (L)",
-    "transactions.entered": "Erfasst: :time",
     "pump_counters.gov_return_short": "Staatl. / Rückg."
 }

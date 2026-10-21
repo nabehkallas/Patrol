@@ -8,6 +8,7 @@ use App\Enums\TransactionType;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\SerializesDatesInAppTimezone;
 use App\Support\Currency;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -90,58 +91,39 @@ class Transaction extends Model
     }
 
     /**
-     * When this record shows as having happened. A fuel sale is stored at noon of its reading's
-     * date (the day it counts for in every total), which is no time anyone typed: saved on that
-     * same day, it shows when its reading was saved; saved on another day, it shows only the
-     * date, with when it was entered (and its shift, when asked for) under it. `at` is then a
-     * bare 'Y-m-d'. Load pumpCounterReading and governmentalReading first.
+     * When this record was actually saved -- the time shown for it in every list. A fuel sale's
+     * is its reading's (the sale itself is recreated whenever its reading is recalculated); any
+     * other record's is its own created_at. Display only: occurred_at (a fuel sale's is noon of
+     * its reading's date) decides the day it counts for in every total and date filter.
+     * Load pumpCounterReading and governmentalReading first.
+     */
+    public function savedAt(): CarbonInterface
+    {
+        return $this->reading()->created_at ?? $this->created_at ?? $this->occurred_at;
+    }
+
+    /**
+     * savedAt(), and for a fuel sale on a station with several shifts ($withShift) its reading's
+     * shift. Load pumpCounterReading.shift and governmentalReading.shift first.
      *
-     * @return array{at: string, entered: array{at: string, shift: string|null}|null}
+     * @return array{at: string, shift: string|null}
      */
     public function shownTime(bool $withShift = false): array
     {
-        $reading = $this->reading();
-        $saved = $reading?->created_at;
-
-        if ($reading === null || $saved === null) {
-            return ['at' => $this->occurred_at->toIso8601String(), 'entered' => null];
-        }
-
-        if ($saved->isSameDay($this->occurred_at)) {
-            return ['at' => $saved->toIso8601String(), 'entered' => null];
-        }
-
-        return ['at' => $this->occurred_at->toDateString(), 'entered' => [
-            'at' => $saved->toIso8601String(),
-            'shift' => $withShift ? $reading->shift->label() : null,
-        ]];
+        return [
+            'at' => $this->savedAt()->toIso8601String(),
+            'shift' => $withShift ? $this->reading()?->shift->label() : null,
+        ];
     }
 
-    /** Shown as its date only, with when it was entered (see shownTime()). */
-    public function enteredLate(): bool
-    {
-        return $this->shownTime()['entered'] !== null;
-    }
-
-    /**
-     * What shownTime() sorts by, as the same string scopeLatestShown() builds in SQL: the shown
-     * time, and for a sale entered on a later day the end of its date, then when it was entered.
-     */
+    /** savedAt() as the same string scopeLatestShown() sorts by in SQL. */
     public function shownSortKey(): string
     {
-        $saved = $this->reading()?->created_at;
-
-        if ($saved === null) {
-            return $this->occurred_at->format('Y-m-d H:i:s');
-        }
-
-        return $saved->isSameDay($this->occurred_at)
-            ? $saved->format('Y-m-d H:i:s')
-            : $this->occurred_at->toDateString().' 23:59:59|'.$saved->format('Y-m-d H:i:s');
+        return $this->savedAt()->format('Y-m-d H:i:s');
     }
 
     /**
-     * Newest first by shownSortKey().
+     * Newest first by savedAt().
      *
      * @param  Builder<Transaction>  $query
      * @return Builder<Transaction>
@@ -150,13 +132,11 @@ class Transaction extends Model
     {
         return $query
             ->orderByRaw("COALESCE((
-                SELECT CASE WHEN date(r.created_at) = date(transactions.occurred_at) THEN r.created_at
-                    ELSE date(transactions.occurred_at) || ' 23:59:59|' || r.created_at END
-                FROM pump_counter_readings r
+                SELECT r.created_at FROM pump_counter_readings r
                 WHERE transactions.type = 'fuel_sale' AND r.created_at IS NOT NULL
                     AND transactions.id IN (r.transaction_id, r.governmental_transaction_id)
                 LIMIT 1
-            ), transactions.occurred_at) DESC")
+            ), transactions.created_at, transactions.occurred_at) DESC")
             ->orderByDesc('transactions.id');
     }
 

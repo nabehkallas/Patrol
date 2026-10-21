@@ -44,13 +44,11 @@ import {
     formatDate,
     formatNumber,
     nowTimeInStation,
-    stationDateOf,
     todayInStation,
 } from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { setLeaveGuard } from '@/lib/leave-guard';
-import { readingShownTime } from '@/lib/reading-time';
 import type { ShiftOption } from '@/lib/shifts';
 import { currentShift } from '@/lib/shifts';
 import { selectableTanks } from '@/lib/tanks';
@@ -1096,22 +1094,20 @@ export default function PumpCountersIndex() {
                             <tbody>
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
-                                        <td className="px-3 py-3">
+                                        <td className="whitespace-nowrap px-3 py-3">
                                             <ShownTime
-                                                {...readingShownTime(
-                                                    reading.date,
-                                                    reading.created_at,
-                                                    stationDateOf(
-                                                        reading.created_at,
-                                                    ),
+                                                at={reading.created_at}
+                                                shift={
                                                     showShifts
                                                         ? (shiftNames.get(
                                                               reading.shift_id,
                                                           ) ?? null)
-                                                        : null,
-                                                )}
-                                                by={reading.recorded_by?.name}
-                                                omitCurrentYear
+                                                        : null
+                                                }
+                                                // Who recorded it: on hover, as the row has no room left.
+                                                title={
+                                                    reading.recorded_by?.name
+                                                }
                                             />
                                         </td>
                                         <td className="px-3 py-3">

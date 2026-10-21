@@ -134,21 +134,12 @@ class TransactionController extends Controller
         );
     }
 
-    /**
-     * Transaction::shownTime() as one cell: "2026-10-20 22:15", or for a fuel sale entered on a
-     * later day "2026-10-20 (Entered: 2026-10-21 02:30 · Evening)".
-     */
+    /** Transaction::shownTime() as one cell: "2026-10-21 02:19", or "2026-10-21 02:19 · Morning". */
     private function shownCell(Transaction $transaction, bool $withShift): string
     {
         $shown = $transaction->shownTime($withShift);
 
-        if ($shown['entered'] === null) {
-            return Carbon::parse($shown['at'])->format('Y-m-d H:i');
-        }
-
-        $entered = collect([Carbon::parse($shown['entered']['at'])->format('Y-m-d H:i'), $shown['entered']['shift']])->filter()->implode(' · ');
-
-        return $shown['at'].' ('.__('transactions.entered', ['time' => $entered]).')';
+        return collect([Carbon::parse($shown['at'])->format('Y-m-d H:i'), $shown['shift']])->filter()->implode(' · ');
     }
 
     /**

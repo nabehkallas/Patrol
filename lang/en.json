@@ -916,6 +916,5 @@
     "Exchanged (:currency)": "Exchanged (:currency)",
     "Expense (:currency)": "Expense (:currency)",
     "pump_counters.governmental_short": "Gov. (L)",
-    "transactions.entered": "Entered: :time",
     "pump_counters.gov_return_short": "Gov. / Return"
 }

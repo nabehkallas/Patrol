@@ -293,19 +293,19 @@ export type CashBoxHistoryEntryType =
     | 'opening';
 
 /**
- * When a record shows as having happened (Transaction::shownTime()). `entered` is set for a fuel
- * sale saved on a later day than its reading's: `at` is then a bare 'YYYY-MM-DD'.
+ * When a record was saved (Transaction::shownTime()), and a fuel sale's or reading's shift on a
+ * station with several. Display only: the record counts on its own date.
  */
 export type ShownTime = {
     at: string;
-    entered: { at: string; shift: string | null } | null;
+    shift: string | null;
 };
 
 export type CashBoxHistoryEntry = {
     id: string;
-    /** ShownTime's `at`. */
+    /** When it was saved: ShownTime's `at`. */
     date: string;
-    entered: ShownTime['entered'];
+    shift: ShownTime['shift'];
     type: CashBoxHistoryEntryType;
     description: string;
     amount: number;

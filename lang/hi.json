@@ -1180,6 +1180,5 @@
     "Exchanged (:currency)": "विनिमय (:currency)",
     "Expense (:currency)": "खर्च (:currency)",
     "pump_counters.governmental_short": "सरकारी (ली.)",
-    "transactions.entered": "दर्ज की गई: :time",
     "pump_counters.gov_return_short": "सरकारी / वापसी"
 }

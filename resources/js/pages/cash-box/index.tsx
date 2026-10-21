@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { OpeningCashCard } from '@/components/cash-box/opening-cash';
-import type { OpeningCash } from '@/components/cash-box/opening-cash';
 import { OriginalPaymentNote } from '@/components/cash-source-fields';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
@@ -59,9 +57,7 @@ type PageProps = {
     };
     cashBox: CashBoxSummary;
     openingBalance: CurrencyBreakdown;
-    openingCash: OpeningCash[];
     history: CashBoxHistoryEntry[];
-    auth: { isAdmin: boolean };
 };
 
 /** Every currency besides the primary one that has activity anywhere in this summary (SYP
@@ -401,17 +397,23 @@ function CashBoxHistory({
                                     <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
                                         <ShownTime
                                             at={entry.date}
-                                            entered={entry.entered}
+                                            shift={entry.shift}
                                         />
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="whitespace-nowrap px-4 py-3">
                                         {typeLabels[entry.type]}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {entry.description}
+                                        {/* One line per row: a long description is cut, in full on hover. */}
+                                        <span
+                                            className="block max-w-80 truncate"
+                                            title={entry.description}
+                                        >
+                                            {entry.description}
+                                        </span>
                                     </td>
                                     <td
-                                        className={`px-4 py-3 font-medium ${
+                                        className={`whitespace-nowrap px-4 py-3 font-medium ${
                                             isPositive
                                                 ? 'text-success'
                                                 : isNegative
@@ -457,9 +459,7 @@ export default function CashBoxIndex() {
         filters,
         cashBox: totals,
         openingBalance,
-        openingCash = [],
         history,
-        auth,
     } = usePage<PageProps>().props;
     const { t } = useTranslation();
     // The main row of cards shows the station's primary currency; others get their own boxes.
@@ -795,8 +795,6 @@ export default function CashBoxIndex() {
                         {t('cash_box.cash_out')}
                     </Button>
                 </div>
-
-                {auth.isAdmin && <OpeningCashCard openings={openingCash} />}
 
                 <CashBoxHistory entries={history} t={t} />
             </div>

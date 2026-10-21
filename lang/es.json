@@ -1180,6 +1180,5 @@
     "Exchanged (:currency)": "Cambio (:currency)",
     "Expense (:currency)": "Gastos (:currency)",
     "pump_counters.governmental_short": "Gob. (L)",
-    "transactions.entered": "Registrada: :time",
     "pump_counters.gov_return_short": "Gob. / Devol."
 }
