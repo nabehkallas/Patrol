@@ -413,6 +413,7 @@ export type PumpCounterReading = {
     id: number;
     pump_id: number;
     tank_id: number | null;
+    shift_id: number;
     date: string;
     created_at: string;
     reading_value: number;

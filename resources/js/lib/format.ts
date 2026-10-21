@@ -219,12 +219,29 @@ function dateLocale(): string {
     return `${displayLocale}-u-nu-latn`;
 }
 
+/**
+ * The year of a date, or nothing when `omitCurrentYear` and it's the station's current year
+ * (for a narrow column; a date in another year always shows its year).
+ */
+function yearFor(
+    value: string,
+    omitCurrentYear: boolean,
+): 'numeric' | undefined {
+    const year = (
+        /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : stationDateOf(value)
+    ).slice(0, 4);
+
+    return omitCurrentYear && year === todayInStation().slice(0, 4)
+        ? undefined
+        : 'numeric';
+}
+
 /** A date and time, e.g. "11 Sep 2026, 15:25", in station time. */
-export function formatDateTime(value: string): string {
+export function formatDateTime(value: string, omitCurrentYear = false): string {
     return new Date(value).toLocaleString(dateLocale(), {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
+        year: yearFor(value, omitCurrentYear),
         hour: '2-digit',
         minute: '2-digit',
         hourCycle: 'h23',
@@ -233,11 +250,11 @@ export function formatDateTime(value: string): string {
 }
 
 /** A date, e.g. "11 Sep 2026". A bare calendar date as-is, a timestamp in station time. */
-export function formatDate(value: string): string {
+export function formatDate(value: string, omitCurrentYear = false): string {
     return new Date(value).toLocaleDateString(dateLocale(), {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
+        year: yearFor(value, omitCurrentYear),
         timeZone: timeZoneFor(value),
     });
 }

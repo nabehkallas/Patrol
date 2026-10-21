@@ -1180,5 +1180,6 @@
     "Exchanged (:currency)": "Guhertina diravan (:currency)",
     "Expense (:currency)": "Lêçûn (:currency)",
     "pump_counters.governmental_short": "Hikûmî (L)",
-    "transactions.entered": "Hate tomarkirin: :time"
+    "transactions.entered": "Hate tomarkirin: :time",
+    "pump_counters.gov_return_short": "Hikûmî / Vegerandin"
 }

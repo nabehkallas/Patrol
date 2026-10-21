@@ -18,6 +18,7 @@ import type { EntryStamp } from '@/components/pump-counters/last-entry';
 import { SystemLastEntry } from '@/components/pump-counters/last-entry';
 import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
+import { ShownTime } from '@/components/shown-time';
 import { FuelTypeDot } from '@/components/tank-select-items';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,14 +42,15 @@ import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
 import { useLocale } from '@/hooks/use-locale';
 import {
     formatDate,
-    formatDateTime,
     formatNumber,
     nowTimeInStation,
+    stationDateOf,
     todayInStation,
 } from '@/lib/format';
 import { useFuelColors } from '@/lib/fuel-colors';
 import { useTranslation } from '@/lib/i18n';
 import { setLeaveGuard } from '@/lib/leave-guard';
+import { readingShownTime } from '@/lib/reading-time';
 import type { ShiftOption } from '@/lib/shifts';
 import { currentShift } from '@/lib/shifts';
 import { selectableTanks } from '@/lib/tanks';
@@ -72,15 +74,6 @@ type FuelTypeTotal = {
     liters_sold: number;
     governmental_liters: number;
 };
-
-/**
- * The reading's actual (possibly edited) date, combined with the time-of-day it was first
- * logged — reading.date alone has no time component, and reading.created_at alone doesn't
- * reflect a later date correction, so neither field on its own is right for this column.
- */
-function loggedAt(reading: PumpCounterReading): string {
-    return `${reading.date.slice(0, 10)}T${reading.created_at.slice(11)}`;
-}
 
 type PageProps = {
     auth: Auth;
@@ -238,6 +231,7 @@ export default function PumpCountersIndex() {
     // A station with a single active shift never sees the selector.
     const activeShifts = shifts.filter((shift) => shift.is_active);
     const showShifts = activeShifts.length > 1;
+    const shiftNames = new Map(shifts.map((shift) => [shift.id, shift.name]));
 
     // The default date + shift: after saving, the one just saved; otherwise the shift whose
     // times cover now. A night shift's hours after midnight belong to the day it started.
@@ -1055,7 +1049,7 @@ export default function PumpCountersIndex() {
                                 <tr className="bg-muted/50 text-start">
                                     {/* As in the entry table: headers on one line, spare width shared by
                                         the number columns, notes held back. */}
-                                    <th className={cn(HISTORY_TH, 'w-px')}>
+                                    <th className={cn(HISTORY_TH, 'w-[18%]')}>
                                         {t('pump_counters.time')}
                                     </th>
                                     <th className={cn(HISTORY_TH, 'w-[12%]')}>
@@ -1074,15 +1068,10 @@ export default function PumpCountersIndex() {
                                         {t('pump_counters.liters_sold')}
                                     </th>
                                     <th
-                                        className={cn(HISTORY_TH, 'w-[9%]')}
-                                        title={t(
-                                            'pump_counters.governmental_sale',
-                                        )}
+                                        className={cn(HISTORY_TH, 'w-[14%]')}
+                                        title={`${t('pump_counters.governmental_sale')} / ${t('pump_counters.return_liters')}`}
                                     >
-                                        {t('pump_counters.governmental_short')}
-                                    </th>
-                                    <th className={cn(HISTORY_TH, 'w-[9%]')}>
-                                        {t('pump_counters.return_liters')}
+                                        {t('pump_counters.gov_return_short')}
                                     </th>
                                     <th
                                         // Only as wide as the icon: past the 5.5rem every
@@ -1099,24 +1088,36 @@ export default function PumpCountersIndex() {
                                             className="text-muted-foreground block size-4"
                                         />
                                     </th>
-                                    <th className={cn(HISTORY_TH, 'w-[8%]')}>
-                                        {t('common.recorded_by')}
-                                    </th>
                                     {auth.isAdmin && (
-                                        <th className="px-4 py-3"></th>
+                                        <th className="px-3 py-3"></th>
                                     )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {readings.map((reading) => (
                                     <tr key={reading.id} className="border-t">
-                                        <td className="whitespace-nowrap px-4 py-3">
-                                            {formatDateTime(loggedAt(reading))}
+                                        <td className="px-3 py-3">
+                                            <ShownTime
+                                                {...readingShownTime(
+                                                    reading.date,
+                                                    reading.created_at,
+                                                    stationDateOf(
+                                                        reading.created_at,
+                                                    ),
+                                                    showShifts
+                                                        ? (shiftNames.get(
+                                                              reading.shift_id,
+                                                          ) ?? null)
+                                                        : null,
+                                                )}
+                                                by={reading.recorded_by?.name}
+                                                omitCurrentYear
+                                            />
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3">
                                             {reading.pump?.name}
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3">
                                             {reading.tank ? (
                                                 <span
                                                     className="flex min-w-0 items-center whitespace-nowrap"
@@ -1167,19 +1168,30 @@ export default function PumpCountersIndex() {
                                             </bdi>
                                         </td>
                                         <td className={HISTORY_NUMBER_TD}>
-                                            <bdi dir="ltr">
-                                                {reading.governmental_liters !==
-                                                null
-                                                    ? `${formatNumber(reading.governmental_liters)} L`
-                                                    : '—'}
-                                            </bdi>
-                                        </td>
-                                        <td className={HISTORY_NUMBER_TD}>
-                                            <bdi dir="ltr">
-                                                {reading.return_liters !== null
-                                                    ? `${formatNumber(reading.return_liters)} L`
-                                                    : '—'}
-                                            </bdi>
+                                            {/* Government, then return; one dash when neither. */}
+                                            {reading.governmental_liters ===
+                                                null &&
+                                            reading.return_liters === null ? (
+                                                '—'
+                                            ) : (
+                                                <>
+                                                    <bdi dir="ltr">
+                                                        {reading.governmental_liters !==
+                                                        null
+                                                            ? `${formatNumber(reading.governmental_liters)} L`
+                                                            : '—'}
+                                                    </bdi>
+                                                    <span className="text-muted-foreground mx-1">
+                                                        /
+                                                    </span>
+                                                    <bdi dir="ltr">
+                                                        {reading.return_liters !==
+                                                        null
+                                                            ? `${formatNumber(reading.return_liters)} L`
+                                                            : '—'}
+                                                    </bdi>
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-3 py-3">
                                             {reading.notes && (
@@ -1188,11 +1200,8 @@ export default function PumpCountersIndex() {
                                                 />
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {reading.recorded_by?.name}
-                                        </td>
                                         {auth.isAdmin && (
-                                            <td className="px-4 py-3 text-end">
+                                            <td className="px-3 py-3 text-end">
                                                 <RowActions
                                                     edit={edit(reading.id).url}
                                                     remove={() =>
@@ -1206,7 +1215,7 @@ export default function PumpCountersIndex() {
                                 {readings.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={auth.isAdmin ? 10 : 9}
+                                            colSpan={auth.isAdmin ? 8 : 7}
                                             className="text-muted-foreground px-4 py-6 text-center"
                                         >
                                             {t('common.no_results')}

@@ -1180,5 +1180,6 @@
     "Exchanged (:currency)": "Döviz değişimi (:currency)",
     "Expense (:currency)": "Gider (:currency)",
     "pump_counters.governmental_short": "Devlet (L)",
-    "transactions.entered": "Girildi: :time"
+    "transactions.entered": "Girildi: :time",
+    "pump_counters.gov_return_short": "Devlet / İade"
 }

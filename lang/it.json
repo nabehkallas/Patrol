@@ -1180,5 +1180,6 @@
     "Exchanged (:currency)": "Cambio (:currency)",
     "Expense (:currency)": "Spese (:currency)",
     "pump_counters.governmental_short": "Gov. (L)",
-    "transactions.entered": "Inserita: :time"
+    "transactions.entered": "Inserita: :time",
+    "pump_counters.gov_return_short": "Gov. / Reso"
 }

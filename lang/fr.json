@@ -1180,5 +1180,6 @@
     "Exchanged (:currency)": "Change (:currency)",
     "Expense (:currency)": "Dépenses (:currency)",
     "pump_counters.governmental_short": "Gouv. (L)",
-    "transactions.entered": "Saisie : :time"
+    "transactions.entered": "Saisie : :time",
+    "pump_counters.gov_return_short": "Gouv. / Retour"
 }

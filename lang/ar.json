@@ -1180,5 +1180,6 @@
     "Exchanged (:currency)": "تحويل عملة (:currency)",
     "Expense (:currency)": "المصروف (:currency)",
     "pump_counters.governmental_short": "حكومي (لتر)",
-    "transactions.entered": "أُدخلت: :time"
+    "transactions.entered": "أُدخلت: :time",
+    "pump_counters.gov_return_short": "حكومي / مرتجع"
 }
