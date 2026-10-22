@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PDO;
 use Throwable;
@@ -125,10 +126,13 @@ class StationBackupRestorer
         }
     }
 
-    /** Copies the live database aside before it is overwritten. */
+    /** How many pre-restore snapshots each station keeps (the newest ones). */
+    public const KEEP_SNAPSHOTS = 3;
+
+    /** Copies the live database aside before it is overwritten; older copies beyond KEEP_SNAPSHOTS go. */
     private function snapshotCurrent(): string
     {
-        $dir = dirname((string) config('database.connections.tenant.database')).'/restore-snapshots';
+        $dir = self::snapshotDirectory();
 
         if (! is_dir($dir)) {
             mkdir($dir, 0775, true);
@@ -136,8 +140,33 @@ class StationBackupRestorer
 
         $path = $dir.'/'.tenant('id').'-before-restore-'.now()->format('Ymd-His').'.sqlite';
         DB::statement('VACUUM INTO ?', [$path]);
+        self::pruneSnapshots();
 
         return $path;
+    }
+
+    /** Next to the stations' databases (the Fly volume in production). */
+    public static function snapshotDirectory(): string
+    {
+        return rtrim((string) config('tenancy.database.sqlite_path'), '/').'/restore-snapshots';
+    }
+
+    /**
+     * Deletes every station's pre-restore snapshots but its newest KEEP_SNAPSHOTS ("{station
+     * id}-before-restore-{Ymd-His}.sqlite", so names sort by time). Returns how many went.
+     */
+    public static function pruneSnapshots(): int
+    {
+        $files = glob(self::snapshotDirectory().'/*-before-restore-*.sqlite') ?: [];
+        $deleted = 0;
+
+        foreach (collect($files)->groupBy(fn (string $file) => Str::before(basename($file), '-before-restore-')) as $stationFiles) {
+            foreach ($stationFiles->sortDesc()->slice(self::KEEP_SNAPSHOTS) as $file) {
+                $deleted += @unlink($file) ? 1 : 0;
+            }
+        }
+
+        return $deleted;
     }
 
     /**
