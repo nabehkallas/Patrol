@@ -7,6 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 APP="${FLY_APP:-patrol-station}"
+source scripts/dev/fly-token.sh
 
 if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
     echo "Uncommitted changes: commit (and push) before deploying." >&2

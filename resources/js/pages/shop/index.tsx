@@ -12,6 +12,7 @@ import {
     useCurrencyName,
 } from '@/components/currency-options';
 import { DateRangePicker } from '@/components/date-range-picker';
+import { EntryDateInput } from '@/components/entry-date-input';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
@@ -462,8 +463,7 @@ function ItemCard({ item, isAdmin }: { item: ShopItem; isAdmin: boolean }) {
                         />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Input
-                            type="date"
+                        <EntryDateInput
                             value={sellDate}
                             onChange={(e) => setSellDate(e.target.value)}
                             className="h-8 min-w-[9.5rem] flex-1"
@@ -565,9 +565,8 @@ function ItemCard({ item, isAdmin }: { item: ShopItem; isAdmin: boolean }) {
                             <Label htmlFor={`purchase_date_${item.id}`}>
                                 {t('common.date')}
                             </Label>
-                            <Input
+                            <EntryDateInput
                                 id={`purchase_date_${item.id}`}
-                                type="date"
                                 value={purchase.date}
                                 onChange={(e) =>
                                     setPurchase((data) => ({
@@ -1311,9 +1310,8 @@ export default function ShopIndex() {
                                 <Label htmlFor="edit_entry_date">
                                     {t('common.date')}
                                 </Label>
-                                <Input
+                                <EntryDateInput
                                     id="edit_entry_date"
-                                    type="date"
                                     value={editEntryForm.data.date}
                                     onChange={(e) =>
                                         editEntryForm.setData(

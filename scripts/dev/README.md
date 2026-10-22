@@ -17,7 +17,7 @@ project root in Git Bash. Nothing here is part of the app.
 | Script | What it does |
 |---|---|
 | `scripts/dev/prod-run.sh <script.php> [KEY=VALUE…]` | Runs a script on production through tinker. Refuses a script not marked `READ-ONLY` in its first 5 lines, unless `--write` (only for a data change the user approved). |
-| `scripts/dev/prod-backup.sh <label>` | Backs up every production database on the server (`/data/backups-<label>-<time>/`), integrity-checks the copies, downloads them to `../prod-backups/<label>-<time>/` and checks them again. Before any migration or data change. |
+| `scripts/dev/prod-backup.sh <label>` | Backs up every production database on the server (`/data/backups-<label>-<time>/`), integrity-checks the copies, downloads them to `~/patrol-prod-backups/<label>-<time>/` (`PROD_BACKUPS_DIR`), outside every git folder, and checks them again. Before any migration or data change. |
 | `scripts/dev/deploy.sh [--smoke]` | Deploys (migrations run on release), checks `/login` answers 200; `--smoke` also runs `prod/smoke.php`. Refuses with uncommitted changes. |
 
 Read-only production scripts (`scripts/dev/prod/`), all for `prod-run.sh` or `local-run.sh`:

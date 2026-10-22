@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { EntryDateInput } from '@/components/entry-date-input';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { TankSelectItems } from '@/components/tank-select-items';
@@ -89,9 +90,8 @@ export default function InventoryEntryEdit() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="date">{t('common.date')}</Label>
-                        <Input
+                        <EntryDateInput
                             id="date"
-                            type="date"
                             value={form.data.date}
                             onChange={(e) =>
                                 form.setData('date', e.target.value)

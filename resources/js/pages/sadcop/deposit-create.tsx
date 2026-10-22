@@ -1,10 +1,10 @@
 import { Head, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { EntryDateInput } from '@/components/entry-date-input';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultEntryDate } from '@/hooks/use-default-entry-date';
@@ -51,9 +51,8 @@ export default function SadcopDepositCreate() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="occurred_at">{t('common.date')}</Label>
-                        <Input
+                        <EntryDateInput
                             id="occurred_at"
-                            type="date"
                             value={form.data.occurred_at}
                             onChange={(e) =>
                                 form.setData('occurred_at', e.target.value)

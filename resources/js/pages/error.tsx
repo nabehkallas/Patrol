@@ -6,18 +6,27 @@ import type { TranslationKey } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
 
 type PageProps = {
-    status: 403 | 404 | 500 | 503;
+    status: 403 | 404 | 422 | 429 | 500 | 503;
+    /** Why a 422 was shown: an export asked for more than LimitExportRange allows. */
+    reason?: 'export_range';
     auth?: { user: unknown; isSuperAdmin?: boolean };
 };
 
-const TEXTS: Record<
-    PageProps['status'],
-    { title: TranslationKey; body: TranslationKey }
-> = {
+type Text = { title: TranslationKey; body: TranslationKey };
+
+const TEXTS: Partial<Record<PageProps['status'], Text>> = {
     403: { title: 'error.403.title', body: 'error.403.body' },
     404: { title: 'error.404.title', body: 'error.404.body' },
+    429: { title: 'error.429.title', body: 'error.429.body' },
     500: { title: 'error.500.title', body: 'error.500.body' },
     503: { title: 'error.503.title', body: 'error.503.body' },
+};
+
+const REASONS: Record<NonNullable<PageProps['reason']>, Text> = {
+    export_range: {
+        title: 'error.export_range.title',
+        body: 'error.export_range.body',
+    },
 };
 
 /**
@@ -26,9 +35,10 @@ const TEXTS: Record<
  * user may be unknown here: the way back then is the home page, which sends a signed-in user on.
  */
 export default function ErrorPage() {
-    const { status, auth } = usePage<PageProps>().props;
+    const { status, reason, auth } = usePage<PageProps>().props;
     const { t } = useTranslation();
-    const text = TEXTS[status] ?? TEXTS[500];
+    const text: Text =
+        (reason ? REASONS[reason] : TEXTS[status]) ?? (TEXTS[500] as Text);
 
     const back = auth?.user
         ? auth.isSuperAdmin

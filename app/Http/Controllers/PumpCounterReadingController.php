@@ -15,6 +15,7 @@ use App\Services\FuelCostAllocationService;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -312,7 +313,7 @@ class PumpCounterReadingController extends Controller
             'pump_id' => 'required|exists:fuel_pumps,id',
             'shift_id' => 'nullable|exists:shifts,id',
             'tank_id' => 'required|exists:tanks,id',
-            'date' => 'required|date',
+            'date' => ['required', ...EntryRules::date($request->user())],
             'reading_value' => 'required|integer|min:0',
             'governmental_liters' => 'nullable|numeric|min:0',
             'return_liters' => 'nullable|numeric|min:0',
@@ -347,7 +348,7 @@ class PumpCounterReadingController extends Controller
     public function storeBulk(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'date' => 'required|date',
+            'date' => ['required', ...EntryRules::date($request->user())],
             'shift_id' => 'nullable|exists:shifts,id',
             'readings' => 'required|array|min:1',
             'readings.*.pump_id' => 'required|exists:fuel_pumps,id',
@@ -498,7 +499,7 @@ class PumpCounterReadingController extends Controller
             'pump_id' => 'required|exists:fuel_pumps,id',
             'shift_id' => 'nullable|exists:shifts,id',
             'tank_id' => 'required|exists:tanks,id',
-            'date' => 'required|date',
+            'date' => ['required', ...EntryRules::date($request->user())],
             'reading_value' => 'required|integer|min:0',
             'governmental_liters' => 'nullable|numeric|min:0',
             'return_liters' => 'nullable|numeric|min:0',

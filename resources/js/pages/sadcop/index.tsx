@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
+import { EntryDateInput } from '@/components/entry-date-input';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
@@ -11,7 +12,6 @@ import { RowActions } from '@/components/row-actions';
 import { SectionToolbar } from '@/components/section-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -142,9 +142,8 @@ export default function SadcopIndex() {
                                 <Label htmlFor="occurred_at">
                                     {t('sadcop.opening_balance_as_of')}
                                 </Label>
-                                <Input
+                                <EntryDateInput
                                     id="occurred_at"
-                                    type="date"
                                     value={openingForm.data.occurred_at}
                                     onChange={(e) =>
                                         openingForm.setData(

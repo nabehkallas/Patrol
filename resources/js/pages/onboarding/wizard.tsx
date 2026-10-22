@@ -2,6 +2,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
+import { EntryDateInput } from '@/components/entry-date-input';
 import { LanguageMenu } from '@/components/language-menu';
 import { MoneyInput } from '@/components/money-input';
 import { TankSelectItems } from '@/components/tank-select-items';
@@ -279,9 +280,8 @@ function PumpReadingsSection({
                             <Label htmlFor="pump_readings_date">
                                 {t('wizard.pump_readings_date')}
                             </Label>
-                            <Input
+                            <EntryDateInput
                                 id="pump_readings_date"
-                                type="date"
                                 value={form.data.date}
                                 onChange={(e) =>
                                     form.setData('date', e.target.value)

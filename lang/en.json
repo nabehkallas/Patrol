@@ -917,5 +917,14 @@
     "pump_counters.gov_return_short": "Gov. / Return",
     "pump_counters.sold_short": "Sold",
     "opening_cash.title": "Cash when you started using the app",
-    "opening_cash.warning": "Only for cash the boxes held before you started recording in the app. Don't enter it if that cash was already recorded as a deposit or income — it would be counted twice."
+    "opening_cash.warning": "Only for cash the boxes held before you started recording in the app. Don't enter it if that cash was already recorded as a deposit or income — it would be counted twice.",
+    "error.429.title": "Too many requests",
+    "error.429.body": "That was done many times in a short time. Wait a minute and try again.",
+    "error.export_range.title": "Range too long",
+    "error.export_range.body": "Exports cover at most 2 years. Choose a shorter range and try again.",
+    "settings.profile.email_admin_only": "Your email is your sign-in name. Ask your station admin to change it.",
+    "auth.register_sent.title": "Check your email",
+    "auth.register_sent.description": "One more step to register your station.",
+    "auth.register_sent.message": "We sent you a link to confirm your email address. Open it to create your station; we review every station before it goes live.",
+    "auth.register_sent.expires": "The link expires in :hours hours. Didn't get it? Check your spam folder."
 }

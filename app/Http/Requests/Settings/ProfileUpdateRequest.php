@@ -17,6 +17,13 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // A station account's email is its sign-in name across the platform (the central
+        // directory): only its station admin changes it, on the Employees page. Not validated
+        // here, so it never reaches the update.
+        if (tenancy()->initialized) {
+            return ['name' => $this->nameRules()];
+        }
+
         return $this->profileRules($this->user()->id);
     }
 }

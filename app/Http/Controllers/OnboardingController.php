@@ -14,6 +14,7 @@ use App\Models\SadcopLedgerEntry;
 use App\Models\Tank;
 use App\Models\TankTopUp;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -73,8 +74,8 @@ class OnboardingController extends Controller
     public function storeSadcopOpeningBalance(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:0'],
-            'occurred_at' => ['nullable', 'date'],
+            'amount' => ['required', ...EntryRules::amount('0')],
+            'occurred_at' => ['nullable', ...EntryRules::date($request->user())],
         ]);
 
         if (SadcopLedgerEntry::query()->doesntExist()) {
@@ -116,7 +117,7 @@ class OnboardingController extends Controller
     public function storePumpReadings(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'date' => ['nullable', 'date'],
+            'date' => ['nullable', ...EntryRules::date($request->user())],
             'readings' => ['required', 'array'],
             'readings.*.pump_id' => ['required', 'exists:fuel_pumps,id'],
             'readings.*.tank_id' => ['required', 'exists:tanks,id'],
@@ -144,7 +145,7 @@ class OnboardingController extends Controller
         $data = $request->validate([
             'prices' => ['required', 'array'],
             'prices.*.fuel_type_id' => ['required', 'exists:fuel_types,id'],
-            'prices.*.price_per_liter' => ['required', 'numeric', 'min:0'],
+            'prices.*.price_per_liter' => ['required', ...EntryRules::amount('0')],
             'prices.*.currency' => ['required', Currency::rule()],
         ]);
 
@@ -165,7 +166,7 @@ class OnboardingController extends Controller
     {
         $data = $request->validate([
             'debtor_name' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', ...EntryRules::amount()],
             'currency' => ['required', Currency::rule()],
             'details' => ['nullable', 'string', 'max:255'],
         ]);

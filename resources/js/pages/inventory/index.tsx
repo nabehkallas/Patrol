@@ -3,6 +3,7 @@ import { ArrowLeftRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
+import { EntryDateInput } from '@/components/entry-date-input';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
@@ -833,9 +834,8 @@ export default function InventoryIndex() {
                                         <Label htmlFor="date">
                                             {t('common.date')}
                                         </Label>
-                                        <Input
+                                        <EntryDateInput
                                             id="date"
-                                            type="date"
                                             value={form.data.date}
                                             onChange={(e) =>
                                                 form.setData(
@@ -1065,9 +1065,8 @@ export default function InventoryIndex() {
                             <Label htmlFor="transfer_date">
                                 {t('common.date')}
                             </Label>
-                            <Input
+                            <EntryDateInput
                                 id="transfer_date"
-                                type="date"
                                 value={transferForm.data.date}
                                 onChange={(e) =>
                                     transferForm.setData('date', e.target.value)

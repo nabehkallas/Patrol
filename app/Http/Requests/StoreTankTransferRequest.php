@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Tank;
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,8 +19,8 @@ class StoreTankTransferRequest extends FormRequest
             'from_tank_id' => ['required', 'exists:tanks,id', 'different:to_tank_id'],
             'to_tank_id' => ['required', 'exists:tanks,id'],
             'liters' => ['required', 'numeric', 'min:0.001'],
-            'date' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
+            'date' => ['required', ...EntryRules::date($this->user())],
+            'notes' => EntryRules::notes(),
         ];
     }
 

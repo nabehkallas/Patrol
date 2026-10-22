@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Tank;
 use App\Models\TankTransfer;
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class UpdateTankTransferRequest extends FormRequest
     {
         return [
             'liters' => ['required', 'numeric', 'min:0.001'],
-            'notes' => ['nullable', 'string'],
+            'notes' => EntryRules::notes(),
         ];
     }
 

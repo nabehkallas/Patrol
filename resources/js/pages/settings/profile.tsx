@@ -17,6 +17,9 @@ type PageProps = {
 export default function Profile() {
     const { auth } = usePage<PageProps>().props;
     const { t } = useTranslation();
+    // A station account's email is its sign-in name across the platform: only its station
+    // admin changes it (Employees), and it can't delete itself.
+    const stationUser = !auth.isSuperAdmin;
 
     return (
         <>
@@ -69,11 +72,19 @@ export default function Profile() {
                                     type="email"
                                     className="mt-1 block w-full"
                                     defaultValue={auth.user.email}
-                                    name="email"
-                                    required
+                                    name={stationUser ? undefined : 'email'}
+                                    required={!stationUser}
+                                    readOnly={stationUser}
+                                    disabled={stationUser}
                                     autoComplete="username"
                                     placeholder={t('common.email_address')}
                                 />
+
+                                {stationUser && (
+                                    <p className="text-muted-foreground text-sm">
+                                        {t('settings.profile.email_admin_only')}
+                                    </p>
+                                )}
 
                                 <InputError
                                     className="mt-2"
@@ -94,7 +105,7 @@ export default function Profile() {
                 </Form>
             </div>
 
-            <DeleteUser />
+            {!stationUser && <DeleteUser />}
         </>
     );
 }

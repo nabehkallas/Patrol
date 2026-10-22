@@ -30,6 +30,7 @@ use App\Http\Controllers\TankVolumeCalculatorController;
 use App\Http\Controllers\TodayController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\LimitExportRange;
 use App\Http\Middleware\RequireActiveStation;
 use App\Http\Middleware\RequireOnboarding;
 use App\Http\Middleware\RequireSuperAdmin;
@@ -46,6 +47,10 @@ Route::redirect('super-admin', '/platform');
 Route::middleware('guest')->group(function () {
     Route::get('register', [StationRegistrationController::class, 'create'])->name('register');
     Route::post('register', [StationRegistrationController::class, 'store'])->name('register.store')->middleware('throttle:5,1');
+    Route::get('register/sent', [StationRegistrationController::class, 'sent'])->name('register.sent');
+    Route::get('register/confirm/{registration}/{token}', [StationRegistrationController::class, 'verify'])
+        ->where(['registration' => '[0-9]+', 'token' => '[A-Za-z0-9]{48}'])
+        ->name('register.verify')->middleware('throttle:10,1');
 });
 
 Route::get('registration/pending', [StationRegistrationController::class, 'pending'])
@@ -94,18 +99,18 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::get('today', TodayController::class)->name('today');
 
         Route::get('cash-box', [CashBoxController::class, 'index'])->name('cash-box.index');
-        Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf');
-        Route::get('cash-box/export-xlsx', [CashBoxController::class, 'exportXlsx'])->name('cash-box.export-xlsx');
+        Route::get('cash-box/export-pdf', [CashBoxController::class, 'exportPdf'])->name('cash-box.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('cash-box/export-xlsx', [CashBoxController::class, 'exportXlsx'])->name('cash-box.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
 
         Route::resource('transactions', TransactionController::class)->except('show');
-        Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
-        Route::get('transactions/export-xlsx', [TransactionController::class, 'exportXlsx'])->name('transactions.export-xlsx');
+        Route::get('transactions/export-pdf', [TransactionController::class, 'exportPdf'])->name('transactions.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('transactions/export-xlsx', [TransactionController::class, 'exportXlsx'])->name('transactions.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
 
         Route::get('inventory', [InventoryEntryController::class, 'index'])->name('inventory.index');
         Route::post('inventory', [InventoryEntryController::class, 'store'])->name('inventory.store');
-        Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf');
-        Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf')->middleware('role:admin');
-        Route::get('inventory/export-tanks-xlsx', [InventoryEntryController::class, 'exportTanksLedgerXlsx'])->name('inventory.export-tanks-xlsx')->middleware('role:admin');
+        Route::get('inventory/export-entries-pdf', [InventoryEntryController::class, 'exportEntriesPdf'])->name('inventory.export-entries-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('inventory/export-topups-pdf', [InventoryEntryController::class, 'exportTopUpsPdf'])->name('inventory.export-topups-pdf')->middleware('role:admin')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('inventory/export-tanks-xlsx', [InventoryEntryController::class, 'exportTanksLedgerXlsx'])->name('inventory.export-tanks-xlsx')->middleware('role:admin')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::get('inventory/entries/{entry}/edit', [InventoryEntryController::class, 'editEntry'])->name('inventory.entries.edit')->middleware('role:admin');
         Route::patch('inventory/entries/{entry}', [InventoryEntryController::class, 'updateEntry'])->name('inventory.entries.update')->middleware('role:admin');
         Route::delete('inventory/entries/{entry}', [InventoryEntryController::class, 'destroyEntry'])->name('inventory.entries.destroy')->middleware('role:admin');
@@ -126,8 +131,8 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         // cash box); changing or deleting a recorded debt is for admins only.
         Route::resource('debts', DebtController::class)->only(['index', 'create', 'store']);
         Route::resource('debts', DebtController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
-        Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf');
-        Route::get('debts/export-xlsx', [DebtController::class, 'exportXlsx'])->name('debts.export-xlsx');
+        Route::get('debts/export-pdf', [DebtController::class, 'exportPdf'])->name('debts.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('debts/export-xlsx', [DebtController::class, 'exportXlsx'])->name('debts.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::patch('debts/{debt}/settle', [DebtController::class, 'settle'])->name('debts.settle');
         Route::post('debts/{debt}/payments', [DebtController::class, 'storePayment'])->name('debts.payments.store');
         Route::patch('debts/{debt}/transfer', [DebtController::class, 'transfer'])->name('debts.transfer')->middleware('role:admin');
@@ -135,13 +140,13 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         // Everyone sees balances and can add a new customer; editing or deleting one is for admins.
         Route::resource('debtors', DebtorController::class)->only(['index', 'create', 'store']);
         Route::resource('debtors', DebtorController::class)->only(['edit', 'update', 'destroy'])->middleware('role:admin');
-        Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf');
-        Route::get('debtors/export-xlsx', [DebtorController::class, 'exportXlsx'])->name('debtors.export-xlsx');
+        Route::get('debtors/export-pdf', [DebtorController::class, 'exportPdf'])->name('debtors.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('debtors/export-xlsx', [DebtorController::class, 'exportXlsx'])->name('debtors.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::patch('debtors/{debtor}/settle-all', [DebtorController::class, 'settleAll'])->name('debtors.settle-all');
 
         Route::get('sadcop', [SadcopController::class, 'index'])->name('sadcop.index');
-        Route::get('sadcop/export-pdf', [SadcopController::class, 'exportPdf'])->name('sadcop.export-pdf');
-        Route::get('sadcop/export-xlsx', [SadcopController::class, 'exportXlsx'])->name('sadcop.export-xlsx');
+        Route::get('sadcop/export-pdf', [SadcopController::class, 'exportPdf'])->name('sadcop.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('sadcop/export-xlsx', [SadcopController::class, 'exportXlsx'])->name('sadcop.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::get('sadcop/deliveries/create', [SadcopController::class, 'createDelivery'])->name('sadcop.deliveries.create');
         Route::post('sadcop/deliveries', [SadcopController::class, 'storeDelivery'])->name('sadcop.deliveries.store');
         Route::get('sadcop/deposits/create', [SadcopController::class, 'createDeposit'])->name('sadcop.deposits.create')->middleware('role:admin');
@@ -153,15 +158,15 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
 
         Route::middleware('role:admin')->group(function () {
             Route::get('statistics', [StatisticsController::class, 'index'])->name('statistics.index');
-            Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf');
-            Route::get('statistics/export-xlsx', [StatisticsController::class, 'exportXlsx'])->name('statistics.export-xlsx');
+            Route::get('statistics/export-pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+            Route::get('statistics/export-xlsx', [StatisticsController::class, 'exportXlsx'])->name('statistics.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
             Route::post('statistics/annual/unlock', [AnnualSummaryAccessController::class, 'unlock'])->name('statistics.annual.unlock')->middleware('throttle:5,1');
             Route::post('statistics/annual/lock', [AnnualSummaryAccessController::class, 'lock'])->name('statistics.annual.lock');
         });
 
         Route::get('pump-counters', [PumpCounterReadingController::class, 'index'])->name('pump-counters.index');
-        Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf');
-        Route::get('pump-counters/export-xlsx', [PumpCounterReadingController::class, 'exportXlsx'])->name('pump-counters.export-xlsx');
+        Route::get('pump-counters/export-pdf', [PumpCounterReadingController::class, 'exportPdf'])->name('pump-counters.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('pump-counters/export-xlsx', [PumpCounterReadingController::class, 'exportXlsx'])->name('pump-counters.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::post('pump-counters', [PumpCounterReadingController::class, 'store'])->name('pump-counters.store');
         Route::post('pump-counters/bulk', [PumpCounterReadingController::class, 'storeBulk'])->name('pump-counters.store-bulk');
         Route::get('pump-counters/{pumpCounterReading}/edit', [PumpCounterReadingController::class, 'edit'])->name('pump-counters.edit')->middleware('role:admin');
@@ -169,8 +174,8 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
         Route::delete('pump-counters/{pumpCounterReading}', [PumpCounterReadingController::class, 'destroy'])->name('pump-counters.destroy')->middleware('role:admin');
 
         Route::get('shop', [ShopController::class, 'index'])->name('shop.index');
-        Route::get('shop/export-pdf', [ShopController::class, 'exportPdf'])->name('shop.export-pdf');
-        Route::get('shop/export-xlsx', [ShopController::class, 'exportXlsx'])->name('shop.export-xlsx');
+        Route::get('shop/export-pdf', [ShopController::class, 'exportPdf'])->name('shop.export-pdf')->middleware(['throttle:exports', LimitExportRange::class]);
+        Route::get('shop/export-xlsx', [ShopController::class, 'exportXlsx'])->name('shop.export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
         Route::post('shop/items', [ShopController::class, 'storeItem'])->name('shop.items.store');
         // Changing an item's price (backdated ones reprice past sales) or deleting it is for admins.
         Route::patch('shop/items/{shopItem}', [ShopController::class, 'updateItem'])->name('shop.items.update')->middleware('role:admin');
@@ -202,7 +207,7 @@ Route::middleware(['auth', 'auth.session', 'verified', RequireTenant::class, Req
 
         Route::prefix('earnings')->name('earnings.')->group(function () {
             Route::get('/', [EarningsController::class, 'index'])->name('index');
-            Route::get('export-xlsx', [EarningsController::class, 'exportXlsx'])->name('export-xlsx');
+            Route::get('export-xlsx', [EarningsController::class, 'exportXlsx'])->name('export-xlsx')->middleware(['throttle:exports', LimitExportRange::class]);
             Route::post('unlock', [EarningsController::class, 'unlock'])->name('unlock')->middleware('throttle:5,1');
             Route::post('setup', [EarningsController::class, 'setup'])->name('setup');
         });

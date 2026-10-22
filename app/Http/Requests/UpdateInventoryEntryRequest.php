@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -14,9 +15,9 @@ class UpdateInventoryEntryRequest extends FormRequest
     {
         return [
             'tank_id' => ['required', 'exists:tanks,id'],
-            'date' => ['required', 'date'],
+            'date' => ['required', ...EntryRules::date($this->user())],
             'quantity_liters' => ['required', 'numeric', 'min:0'],
-            'notes' => ['nullable', 'string'],
+            'notes' => EntryRules::notes(),
         ];
     }
 }

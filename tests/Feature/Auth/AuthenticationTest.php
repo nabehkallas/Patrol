@@ -87,6 +87,24 @@ class AuthenticationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $response->assertTooManyRequests();
+        // Answered on the form, like a wrong password.
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_an_email_is_limited_to_twenty_attempts_an_hour_from_anywhere()
+    {
+        $user = User::factory()->create();
+
+        RateLimiter::increment(md5('login'.'login-email:'.$user->email), amount: 20);
+
+        // A new IP, and the right password: still refused until the hour is up.
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.9'])->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
     }
 }

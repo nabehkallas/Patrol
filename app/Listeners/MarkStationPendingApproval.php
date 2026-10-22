@@ -4,7 +4,6 @@ namespace App\Listeners;
 
 use App\Enums\StationStatus;
 use App\Models\Tenant;
-use App\Models\User;
 use App\Notifications\StationAwaitingApproval;
 use Illuminate\Auth\Events\Verified;
 
@@ -24,11 +23,6 @@ class MarkStationPendingApproval
 
         $tenant->update(['status' => StationStatus::PendingApproval->value]);
 
-        // Platform admins live in the central database.
-        tenancy()->central(function () use ($tenant) {
-            foreach (User::all() as $admin) {
-                rescue(fn () => $admin->notify(new StationAwaitingApproval($tenant)));
-            }
-        });
+        StationAwaitingApproval::sendToPlatformAdmins($tenant);
     }
 }

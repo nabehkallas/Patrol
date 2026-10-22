@@ -11,6 +11,7 @@
 set -euo pipefail
 
 APP="${FLY_APP:-patrol-station}"
+source "$(dirname "${BASH_SOURCE[0]}")/fly-token.sh"
 WRITE=0
 if [[ "${1:-}" == "--write" ]]; then
     WRITE=1

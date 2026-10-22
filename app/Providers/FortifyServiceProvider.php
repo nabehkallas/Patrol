@@ -177,10 +177,29 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
+        // Sign-in: 5 a minute per email and IP, and 20 an hour per email from anywhere (guesses
+        // spread over many addresses). Answered on the form, like a wrong password.
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.ClientIp::of($request));
+            $email = Str::transliterate(Str::lower((string) $request->input(Fortify::username())));
+            $tooMany = fn (Request $request, array $headers) => back()
+                ->withInput($request->only(Fortify::username()))
+                ->withErrors([Fortify::username() => __('Too many sign-in attempts. Try again in :minutes minutes.', [
+                    'minutes' => max(1, (int) ceil(((int) ($headers['Retry-After'] ?? 60)) / 60)),
+                ])]);
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return [
+                Limit::perMinute(5)->by($email.'|'.ClientIp::of($request))->response($tooMany),
+                Limit::perHour(20)->by('login-email:'.$email)->response($tooMany),
+            ];
+        });
+
+        // PDF/Excel exports: 10 a minute per user, shared by every export.
+        RateLimiter::for('exports', function (Request $request) {
+            $user = $request->user();
+
+            return Limit::perMinute(10)->by('exports:'.($user
+                ? (tenant()?->getTenantKey() ?? 'central').':'.$user->getAuthIdentifier()
+                : 'ip:'.ClientIp::of($request)));
         });
 
         // Every page and action: 100 requests a minute per signed-in user (per station), or per

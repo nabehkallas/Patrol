@@ -7,6 +7,7 @@ use App\Enums\OtherIncomeCategory;
 use App\Enums\TransactionType;
 use App\Models\Tank;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,23 +27,23 @@ class StoreTransactionRequest extends FormRequest
             'type' => ['required', Rule::enum(TransactionType::class)->except([TransactionType::FuelSale])],
             'tank_id' => ['required_if:type,fuel_delivery', 'nullable', 'exists:tanks,id'],
             'liters' => ['required_if:type,fuel_delivery', 'nullable', 'numeric', 'min:0.001'],
-            'price_per_liter' => ['nullable', 'numeric', 'min:0'],
+            'price_per_liter' => ['required_if:type,fuel_delivery', 'nullable', ...EntryRules::amount('0')],
             'description' => ['nullable', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', ...EntryRules::amount()],
             'currency' => ['required', Currency::rule()],
             'to_currency' => ['nullable', 'required_if:type,currency_exchange', Currency::rule()],
-            'to_amount' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'min:0.01'],
+            'to_amount' => ['nullable', 'required_if:type,currency_exchange', ...EntryRules::amount()],
             // The rate of a currency exchange (required there, used nowhere else).
-            'exchange_rate_to_usd' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'gt:0'],
-            'occurred_at' => ['nullable', 'date'],
-            'notes' => ['nullable', 'string'],
+            'exchange_rate_to_usd' => ['nullable', 'required_if:type,currency_exchange', 'numeric', 'gt:0', 'max:'.EntryRules::MAX_AMOUNT],
+            'occurred_at' => ['nullable', ...EntryRules::date($this->user())],
+            'notes' => EntryRules::notes(),
             'other_income_category' => ['nullable', 'required_if:type,other_income', new Enum(OtherIncomeCategory::class)],
             'mark_as_debt' => ['nullable', 'boolean'],
             'debt_debtor_id' => ['nullable', 'required_if:mark_as_debt,1', 'exists:debtors,id'],
             'debt_direction' => ['nullable', new Enum(DebtDirection::class)],
             // Where money paid out in another currency comes from (see CashBox).
             'pay_from' => ['nullable', 'in:own,primary'],
-            'cash_rate' => ['nullable', 'numeric', 'gt:0'],
+            'cash_rate' => ['nullable', 'numeric', 'gt:0', 'max:'.EntryRules::MAX_AMOUNT],
             'confirm_negative_cash' => ['nullable', 'boolean'],
         ];
     }
@@ -58,6 +59,8 @@ class StoreTransactionRequest extends FormRequest
             if ($this->input('type') !== TransactionType::FuelDelivery->value) {
                 return;
             }
+
+            EntryRules::checkLitersTimesPrice($validator, $this->input('liters'), $this->input('price_per_liter'), $this->input('amount'));
 
             $tank = Tank::find($this->integer('tank_id'));
             $liters = (float) $this->input('liters');

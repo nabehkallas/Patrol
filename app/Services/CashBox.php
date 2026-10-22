@@ -25,6 +25,9 @@ class CashBox
     /** From the primary-currency box, converted at a rate. */
     public const FROM_PRIMARY = 'primary';
 
+    /** How far (as a fraction) a non-admin's conversion rate may be from today's saved one. */
+    public const RATE_TOLERANCE = 0.10;
+
     /** The flag a form sends back once the user accepted the primary box going negative. */
     public const CONFIRM_FIELD = 'confirm_negative_cash';
 
@@ -55,15 +58,54 @@ class CashBox
         $rates = [];
 
         foreach (Currency::codes() as $code) {
-            $rates[$code] = $code === Currency::USD ? 1.0 : ExchangeRate::query()
-                ->where('currency', $code)
-                ->where('effective_at', '<=', now())
-                ->latest('effective_at')
-                ->value('rate_to_usd');
-            $rates[$code] = $rates[$code] !== null ? (float) $rates[$code] : null;
+            $rates[$code] = $this->savedRate($code);
         }
 
         return ['cashBalances' => $this->balances(), 'cashRates' => $rates];
+    }
+
+    /** Today's saved rate for a currency, in units per 1 USD; null when none is saved. */
+    private function savedRate(string $code): ?float
+    {
+        if ($code === Currency::USD) {
+            return 1.0;
+        }
+
+        $rate = ExchangeRate::query()
+            ->where('currency', $code)
+            ->where('effective_at', '<=', now())
+            ->latest('effective_at')
+            ->value('rate_to_usd');
+
+        return $rate !== null ? (float) $rate : null;
+    }
+
+    /**
+     * A non-admin pays from the primary box at a rate within RATE_TOLERANCE of today's saved one
+     * (1 $currency = X primary, as the form pre-fills it); an admin may give any rate. With no
+     * saved rate to compare against, only an admin can pay at a rate.
+     */
+    private function assertRateAllowed(float $rate, string $currency, string $primary, bool $anyRate): void
+    {
+        if ($anyRate) {
+            return;
+        }
+
+        $from = $this->savedRate($currency);
+        $to = $this->savedRate($primary);
+
+        if ($from === null || $to === null) {
+            throw ValidationException::withMessages(['cash_rate' => __('There is no saved exchange rate for today. Only an admin can pay at a rate.')]);
+        }
+
+        $saved = $to / $from;
+
+        if (abs($rate - $saved) > $saved * self::RATE_TOLERANCE) {
+            throw ValidationException::withMessages(['cash_rate' => __('The rate must be within :percent% of today\'s rate (:rate). Only an admin can enter another rate.', [
+                'percent' => (int) round(self::RATE_TOLERANCE * 100),
+                'rate' => rtrim(rtrim(number_format($saved, 6, '.', ''), '0'), '.'),
+            ])]);
+        }
     }
 
     /**
@@ -74,7 +116,7 @@ class CashBox
      * @param  array<string, float>  $giveBack
      * @return array{amount: float, currency: string, original_amount: float|null, original_currency: string|null, original_rate: float|null}
      */
-    public function moneyOut(float $amount, string $currency, ?string $payFrom, mixed $rate, bool $confirmed, array $giveBack = [], string $field = 'amount'): array
+    public function moneyOut(float $amount, string $currency, ?string $payFrom, mixed $rate, bool $confirmed, array $giveBack = [], string $field = 'amount', bool $anyRate = false): array
     {
         $primary = Currency::primary();
 
@@ -87,6 +129,8 @@ class CashBox
         if (! is_numeric($rate) || (float) $rate <= 0) {
             throw ValidationException::withMessages(['cash_rate' => __('Enter the exchange rate.')]);
         }
+
+        $this->assertRateAllowed((float) $rate, $currency, $primary, $anyRate);
 
         $converted = round($amount * (float) $rate, Currency::decimals($primary));
         $this->assertCanPay([$primary => $converted], $confirmed, $giveBack, $field);

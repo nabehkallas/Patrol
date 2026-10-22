@@ -3,6 +3,7 @@ import { TriangleAlert } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCurrencies, useCurrencyName } from '@/components/currency-options';
+import { EntryDateInput } from '@/components/entry-date-input';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
@@ -164,9 +165,8 @@ export function OpeningCashCard({ openings }: { openings: OpeningCash[] }) {
                                 <Label htmlFor="opening_date">
                                     {t('common.date')}
                                 </Label>
-                                <Input
+                                <EntryDateInput
                                     id="opening_date"
-                                    type="date"
                                     value={form.data.date}
                                     onChange={(e) =>
                                         form.setData('date', e.target.value)

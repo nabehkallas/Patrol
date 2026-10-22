@@ -43,6 +43,7 @@ trait PaysFromCashBox
             $request->boolean(CashBox::CONFIRM_FIELD),
             $giveBack,
             $field,
+            anyRate: (bool) $request->user()?->isAdmin(),
         );
     }
 

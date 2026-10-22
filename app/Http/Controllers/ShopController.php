@@ -10,6 +10,7 @@ use App\Services\CashBox;
 use App\Services\PdfTableExporter;
 use App\Services\XlsxTableExporter;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use App\Support\Locales;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -346,8 +347,8 @@ class ShopController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:shop_items,name'],
             'category' => ['nullable', 'string', 'max:100'],
-            'base_price' => ['required', 'numeric', 'min:0'],
-            'sell_price' => ['required', 'numeric', 'min:0'],
+            'base_price' => ['required', ...EntryRules::amount('0')],
+            'sell_price' => ['required', ...EntryRules::amount('0')],
             'currency' => ['required', Currency::rule()],
         ]);
 
@@ -373,8 +374,8 @@ class ShopController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:shop_items,name,'.$shopItem->id],
             'category' => ['nullable', 'string', 'max:100'],
-            'base_price' => ['required', 'numeric', 'min:0'],
-            'sell_price' => ['required', 'numeric', 'min:0'],
+            'base_price' => ['required', ...EntryRules::amount('0')],
+            'sell_price' => ['required', ...EntryRules::amount('0')],
             'currency' => ['required', Currency::rule()],
             'effective_at' => ['nullable', 'date', 'before_or_equal:today'],
         ], [
@@ -628,8 +629,8 @@ class ShopController extends Controller
             'shop_item_id' => ['required', 'exists:shop_items,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             // Only an admin's amount (a discount) is used; the currency is always the price's.
-            'amount' => ['nullable', 'numeric', 'min:0.01'],
-            'date' => ['required', 'date'],
+            'amount' => ['nullable', ...EntryRules::amount()],
+            'date' => ['required', ...EntryRules::date($request->user())],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
     }
@@ -642,9 +643,9 @@ class ShopController extends Controller
         return $request->validate([
             'shop_item_id' => ['required', 'exists:shop_items,id'],
             'quantity' => ['required', 'integer', 'min:1'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', ...EntryRules::amount()],
             'currency' => ['required', Currency::rule()],
-            'date' => ['required', 'date'],
+            'date' => ['required', ...EntryRules::date($request->user())],
             'notes' => ['nullable', 'string', 'max:500'],
             ...($paid ? $this->cashSourceRules() : []),
         ]);

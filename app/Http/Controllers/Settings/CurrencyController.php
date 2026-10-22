@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExchangeRate;
 use App\Models\StationCurrency;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class CurrencyController extends Controller
             'decimals' => ['required', 'integer', 'min:0', 'max:4'],
             // Optional: units of this currency per 1 USD, the starting rate for currency exchanges
             // (the only place a rate is used). It can be set later under Exchange Rates.
-            'rate_to_usd' => ['nullable', 'numeric', 'gt:0'],
+            'rate_to_usd' => ['nullable', 'numeric', 'gt:0', 'max:'.EntryRules::MAX_AMOUNT],
         ]);
 
         DB::transaction(function () use ($data, $request) {

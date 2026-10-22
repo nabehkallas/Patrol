@@ -249,6 +249,7 @@ class ShiftReadingTest extends TestCase
 
     public function test_going_back_to_an_earlier_shift_counts_from_the_reading_just_before_it(): void
     {
+        $this->travelTo(Carbon::parse('2026-10-20 12:00:00')); // a reading is never dated in the future
         $this->enter('2026-10-12', 1, 1000);
         $this->enter('2026-10-13', 1, 1500);
         $this->enter('2026-10-20', 1, 5000);

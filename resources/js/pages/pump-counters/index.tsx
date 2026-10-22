@@ -3,6 +3,7 @@ import { StickyNote } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DateRangePicker } from '@/components/date-range-picker';
+import { EntryDateInput } from '@/components/entry-date-input';
 import { GeneratePdfButton } from '@/components/generate-pdf-button';
 import { GenerateXlsxButton } from '@/components/generate-xlsx-button';
 import InputError from '@/components/input-error';
@@ -29,7 +30,6 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -618,9 +618,8 @@ export default function PumpCountersIndex() {
                         <form onSubmit={submitAll} className="space-y-3">
                             <div className="flex flex-wrap items-center gap-3">
                                 <Label htmlFor="date">{t('common.date')}</Label>
-                                <Input
+                                <EntryDateInput
                                     id="date"
-                                    type="date"
                                     className="h-9 w-auto border-slate-300 dark:border-slate-700"
                                     value={
                                         pendingSwitch?.date ??

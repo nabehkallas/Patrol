@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CashBoxOpening;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,8 +29,8 @@ class CashBoxOpeningController extends Controller
     {
         $data = $request->validate([
             'currency' => ['required', Currency::rule()],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'date' => ['required', 'date'],
+            'amount' => ['required', ...EntryRules::amount('0')],
+            'date' => ['required', ...EntryRules::date($request->user())],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 

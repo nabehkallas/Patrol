@@ -81,7 +81,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back(303);
             }
 
-            $shown = config('app.debug') ? [403, 404] : [403, 404, 500, 503];
+            $shown = config('app.debug') ? [403, 404, 429] : [403, 404, 429, 500, 503];
             if (! in_array($status, $shown, true)) {
                 return $response;
             }

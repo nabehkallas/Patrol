@@ -2,6 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CurrencyOptions } from '@/components/currency-options';
+import { EntryDateInput } from '@/components/entry-date-input';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
@@ -202,9 +203,8 @@ export default function DebtEdit() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="date">{t('common.date')}</Label>
-                        <Input
+                        <EntryDateInput
                             id="date"
-                            type="date"
                             value={form.data.date}
                             onChange={(e) =>
                                 form.setData('date', e.target.value)

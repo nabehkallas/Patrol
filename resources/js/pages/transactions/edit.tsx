@@ -10,6 +10,7 @@ import {
     CurrencyOptions,
     useCurrencyName,
 } from '@/components/currency-options';
+import { EntryDateInput } from '@/components/entry-date-input';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/page-header';
@@ -433,9 +434,8 @@ export default function TransactionEdit() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="occurred_at">{t('common.date')}</Label>
-                        <Input
+                        <EntryDateInput
                             id="occurred_at"
-                            type="date"
                             value={form.data.occurred_at}
                             onChange={(e) =>
                                 form.setData('occurred_at', e.target.value)

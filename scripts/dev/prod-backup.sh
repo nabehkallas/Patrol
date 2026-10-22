@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Backs up every production database before a migration or a data change: a consistent copy
 # on the server (/data/backups-<label>-<time>/), integrity-checked, then downloaded to
-# ../prod-backups/<label>-<time>/ and checked again locally. Writes nothing but the copies.
+# ~/patrol-prod-backups/<label>-<time>/ (PROD_BACKUPS_DIR) and checked again locally. Writes nothing but the copies.
 #
 #   scripts/dev/prod-backup.sh pre-shifts-part-2
 set -euo pipefail
@@ -10,6 +10,9 @@ cd "$(dirname "$0")/../.."
 LABEL="${1:?usage: prod-backup.sh <label>  (e.g. pre-shifts-part-2)}"
 [[ "$LABEL" =~ ^[a-z0-9-]+$ ]] || { echo "Label: lowercase letters, digits and dashes only." >&2; exit 1; }
 APP="${FLY_APP:-patrol-station}"
+source scripts/dev/fly-token.sh
+# Production copies stay outside every git folder (they hold all stations' data).
+BACKUPS="${PROD_BACKUPS_DIR:-$(cygpath -m "$HOME" 2>/dev/null || echo "$HOME")/patrol-prod-backups}"
 
 B64=$(base64 -w0 scripts/dev/prod/backup.php)
 OUT=$(MSYS_NO_PATHCONV=1 timeout 300 flyctl ssh console -a "$APP" \
@@ -26,7 +29,7 @@ if echo "$OUT" | grep -q '"integrity": *"[^o]'; then
     exit 1
 fi
 
-LOCAL="../prod-backups/$(basename "$DIR" | sed 's/^backups-//')"
+LOCAL="$BACKUPS/$(basename "$DIR" | sed 's/^backups-//')"
 mkdir -p "$LOCAL"
 for file in $(echo "$OUT" | sed -n 's/^ *"\([^"]*\.sqlite\)": {.*/\1/p'); do
     MSYS_NO_PATHCONV=1 timeout 300 flyctl ssh sftp get -a "$APP" "$DIR/$file" "$LOCAL/$file" >/dev/null

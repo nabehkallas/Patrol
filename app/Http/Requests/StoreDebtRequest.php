@@ -3,13 +3,17 @@
 namespace App\Http\Requests;
 
 use App\Enums\DebtDirection;
+use App\Http\Requests\Concerns\ValidatesFuelDebt;
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreDebtRequest extends FormRequest
 {
+    use ValidatesFuelDebt;
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -20,16 +24,16 @@ class StoreDebtRequest extends FormRequest
             'debtor_id' => ['required', 'exists:debtors,id'],
             'fuel_type_id' => ['nullable', 'exists:fuel_types,id'],
             'liters' => ['nullable', 'required_with:fuel_type_id', 'numeric', 'min:0.001'],
-            'price_per_liter' => ['nullable', 'required_with:fuel_type_id', 'numeric', 'min:0'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'price_per_liter' => ['nullable', 'required_with:fuel_type_id', ...EntryRules::amount('0')],
+            'amount' => ['required', ...EntryRules::amount()],
             'currency' => ['required', Currency::rule()],
-            'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001'],
-            'date' => ['required', 'date'],
-            'details' => ['nullable', 'string'],
+            'exchange_rate_to_usd' => ['nullable', 'numeric', 'min:0.000001', 'max:'.EntryRules::MAX_AMOUNT],
+            'date' => ['required', ...EntryRules::date($this->user())],
+            'details' => EntryRules::notes(),
             'affect_cash_box' => ['nullable', 'boolean'],
             // Where a cash advance paid out now comes from (see CashBox).
             'pay_from' => ['nullable', 'in:own,primary'],
-            'cash_rate' => ['nullable', 'numeric', 'gt:0'],
+            'cash_rate' => ['nullable', 'numeric', 'gt:0', 'max:'.EntryRules::MAX_AMOUNT],
             'confirm_negative_cash' => ['nullable', 'boolean'],
         ];
     }

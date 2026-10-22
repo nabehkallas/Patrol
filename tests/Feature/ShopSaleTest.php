@@ -97,14 +97,29 @@ class ShopSaleTest extends TestCase
     {
         $this->price(1200, 'SYP', '2026-10-15');
 
-        $this->assertSame([3000.0, 'SYP'], $this->money($this->sell($this->attendant, ['date' => '2026-10-10'])));
+        // More than 7 days back is an admin's (EntryDate).
+        $this->assertSame([3000.0, 'SYP'], $this->money($this->sell($this->admin, ['date' => '2026-10-10'])));
         $this->assertSame([3600.0, 'SYP'], $this->money($this->sell($this->attendant, ['date' => '2026-10-20'])));
+    }
+
+    public function test_an_attendant_cannot_date_a_sale_more_than_seven_days_back_or_in_the_future(): void
+    {
+        foreach (['2026-10-13', '2026-10-22'] as $date) {
+            try {
+                $this->sell($this->attendant, ['date' => $date]);
+                $this->fail("A sale dated $date was saved.");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey('date', $e->errors());
+            }
+        }
+
+        $this->assertSame([3000.0, 'SYP'], $this->money($this->sell($this->attendant, ['date' => '2026-10-14'])));
     }
 
     public function test_an_item_without_a_price_on_that_date_cannot_be_sold(): void
     {
         try {
-            $this->sell($this->attendant, ['date' => '2026-09-30']);
+            $this->sell($this->admin, ['date' => '2026-09-30']);
             $this->fail('The sale was saved without a price.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('amount', $e->errors());

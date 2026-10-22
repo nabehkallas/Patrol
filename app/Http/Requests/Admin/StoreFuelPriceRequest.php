@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Support\Currency;
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,7 +16,7 @@ class StoreFuelPriceRequest extends FormRequest
     {
         return [
             'fuel_type_id' => ['required', 'exists:fuel_types,id'],
-            'price_per_liter' => ['required', 'numeric', 'min:0'],
+            'price_per_liter' => ['required', ...EntryRules::amount('0')],
             'currency' => ['required', Currency::rule()],
             'effective_at' => ['nullable', 'date'],
         ];

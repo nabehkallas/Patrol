@@ -12,6 +12,16 @@ class StationAwaitingApproval extends Notification
 {
     public function __construct(private Tenant $tenant) {}
 
+    /** Emails every platform admin (central users); a mail failure never blocks the sign-up. */
+    public static function sendToPlatformAdmins(Tenant $tenant): void
+    {
+        tenancy()->central(function () use ($tenant) {
+            foreach (User::all() as $admin) {
+                rescue(fn () => $admin->notify(new self($tenant)));
+            }
+        });
+    }
+
     /**
      * @return list<string>
      */

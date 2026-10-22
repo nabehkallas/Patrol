@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\EntryRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,8 +16,8 @@ class UpdateTankTopUpRequest extends FormRequest
         return [
             'tank_id' => ['required', 'exists:tanks,id'],
             'liters' => ['required', 'numeric', 'min:0.001'],
-            'date' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
+            'date' => ['required', ...EntryRules::date($this->user())],
+            'notes' => EntryRules::notes(),
         ];
     }
 }

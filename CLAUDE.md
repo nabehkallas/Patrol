@@ -1,6 +1,6 @@
 # Patrol Station
 
-A database-per-tenant multi-tenant SaaS for managing fuel stations (fuel inventory, pumps, cash box, debts, Sadcop supplier ledger, shop items). Sold to station owners, onboarded manually — no self-serve signup.
+A database-per-tenant multi-tenant SaaS for managing fuel stations (fuel inventory, pumps, cash box, debts, Sadcop supplier ledger, shop items). Sold to station owners: a platform admin creates a station (Platform → new station), or the owner signs up publicly at `/register` and a platform admin approves it (see "Public sign-up").
 
 **Stack:** Laravel 13, Inertia v3 (`@inertiajs/react`), React 19, TypeScript, Tailwind v4, Vite, `stancl/tenancy` v3.10, Spatie `laravel-permission`, Wayfinder (typed route helpers).
 
@@ -14,6 +14,23 @@ A database-per-tenant multi-tenant SaaS for managing fuel stations (fuel invento
 - Middlewares: `RequireTenant` (redirects super admins away from tenant routes), `RequireSuperAdmin` (mirror, for `/platform/*`), `RequireOnboarding` (gates operational routes behind the first-run wizard until `tenant('onboarded_at')` is set), `ForcePasswordChange` (temp-password flow for freshly provisioned stations).
 - `FilesystemTenancyBootstrapper` is **deliberately not registered** in `config/tenancy.php` — this app never stores per-tenant files, and that bootstrapper rewrites Vite asset URLs, which broke the production JS/CSS bundle. Don't re-add it.
 - Admin (`admin/*`) routes are intentionally *not* gated by `RequireOnboarding` — the wizard only collects opening balances; tanks/pumps/fuel types are set up through the normal admin CRUD first.
+
+## Public sign-up
+
+- `/register` (`StationRegistrationController`) is open to everyone, behind a **Cloudflare Turnstile** captcha (`App\Services\Turnstile`, `components/turnstile.tsx`). It is on only when both Fly secrets `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` are set; once on, a missing/invalid token or a failed call to Cloudflare refuses the sign-up. Locally (Windows PHP has no CA bundle) the server's call fails unless PHP is started with `-d curl.cainfo="C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt"`; Cloudflare's test keys `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` always pass.
+- Signing up stores **only a central `pending_registrations` row** (password already hashed, token hashed) and emails a confirmation link (`ConfirmStationRegistration`). **No station or database exists until the link is opened** (`register.verify`): then the station is created `pending_approval` with the owner's email already verified, the platform admins are emailed, and the owner lands on "awaiting approval". A platform admin approves it to go live.
+- Unconfirmed sign-ups expire after 48 h (`PendingRegistration::LIFETIME_HOURS`) and are pruned hourly (`routes/console.php`, run by the `scheduler` program in `deploy/supervisord.conf`). Caps: 3 open sign-ups per IP, 100 overall, 30 stations awaiting approval (`StationRegistrationController::MAX_*`); a second sign-up for an email with an open one is refused (so nobody can replace someone else's pending password).
+
+## Server-side entry rules — every form, whatever the browser sends
+
+- **Dates** (`App\Rules\EntryDate`, via `EntryRules::date($user)`): never in the future (station time); anyone but an admin at most **7 days back**. The entry forms use `components/entry-date-input.tsx` (same min/max). Fuel-price and exchange-rate `effective_at` (admin settings) are not limited.
+- **Bounds** (`App\Support\EntryRules`): amounts, prices and rates ≤ 1,000,000,000,000; notes ≤ 1,000 characters (some fields keep a stricter 500).
+- **Liters × price**: a fuel delivery (price per liter now required), a fuel debt and a Sadcop delivery must have amount = liters × price per liter, within one currency unit or 0.1% (`EntryRules::checkLitersTimesPrice`). A fuel debt's currency is forced to its fuel price's on that date (`ValidatesFuelDebt`).
+- **Store sales** are priced on the server: quantity × the sell price on the sale's date, in that price's currency (`ShopItem::saleAmountAt()`); an amount sent by a non-admin is ignored, an admin's is kept as a discount. A price change reprices only sales still at their list price (amount and currency). Editing/deleting Store items is `role:admin`.
+- **Paying from the primary box at a rate**: a non-admin's rate must be within ±10% of today's saved one (`CashBox::RATE_TOLERANCE`); with no saved rate only an admin can pay at a rate. Admins may give any rate.
+- **Exports** (every `*export-*` route): `throttle:exports` (10 a minute per user, shared) and `LimitExportRange` (at most 2 years of from/to; Sadcop's "all dates" is left alone). Both answer with the error page (exports open in a new tab).
+- **Sign-in**: 5 a minute per email + IP and 20 an hour per email from anywhere, answered on the form (`FortifyServiceProvider`).
+- **Profile**: a station user can't change their own email (it is their sign-in name in the central directory — the station admin changes it on Employees) or delete their own account; only platform admins can.
 
 ## Arabic / i18n — read this before adding any user-facing string
 
@@ -57,7 +74,7 @@ Pick the level from what the change touches; **when unsure, use the higher one**
 
 Every level, before committing:
 1. `./vendor/bin/pint --dirty` (PHP changed), `npx tsc --noEmit`, `npx eslint <changed paths>`, `npx prettier --write <changed paths>`; PHPStan when PHP changed: `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT -u AI_AGENT php -d memory_limit=2G vendor/bin/phpstan analyse`.
-2. `php artisan test` healthy baseline: **141 tests, 133 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner; keep what they import free of `@/` imports).
+2. `php artisan test` healthy baseline: **165 tests, 157 passed, 8 skipped** (the skipped ones need Fortify features this app turns off: registration, two-factor). `npm run test:js` runs the frontend logic tests in `tests/js/` (Node's own test runner; keep what they import free of `@/` imports).
 3. `npm run build`. After adding/changing a route: `php artisan wayfinder:generate --with-form`.
 4. Translations: `php scripts/dev/add-keys.php keys.php` (all 11 languages; refuses to overwrite an existing key or remove one still in use).
 5. Commit with explicit file paths (never `git add -A`), push, then deploy. Production data is never changed without the user's approval (`prod-run.sh --write` only then); production checks are read-only.
@@ -104,4 +121,7 @@ Local testing: the app runs with `php artisan serve --port=8001` (port 8000 is a
 
 ## Secrets
 
-Never commit credentials to this repo or to CLAUDE.md. Production secrets (R2/Litestream, super admin credentials, etc.) are set via `fly secrets set` and are not recoverable from git history — if a secret was ever pasted into a chat/session transcript, treat it as compromised and rotate it.
+Never commit credentials to this repo or to CLAUDE.md. Production secrets (R2/Litestream, mail, Turnstile, super admin credentials, etc.) are set via `fly secrets set` and are not recoverable from git history — if a secret was ever pasted into a chat/session transcript, treat it as compromised and rotate it.
+
+- The production scripts (`deploy.sh`, `prod-run.sh`, `prod-backup.sh`) use an **app-scoped deploy token** from `~/.config/patrol/fly-token` (`scripts/dev/fly-token.sh`), not the personal `fly auth login` session. The user creates and renews it themselves (`fly tokens create deploy -a patrol-station …`) so its value never appears in a session.
+- Production database copies go to `~/patrol-prod-backups/` (`PROD_BACKUPS_DIR`), **outside every git folder**; they hold every station's data and password hashes.

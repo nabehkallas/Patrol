@@ -1,7 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
+import { Turnstile } from '@/components/turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,10 +14,15 @@ import { store } from '@/routes/register';
 
 export default function RegisterStation({
     passwordRules,
+    turnstileSiteKey,
 }: {
     passwordRules: string;
+    /** Null while the captcha isn't configured (see App\Services\Turnstile). */
+    turnstileSiteKey: string | null;
 }) {
     const { t } = useTranslation();
+    // A captcha token works once: a failed submit renders a fresh widget.
+    const [attempt, setAttempt] = useState(0);
 
     const field = (
         name: string,
@@ -37,6 +44,7 @@ export default function RegisterStation({
             <Form
                 {...store.form()}
                 resetOnError={['password', 'password_confirmation']}
+                onError={() => setAttempt((count) => count + 1)}
             >
                 {({ processing, errors }) => (
                     <div className="grid gap-5">
@@ -104,6 +112,16 @@ export default function RegisterStation({
                                 message={errors.password_confirmation}
                             />
                         </div>
+
+                        {turnstileSiteKey && (
+                            <div className="grid gap-2">
+                                <Turnstile
+                                    siteKey={turnstileSiteKey}
+                                    resetKey={attempt}
+                                />
+                                <InputError message={errors.captcha} />
+                            </div>
+                        )}
 
                         <Button
                             type="submit"

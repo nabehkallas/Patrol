@@ -51,6 +51,10 @@ class ProfileController extends Controller
      */
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
+        // A station account is removed by its station admin (Employees), never by itself --
+        // otherwise the last admin could leave a station with no one to run it.
+        abort_if(tenancy()->initialized, 403);
+
         $user = $request->user();
 
         Auth::logout();
